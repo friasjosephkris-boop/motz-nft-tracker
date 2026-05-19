@@ -210,10 +210,16 @@ export function isPrefixedEnvironment(): boolean {
  *  safety cap of 1000 iterations × 500 = 500k keys. Used by destructive
  *  admin ops to enumerate the keyspace before deleting. */
 export async function scanAllByPattern(pattern: string): Promise<string[]> {
+  // SCAN matches against the FULL stored key, which includes KEY_PREFIX. The
+  // caller passes a logical pattern ("progress:*"); we prepend the prefix so
+  // matches work whether or not a prefix is configured. Without this, a wipe
+  // on any prefixed deployment scans zero keys and silently does nothing —
+  // which is exactly how stale XP survived the last prod wipe.
+  const fullPattern = KEY_PREFIX ? `${KEY_PREFIX}${pattern}` : pattern;
   const all: string[] = [];
   let cursor = "0";
   for (let i = 0; i < 1000; i++) {
-    const args = ["SCAN", cursor, "MATCH", pattern, "COUNT", "500"];
+    const args = ["SCAN", cursor, "MATCH", fullPattern, "COUNT", "500"];
     const r = await fetch(URL!, {
       method: "POST",
       headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },

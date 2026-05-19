@@ -1,4 +1,4 @@
-import { getJson, setJson, del, zaddGt, zaddLt, zrangeWithScores, zrevrank, zrevrange, incrWithExpire, hset, hmget, incrBy, incrByWithExpire, getNumber, isPrefixedEnvironment, scanAllPrefixed, scanAllByPattern, delManyRaw, withWalletLock } from "./redis.js";
+import { getJson, setJson, del, zaddGt, zaddLt, zrangeWithScores, zrevrank, zrevrange, incrWithExpire, hset, hmget, hgetAll, incrBy, incrByWithExpire, getNumber, isPrefixedEnvironment, scanAllPrefixed, scanAllByPattern, delManyRaw, withWalletLock } from "./redis.js";
 import { bumpVouchersAcquired } from "./analytics.js";
 
 // ---- Admin: leaderboard resets ----
@@ -73,6 +73,39 @@ export async function adminWipeAllData(): Promise<{ ok: boolean; scanned: number
     if (keys.length === 0) continue;
     const deleted = await delManyRaw(keys);
     totalDeleted += deleted;
+  }
+  // Belt-and-suspenders: enumerate every wallet that ever appeared in an
+  // analytics hash and DEL its per-wallet keys directly. Catches anything the
+  // pattern scan misses (e.g. a future keyspace we forgot to add to PATTERNS,
+  // or an Upstash SCAN quirk that skipped a shard). Since these are explicit
+  // GETs by full key name, they bypass SCAN entirely and route through the
+  // normal prefix-aware command pipeline.
+  try {
+    const walletSources = await Promise.all([
+      hgetAll("analytics:minutes").catch(() => ({})),
+      hgetAll("analytics:ron_spent").catch(() => ({})),
+      hgetAll("analytics:vouchers_acquired").catch(() => ({})),
+      hgetAll("analytics:vouchers_spent").catch(() => ({})),
+      hgetAll("analytics:energy_used").catch(() => ({})),
+      hgetAll("igns").catch(() => ({})),
+    ]);
+    const wallets = new Set<string>();
+    for (const src of walletSources) for (const k of Object.keys(src)) wallets.add(k.toLowerCase());
+    const PER_WALLET_PREFIXES = [
+      "progress:", "xpcap:", "energy:", "maxfloor:", "shop:", "attempts:",
+      "retries:", "starts:", "pendingClears:", "challenges:", "daily:", "season:",
+    ];
+    let directDeleted = 0;
+    for (const wallet of wallets) {
+      for (const prefix of PER_WALLET_PREFIXES) {
+        const n = await del(`${prefix}${wallet}`).catch(() => 0);
+        if (typeof n === "number") directDeleted += n;
+      }
+    }
+    patternHits["__direct_per_wallet"] = directDeleted;
+    totalDeleted += directDeleted;
+  } catch {
+    // Direct-delete is a safety net — don't fail the whole wipe if it errors.
   }
   return { ok: true, scanned: totalScanned, deleted: totalDeleted, patternHits };
 }
