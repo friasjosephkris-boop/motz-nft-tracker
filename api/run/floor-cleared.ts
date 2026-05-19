@@ -6,7 +6,7 @@ import {
   adminClearAllLeaderboards, adminClearLeaderboard, AdminResetScope,
   recordFloorModeClear, getMaxFloorCleared,
   saveReplayBlob, loadReplayBlob,
-  adminWipeDevData, adminWipeAllData, adminForceResetWallet,
+  adminWipeDevData, adminWipeAllData, adminForceResetWallet, enumerateAllWallets,
   readAttempts, bumpAttempts, attemptsCap,
   readShopInventory, writeShopInventory, mutateShopInventory,
   readBoughtToday, markBoughtToday, consumeBuff,
@@ -138,6 +138,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     try {
       const r = await adminWipeAllData();
       res.status(200).json({ ok: true, scanned: r.scanned, deleted: r.deleted, patternHits: r.patternHits });
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+    }
+    return;
+  }
+  if (op === "admin_force_reset_except") {
+    // Reset every wallet that has any data EXCEPT the allowlist. Use when
+    // most players need a re-sync but a handful of legit fresh-start players
+    // should be preserved. Allowlist must be non-empty as a safety check —
+    // an empty allowlist would be equivalent to a global wipe and should go
+    // through admin_wipe_all_data with its 3-confirmation gauntlet instead.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const keepRaw = (req.body as { keep?: unknown }).keep;
+    if (!Array.isArray(keepRaw) || keepRaw.length === 0) {
+      res.status(400).json({ error: "keep must be a non-empty array of wallet addresses" }); return;
+    }
+    const keep = new Set<string>();
+    for (const k of keepRaw) {
+      if (typeof k === "string" && /^0x[0-9a-fA-F]{40}$/.test(k.trim())) {
+        keep.add(k.trim().toLowerCase());
+      }
+    }
+    if (keep.size === 0) {
+      res.status(400).json({ error: "keep contains no valid 0x-prefixed 40-hex addresses" }); return;
+    }
+    try {
+      const allWallets = await enumerateAllWallets();
+      const targets = allWallets.filter(w => !keep.has(w));
+      const results: { wallet: string; ok: boolean; deleted: number; error?: string }[] = [];
+      for (const w of targets) {
+        try {
+          const r = await adminForceResetWallet(w);
+          const deletedCount = Object.values(r.deleted).reduce((a, b) => a + b, 0);
+          results.push({ wallet: w, ok: true, deleted: deletedCount });
+        } catch (e) {
+          results.push({ wallet: w, ok: false, deleted: 0, error: e instanceof Error ? e.message : "failed" });
+        }
+      }
+      res.status(200).json({
+        ok: true,
+        totalWallets: allWallets.length,
+        kept: Array.from(keep),
+        resetCount: results.filter(r => r.ok).length,
+        failCount: results.filter(r => !r.ok).length,
+        results,
+      });
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
     }

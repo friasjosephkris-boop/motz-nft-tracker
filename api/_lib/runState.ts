@@ -60,6 +60,23 @@ export async function readForceResetAt(address: string): Promise<number> {
   return await getNumber(forceResetKey(address));
 }
 
+/** Enumerate every wallet that has ANY known game data. Union of all analytics
+ *  hashes + the IGN registry. Returned lowercased + de-duped. Used by the
+ *  "reset all except allowlist" admin op so we know who to target. */
+export async function enumerateAllWallets(): Promise<string[]> {
+  const sources = await Promise.all([
+    hgetAll("analytics:minutes").catch(() => ({})),
+    hgetAll("analytics:ron_spent").catch(() => ({})),
+    hgetAll("analytics:vouchers_acquired").catch(() => ({})),
+    hgetAll("analytics:vouchers_spent").catch(() => ({})),
+    hgetAll("analytics:energy_used").catch(() => ({})),
+    hgetAll("igns").catch(() => ({})),
+  ]);
+  const wallets = new Set<string>();
+  for (const src of sources) for (const k of Object.keys(src)) wallets.add(k.toLowerCase());
+  return Array.from(wallets);
+}
+
 /** Admin op: nuke a single wallet's per-wallet keys and stamp force-reset so
  *  their next /api/auth/me poll triggers a client localStorage clear + reload.
  *  Returns the per-key delete counts so the admin UI can confirm the wipe. */

@@ -3,7 +3,7 @@ import { addEnergy, getEnergy, ENERGY_MAX, msUntilNextRefill } from "../core/ene
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -125,7 +125,10 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
               <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
                 <span class="admin-info">🎯 <strong>Force-Reset Wallets</strong> — nukes server data for one or more wallets AND forces their browsers to clear cached state on next session check. Use when a full wipe isn't viable. Paste one wallet per line (or comma-separated).</span>
                 <textarea id="admin-force-reset-wallet" placeholder="0x...&#10;0x...&#10;0x..." style="font-family:monospace; padding:6px 8px; min-width:380px; min-height:80px; resize:vertical;"></textarea>
-                <button class="ghost-btn" id="admin-force-reset-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🎯 Force-Reset Wallet(s)</button>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <button class="ghost-btn" id="admin-force-reset-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🎯 Reset These Wallets</button>
+                  <button class="ghost-btn" id="admin-force-reset-except-btn" type="button" style="border-color:#ff5a6b;color:#ffb8c0;">🔁 Reset EVERYONE EXCEPT These</button>
+                </div>
               </div>
             ` : ""}
             <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 6px;">
@@ -329,6 +332,49 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       message: `${rows}<br>Affected clients will auto-clear + reload on next session poll.`,
     });
     if (input && failCount === 0) input.value = "";
+  });
+
+  // ---- Reset everyone EXCEPT the allowlist (main builds only) ----
+  // Same per-wallet reset semantics, but inverted: enumerate all wallets that
+  // have any data and reset everyone NOT in the textarea. Useful when most
+  // players need a re-sync but a few legit fresh-starters must be preserved.
+  root.querySelector<HTMLButtonElement>("#admin-force-reset-except-btn")?.addEventListener("click", async () => {
+    const input = root.querySelector<HTMLTextAreaElement>("#admin-force-reset-wallet");
+    const raw = (input?.value ?? "").trim();
+    const tokens = raw.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+    const keep: string[] = [];
+    const bad: string[] = [];
+    for (const t of tokens) {
+      if (/^0x[0-9a-fA-F]{40}$/.test(t)) keep.push(t.toLowerCase());
+      else bad.push(t);
+    }
+    if (keep.length === 0) {
+      await alertModal({ kind: "warning", title: "No Allowlist", message: "Paste at least one wallet to PRESERVE. To wipe absolutely everyone, use the full Production Wipe button instead." });
+      return;
+    }
+    const summary = keep.map(w => `<div style="font-family:monospace; font-size:11px; color:#9bff9b;">✓ KEEP ${w}</div>`).join("");
+    const badNote = bad.length > 0 ? `<br><span style="color:#ffb14a;">Skipping ${bad.length} invalid token(s).</span>` : "";
+    const ok = await confirmModal({
+      title: "🔁 Reset EVERYONE Except These?",
+      message: `This will force-reset <strong>every wallet that has any data</strong> — except the ${keep.length} below — and force their browsers to clear cached state on next session check.<br><br>${summary}${badNote}<br><strong style="color:#ff5a6b;">This affects many players at once.</strong> Are you sure?`,
+      confirmLabel: `Reset Everyone Except ${keep.length}`,
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
+    const r = await adminForceResetExcept(keep);
+    if (!r.ok) {
+      await alertModal({ kind: "error", title: "Reset Failed", message: `Server returned: ${r.error ?? "unknown error"}` });
+      return;
+    }
+    const rows = (r.results ?? []).map(x =>
+      `<div style="font-family:monospace; font-size:11px; color:${x.ok ? "#9bff9b" : "#ff8888"};">${x.ok ? "✓" : "✗"} ${x.wallet} — ${x.ok ? `${x.deleted} keys` : (x.error ?? "failed")}</div>`
+    ).join("");
+    await alertModal({
+      kind: (r.failCount ?? 0) === 0 ? "success" : "warning",
+      title: `Reset Complete (${r.resetCount}/${(r.resetCount ?? 0) + (r.failCount ?? 0)})`,
+      message: `<div>Total wallets scanned: <strong>${r.totalWallets}</strong></div><div>Kept (allowlist): <strong>${keep.length}</strong></div><div>Reset: <strong>${r.resetCount}</strong>, Failed: <strong>${r.failCount}</strong></div><br>${rows}<br>Affected clients will auto-clear + reload on next session poll.`,
+    });
   });
 
   // ---- Season halt admin controls ----
