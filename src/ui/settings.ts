@@ -147,12 +147,12 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
               </div>
             </div>
             <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
-              <span class="admin-info">⛓ <strong>Test On-Chain Daily Check-In</strong> — fires checkIn(wallet) on the Ronin contract WITHOUT touching the in-game daily lock. Use to verify env-var wiring (contract addr / chain id / relayer pk) without burning a real daily slot or waiting for UTC reset.</span>
+              <span class="admin-info">⛓ <strong>Query On-Chain Daily Check-In</strong> — read-only contract query. Returns whether this wallet has an on-chain check-in for today and their current streak. Use to verify contract reachability + spot-check a player's claim status.</span>
               <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
                 <input type="text" id="admin-onchain-checkin-wallet" placeholder="0x..." style="font-family:monospace; padding:4px 8px; min-width:340px;" />
-                <button class="ghost-btn" id="admin-onchain-checkin-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;">⛓ Fire checkIn()</button>
+                <button class="ghost-btn" id="admin-onchain-checkin-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;">⛓ Query Status</button>
               </div>
-              <span class="setting-hint">Note: the contract rejects double-checkin in the same period — testing the same wallet twice in 24h will revert with "already checked in this period".</span>
+              <span class="setting-hint">Read-only — does not change anything on-chain. The contract uses msg.sender semantics now, so only the player can sign their own check-in (from their wallet, via the in-game Daily Claim button).</span>
             </div>
             <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 6px;">
               <span class="admin-info" id="admin-season-status">Season state: loading…</span>
@@ -443,7 +443,7 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       return;
     }
     const btn = root.querySelector<HTMLButtonElement>("#admin-onchain-checkin-btn");
-    if (btn) { btn.disabled = true; btn.textContent = "⛓ Firing… (~5s)"; }
+    if (btn) { btn.disabled = true; btn.textContent = "⛓ Querying…"; }
     try {
       const r = await adminTestOnChainCheckIn(wallet);
       if (r.error) {
@@ -454,22 +454,26 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
         await alertModal({
           kind: "warning",
           title: "On-Chain Not Configured",
-          message: "DAILY_CHECKIN_* env vars are missing on this environment. Set DAILY_CHECKIN_ENABLED, DAILY_CHECKIN_CONTRACT_ADDR, DAILY_CHECKIN_CHAIN_ID, DAILY_CHECKIN_RELAYER_PK in Vercel and redeploy.",
+          message: "DAILY_CHECKIN_* env vars are missing on this environment. Set DAILY_CHECKIN_ENABLED, DAILY_CHECKIN_CONTRACT_ADDR, DAILY_CHECKIN_CHAIN_ID in Vercel and redeploy.",
         });
         return;
       }
       if (!r.ok) {
-        await alertModal({ kind: "error", title: "On-Chain Tx Failed", message: `Reason: ${r.reason ?? "unknown"}${r.txHash ? `<br>txHash: <span style="font-family:monospace;">${r.txHash}</span>` : ""}` });
+        await alertModal({ kind: "error", title: "Query Failed", message: `Reason: ${r.reason ?? "unknown"}` });
         return;
       }
-      const explorerUrl = r.txHash ? `https://app.roninchain.com/tx/${r.txHash}` : null;
+      const checked = r.hasCheckedInToday === true;
+      const streak = r.currentStreak ?? 0;
       await alertModal({
-        kind: "success",
-        title: "On-Chain checkIn() Succeeded",
-        message: `Fired <code>checkIn(${wallet})</code> on the Ronin contract.<br>txHash: <span style="font-family:monospace;">${r.txHash ?? "(missing)"}</span>${explorerUrl ? `<br><a href="${explorerUrl}" target="_blank" rel="noopener">View on Ronin Explorer ↗</a>` : ""}`,
+        kind: checked ? "success" : "warning",
+        title: checked ? "✅ Checked In Today" : "⏳ Not Checked In Today",
+        message: `Wallet <span style="font-family:monospace;">${wallet}</span><br><br>
+          <strong>On-chain check-in today:</strong> ${checked ? "yes" : "no"}<br>
+          <strong>Current streak:</strong> ${streak}<br><br>
+          <span style="font-size:11px; opacity:0.7;">Read-only query. ${checked ? "Player has earned Voyages credit for today." : "Player must sign in their wallet via the in-game Daily Claim to record an on-chain check-in."}</span>`,
       });
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = "⛓ Fire checkIn()"; }
+      if (btn) { btn.disabled = false; btn.textContent = "⛓ Query Status"; }
     }
   });
 

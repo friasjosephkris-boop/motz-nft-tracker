@@ -4,8 +4,7 @@
 
 import { getJson, setJson, setNxWithExpire } from "./redis.js";
 import { getEnergy, ENERGY_MAX } from "./energy.js";
-import { callOnChainCheckIn } from "./dailyCheckInOnChain.js";
-import { getAddress } from "viem";
+import { verifyDailyCheckInTx, isDailyCheckInChainEnabled } from "./dailyCheckInVerify.js";
 
 const PH_OFFSET_MS = 8 * 60 * 60 * 1000;
 const RESET_HOUR = 8;
@@ -90,13 +89,12 @@ export async function getDailyStatus(address: string): Promise<DailyStatus> {
 
 export interface DailyClaimResult {
   ok: boolean;
-  reason?: "already_claimed" | "onchain_failed";
-  /** Human-readable detail when reason === "onchain_failed". Surfaced to the
-   *  player so they know the in-game claim was held back because the on-chain
-   *  tx didn't succeed (RPC down, relayer out of gas, contract revert, etc.). */
+  reason?: "already_claimed" | "onchain_failed" | "onchain_required";
+  /** Human-readable detail when reason === "onchain_failed" / "onchain_required".
+   *  Surfaced to the player so they know exactly why the in-game claim was held
+   *  back (tx not found, wrong sender, reverted, too old, already used, etc.). */
   onchainError?: string;
-  /** Transaction hash of the successful on-chain checkIn, when the integration
-   *  is configured and the tx confirmed. Omitted when integration is disabled. */
+  /** Transaction hash of the player-signed on-chain checkIn that was verified. */
   txHash?: string;
   streak: number;
   reward: DailyReward;
@@ -104,7 +102,20 @@ export interface DailyClaimResult {
   multiplier: number;
 }
 
-export async function claimDaily(address: string): Promise<DailyClaimResult> {
+/** Claim today's daily bonus.
+ *
+ *  When on-chain integration is enabled (DAILY_CHECKIN_CONTRACT_ADDR set),
+ *  `txHash` is REQUIRED — the client must have already signed a `checkIn()`
+ *  tx from the player's Ronin Wallet and submitted the hash here. We verify
+ *  the hash on-chain (from = player, to = contract, status = success, not
+ *  stale, not already used) before granting the in-game reward. This is the
+ *  Voyages-compatible flow: the player's msg.sender is on-chain, so Ronin's
+ *  Daily Check-In tracker recognizes it.
+ *
+ *  When on-chain integration is disabled (env var unset), `txHash` is ignored
+ *  and we grant the reward unconditionally — useful for local dev / preview
+ *  environments where you don't want to require a real wallet popup. */
+export async function claimDaily(address: string, txHash?: string): Promise<DailyClaimResult> {
   const cur = await read(address);
   const today = lastResetBoundary();
   const yesterday = today - 24 * 60 * 60 * 1000;
@@ -119,6 +130,37 @@ export async function claimDaily(address: string): Promise<DailyClaimResult> {
       energy: e.amount,
       multiplier: cur.multiplier,
     };
+  }
+
+  // On-chain verification BEFORE the dedup lock so a missing/invalid txHash
+  // doesn't burn the 30s lock window. The verify function is idempotent and
+  // cheap to call.
+  if (isDailyCheckInChainEnabled()) {
+    if (!txHash || typeof txHash !== "string") {
+      const e = await getEnergy(address);
+      return {
+        ok: false,
+        reason: "onchain_required",
+        onchainError: "this build requires a signed on-chain checkIn() tx before claiming. Please sign in your wallet.",
+        streak: cur.streak,
+        reward: rewardForStreak(cur.streak + 1),
+        energy: e.amount,
+        multiplier: cur.multiplier,
+      };
+    }
+    const verify = await verifyDailyCheckInTx(address, txHash);
+    if (!verify.ok) {
+      const e = await getEnergy(address);
+      return {
+        ok: false,
+        reason: "onchain_failed",
+        onchainError: verify.reason,
+        streak: cur.streak,
+        reward: rewardForStreak(cur.streak + 1),
+        energy: e.amount,
+        multiplier: cur.multiplier,
+      };
+    }
   }
 
   // Atomic lock: only one request per (wallet, dayBoundary) tuple wins. The
@@ -143,26 +185,6 @@ export async function claimDaily(address: string): Promise<DailyClaimResult> {
   const newStreak = cur.lastClaim >= yesterday ? cur.streak + 1 : 1;
   const reward = rewardForStreak(newStreak);
 
-  // On-chain check-in MUST succeed before we grant the in-game reward (ops
-  // decision: strict integrity). When the integration env vars are unset,
-  // callOnChainCheckIn returns ok:true as a no-op, so unconfigured
-  // environments keep working exactly as before. When it's configured and
-  // fails, we abort — no state mutation, no energy granted, lock auto-expires
-  // in 30s so the player can retry.
-  const onchain = await callOnChainCheckIn(getAddress(address));
-  if (!onchain.ok) {
-    const e = await getEnergy(address);
-    return {
-      ok: false,
-      reason: "onchain_failed",
-      onchainError: onchain.reason,
-      streak: cur.streak,
-      reward: rewardForStreak(cur.streak + 1),
-      energy: e.amount,
-      multiplier: cur.multiplier,
-    };
-  }
-
   // Persist the state change first so a crash mid-claim doesn't double-grant.
   await write(address, { streak: newStreak, lastClaim: today, multiplier: reward.multiplier });
 
@@ -172,7 +194,7 @@ export async function claimDaily(address: string): Promise<DailyClaimResult> {
   const newAmount = Math.min(ENERGY_MAX + reward.energy, e.amount + reward.energy);
   await setEnergyAmount(address, newAmount, e.lastReset);
 
-  return { ok: true, streak: newStreak, reward, energy: newAmount, multiplier: reward.multiplier, txHash: onchain.txHash };
+  return { ok: true, streak: newStreak, reward, energy: newAmount, multiplier: reward.multiplier, txHash };
 }
 
 /** Currently-active XP multiplier for this wallet (1.0 if not claimed today). */

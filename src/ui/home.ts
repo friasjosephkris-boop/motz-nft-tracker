@@ -146,7 +146,15 @@ function renderDailyWidget(slot: HTMLElement, status: DailyStatus): void {
   slot.querySelector<HTMLButtonElement>("#daily-claim-btn")?.addEventListener("click", async () => {
     const btn = slot.querySelector<HTMLButtonElement>("#daily-claim-btn");
     if (btn) btn.disabled = true;
-    const result = await claimDailyBonus();
+    // Surface the on-chain signing step in the button label so the player
+    // knows the wallet popup is expected. Without this the button just
+    // freezes for 5-10s while waiting for the signature, looking broken.
+    const result = await claimDailyBonus(phase => {
+      if (!btn) return;
+      if (phase === "signing") btn.textContent = "⛓ Sign in wallet…";
+      else if (phase === "submitted") btn.textContent = "⏳ Confirming…";
+    });
+    if (btn) btn.textContent = "Claim Daily Reward";
     if (!result) {
       if (btn) btn.disabled = false;
       await alertModal({
@@ -157,16 +165,21 @@ function renderDailyWidget(slot: HTMLElement, status: DailyStatus): void {
       return;
     }
     if (!result.ok) {
-      // On-chain check-in failure (RPC down, contract revert, etc.) — the
-      // server intentionally didn't grant the in-game reward, so surface the
-      // error and re-enable the button for retry. Don't flip the widget to
-      // "claimed today" because the player still has a claim to make.
-      if (result.reason === "onchain_failed") {
+      // Player cancelled the wallet popup — silent close, no error toast.
+      // Just re-enable the button so they can try again when ready.
+      if (result.reason === "user_cancelled") {
+        if (btn) btn.disabled = false;
+        return;
+      }
+      // On-chain signature missing / verification failed — server held back
+      // the in-game reward. Surface the actual reason so the player knows
+      // what to fix (e.g. "insufficient funds for gas", "tx too old", etc.).
+      if (result.reason === "onchain_failed" || result.reason === "onchain_required") {
         if (btn) btn.disabled = false;
         await alertModal({
           kind: "error",
           title: "On-Chain Check-In Failed",
-          message: `Your on-chain Daily Check-In transaction couldn't complete, so the in-game reward was held back.<br><br><span style="font-family:monospace; font-size:11px; opacity:0.8;">${result.onchainError ?? "unknown error"}</span><br><br>Try again in a moment.`,
+          message: `The on-chain Daily Check-In couldn't complete, so the in-game reward was held back. You also need this signature to earn Ronin Voyages credit.<br><br><span style="font-family:monospace; font-size:11px; opacity:0.8;">${result.onchainError ?? "unknown error"}</span><br><br>Try again in a moment.`,
         });
         return;
       }

@@ -587,12 +587,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   }
   if (op === "admin_test_onchain_checkin") {
-    // Admin-only smoke test: fires `checkIn(target)` on the Daily Check-In
-    // contract WITHOUT touching the in-game daily lock or granting energy.
-    // Use this to verify the env-var wiring (contract addr / chain id /
-    // relayer pk / RPC) end-to-end without having to wait for UTC reset or
-    // burn a real daily slot. Returns the tx hash on success, the error
-    // string on failure — same shape as the in-line dailyCheckIn path.
+    // Admin-only smoke test: reads the Gauntlet DailyCheckIn contract to
+    // check whether `target` has an on-chain check-in for today AND their
+    // current streak. Read-only — does NOT fire a write (impossible now that
+    // the contract uses msg.sender semantics; the server can't sign for the
+    // player). Useful for verifying contract reachability + the player's
+    // on-chain claim status without waiting for UTC reset.
     if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
     const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
       ? (req.body as { wallet: string }).wallet.trim() : "";
@@ -607,7 +607,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
       const { getAddress } = await import("viem");
       const r = await callOnChainCheckIn(getAddress(target));
-      res.status(200).json({ ok: r.ok, enabled: true, txHash: r.txHash, reason: r.reason });
+      res.status(200).json({
+        ok: r.ok,
+        enabled: true,
+        hasCheckedInToday: r.hasCheckedInToday ?? false,
+        currentStreak: r.currentStreak ?? 0,
+        reason: r.reason,
+      });
       return;
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : "server error" });

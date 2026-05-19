@@ -147,7 +147,7 @@ export async function adminGrantEnergyToWallet(wallet: string, delta: number): P
  *  on the Daily Check-In contract WITHOUT touching the in-game daily lock
  *  or granting energy — purely to verify env-var wiring (contract addr /
  *  chain id / relayer pk) end-to-end. */
-export async function adminTestOnChainCheckIn(wallet: string): Promise<{ ok: boolean; enabled?: boolean; txHash?: string; reason?: string; error?: string }> {
+export async function adminTestOnChainCheckIn(wallet: string): Promise<{ ok: boolean; enabled?: boolean; hasCheckedInToday?: boolean; currentStreak?: number; reason?: string; error?: string }> {
   const tok = token();
   if (!tok) return { ok: false, error: "not signed in" };
   try {
@@ -156,9 +156,9 @@ export async function adminTestOnChainCheckIn(wallet: string): Promise<{ ok: boo
       headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({ op: "admin_test_onchain_checkin", wallet }),
     });
-    const data = await r.json().catch(() => ({} as { ok?: boolean; enabled?: boolean; txHash?: string; reason?: string; error?: string }));
+    const data = await r.json().catch(() => ({} as { ok?: boolean; enabled?: boolean; hasCheckedInToday?: boolean; currentStreak?: number; reason?: string; error?: string }));
     if (!r.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
-    return { ok: !!data.ok, enabled: data.enabled, txHash: data.txHash, reason: data.reason };
+    return { ok: !!data.ok, enabled: data.enabled, hasCheckedInToday: data.hasCheckedInToday, currentStreak: data.currentStreak, reason: data.reason };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "network" };
   }

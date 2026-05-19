@@ -24,7 +24,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
     if (req.method === "POST") {
-      const result = await claimDaily(address);
+      // Optional txHash body — required only when DAILY_CHECKIN_CONTRACT_ADDR
+      // is configured on this environment. Server-side validation handles
+      // the "required but missing" case with a clear error code so the client
+      // can prompt the player to sign instead of silently failing.
+      const rawHash = (req.body as { txHash?: unknown } | undefined)?.txHash;
+      const txHash = typeof rawHash === "string" && rawHash.trim().length > 0 ? rawHash.trim() : undefined;
+      const result = await claimDaily(address, txHash);
       res.status(result.ok ? 200 : 409).json(result);
       return;
     }
