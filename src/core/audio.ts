@@ -210,10 +210,32 @@ export const sfx = {
   // Built from filtered noise + targeted tones so each theme has natural
   // texture (crackle, splash, hiss, zap) instead of pure synth blips.
 
-  // Fire: noise whoosh, lowpass sweeping down — sounds like a flame burst.
+  // Fire ignite: three-layer composite that reads as a real flame catching.
+  //   1) T+0   — sharp "spark" click: short high-freq noise + tone (the
+  //              moment of ignition, like a lighter striking).
+  //   2) T+30  — "whoosh": bandpass noise swelling 1200→2400Hz then settling,
+  //              that classic FWOOSH as flames catch and balloon outward.
+  //   3) T+80  — body rumble: lowpass noise + sub-bass tone for the warmth
+  //              and weight underneath.
+  //   4) T+250 — crackle tail: brief mid-band noise puff so the sustain
+  //              doesn't end clean — fire never just stops, it crackles out.
   spellFire: () => {
-    noise({ durMs: 280, freqStart: 2400, freqEnd: 400, filterType: "lowpass", q: 1.2, gain: 0.14, attack: "swell" });
-    blip({ freq: 110, endFreq: 55, type: "sawtooth", durMs: 200, gain: 0.05 });
+    // Layer 1: spark click (instant).
+    noise({ durMs: 50, freqStart: 6000, freqEnd: 3000, filterType: "highpass", q: 2, gain: 0.10 });
+    blip({ freq: 3200, endFreq: 1600, type: "square", durMs: 25, gain: 0.05 });
+    // Layer 2: whoosh starts ~30ms after the spark.
+    setTimeout(() => {
+      noise({ durMs: 260, freqStart: 1200, freqEnd: 2400, filterType: "bandpass", q: 1.5, gain: 0.14, attack: "swell" });
+    }, 30);
+    // Layer 3: body rumble starts ~80ms in (right as the whoosh peaks).
+    setTimeout(() => {
+      noise({ durMs: 280, freqStart: 400, freqEnd: 120, filterType: "lowpass", q: 1, gain: 0.10, attack: "swell" });
+      blip({ freq: 90, endFreq: 55, type: "sawtooth", durMs: 240, gain: 0.06 });
+    }, 80);
+    // Layer 4: crackle tail at ~250ms — keeps the fire feeling alive.
+    setTimeout(() => {
+      noise({ durMs: 120, freqStart: 2000, freqEnd: 800, filterType: "bandpass", q: 4, gain: 0.06 });
+    }, 250);
   },
   // Ice: bandpass-filtered noise (cold hiss) + bell-like high tone shimmer.
   spellIce: () => {
