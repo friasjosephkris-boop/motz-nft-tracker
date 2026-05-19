@@ -663,6 +663,74 @@ export function isPostGameFloor(floorId: number): boolean {
   return floorId >= POST_GAME_FIRST_FLOOR && floorId <= POST_GAME_LAST_FLOOR;
 }
 
+/** Hand-authored name + enemy overrides for floors 51-100 (the first
+ *  post-game tier). Outside this range, generatePostGameFloors uses
+ *  procedural names ("Post-Game F123" / "Elite Vault (F125)" /
+ *  "Echo of {Boss} (F130)"). When 101-500 get hand-tuned later, add their
+ *  rows here and the generator will respect them. */
+interface FloorOverride { name: string; enemies?: UnitTemplate[]; soloBoss?: boolean; }
+const FLOOR_OVERRIDES_51_100: Record<number, FloorOverride> = {
+  // ----- Sub-tier A: Pale Threshold (F51-F60) -----
+  51: { name: "Pale Threshold" },
+  52: { name: "Echoing Halls" },
+  53: { name: "Whisper of Ash" },
+  54: { name: "Forgotten Garrison" },
+  55: { name: "Vault of Lost Pacts" },           // elite
+  56: { name: "Withered Shrine" },
+  57: { name: "Tomb of Acolytes" },
+  58: { name: "Marrow Wastes" },
+  59: { name: "Cinder Court" },
+  60: { name: "Echo of the Stone Sentinel", enemies: [STONE_SENTINEL], soloBoss: true },
+
+  // ----- Sub-tier B: Hollow Sovereignty (F61-F70) -----
+  61: { name: "Hollow Veins" },
+  62: { name: "Black Glass Bazaar" },
+  63: { name: "Bonemarch" },
+  64: { name: "The Lacuna" },
+  65: { name: "Cathedral of Splinters" },        // elite
+  66: { name: "Iron Garden" },
+  67: { name: "Wraith's Promenade" },
+  68: { name: "Spire of Spite" },
+  69: { name: "Pale Sovereignty" },
+  70: { name: "Echo of the Wraith Lord", enemies: [WRAITH_LORD], soloBoss: true },
+
+  // ----- Sub-tier C: Twilight Foundry (F71-F80) -----
+  71: { name: "Twilight Foundry" },
+  72: { name: "Threadbare Halls" },
+  73: { name: "Coiled Reliquary" },
+  74: { name: "Pyrelight Bog" },
+  75: { name: "Throat of Ash" },                 // elite
+  76: { name: "Smoldering Wake" },
+  77: { name: "Pallid Crossing" },
+  78: { name: "Spire of Mirrors" },
+  79: { name: "Calcified Veil" },
+  80: { name: "Echo of the Tower Lord", enemies: [TOWER_LORD], soloBoss: true },
+
+  // ----- Sub-tier D: Veinflow Depths (F81-F90) -----
+  81: { name: "Veinflow Mines" },
+  82: { name: "Riven Sky" },
+  83: { name: "Choking Galleries" },
+  84: { name: "Witherspine Pass" },
+  85: { name: "Sepulchre of Names" },            // elite
+  86: { name: "Cradle of Embers" },
+  87: { name: "Hollowed Hallows" },
+  88: { name: "Suncrack Aqueduct" },
+  89: { name: "Ashen Carnival" },
+  90: { name: "Echo of the Iron Behemoth", enemies: [IRON_BEHEMOTH], soloBoss: true },
+
+  // ----- Sub-tier E: Tideblood Reach (F91-F100) -----
+  91: { name: "Plagueglass Quay" },
+  92: { name: "Tideblood Reach" },
+  93: { name: "Shrouded Conservatory" },
+  94: { name: "Cinder-River Crossing" },
+  95: { name: "Crypt of Last Light" },           // elite
+  96: { name: "Pale Conjunction" },
+  97: { name: "Splintered Reverie" },
+  98: { name: "The Outer Cloister" },
+  99: { name: "Throne of Echoes" },
+  100: { name: "Echo of the Storm Lord", enemies: [STORM_LORD], soloBoss: true },
+};
+
 function generatePostGameFloors(): StageEnemyDef[] {
   // Enemy pools to roll from. Mid-mobs are the bread-and-butter; late-mobs
   // add elite flavor at every 5th floor; bosses cycle through the solo-boss
@@ -718,6 +786,16 @@ function generatePostGameFloors(): StageEnemyDef[] {
         return pick(useLate ? lateMobs : midMobs, id, slot * 7 + 11);
       });
       name = `Post-Game F${id}`;
+    }
+    // Hand-authored override (F51-F100 today). Name always wins; enemies +
+    // soloBoss win when the override supplies them — otherwise we keep the
+    // procedural pick so just adding a `name:` line is enough to rename a
+    // floor without redoing its enemy composition.
+    const override = FLOOR_OVERRIDES_51_100[id];
+    if (override) {
+      name = override.name;
+      if (override.enemies) enemies = override.enemies;
+      if (override.soloBoss !== undefined) soloBoss = override.soloBoss;
     }
     floors.push({ id, name, enemies, soloBoss: soloBoss || undefined });
   }
