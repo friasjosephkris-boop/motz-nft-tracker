@@ -2,6 +2,7 @@ import { topBarHtml } from "./settings";
 import { getEnergy, ENERGY_MAX, msUntilNextRefill } from "../core/energy";
 import { STAGE_DEFS, StageEnemyDef, PLAYER_ROSTER } from "../units/roster";
 import { getMaxCleared } from "../core/clears";
+import { pullCanonicalProgress } from "../core/progress";
 import { UnitTemplate, DamageResistance } from "../units/types";
 import { getProgress } from "../core/progress";
 import { fetchAttemptsStatus } from "../core/shop";
@@ -119,6 +120,16 @@ export function renderStageSelect(root: HTMLElement, onPick: (pick: StagePick) =
 
 /** Floor-grid sub-screen reached by clicking the Campaign mode tile. */
 function renderCampaignFloors(root: HTMLElement, onPick: (pick: StagePick) => void, onBack: () => void): void {
+  // Pull canonical progress (incl. server maxFloor) BEFORE rendering so a
+  // post-wipe player doesn't briefly see every floor unlocked from stale
+  // localStorage. The pull is fast (~100ms) and the loading frame keeps the
+  // UI from flashing.
+  root.innerHTML = `<div class="screen-frame stage-select-screen">${topBarHtml("Campaign", true)}<div style="text-align:center;padding:40px;opacity:0.7">Loading…</div></div>`;
+  root.querySelector("#back-btn")?.addEventListener("click", onBack);
+  void pullCanonicalProgress().catch(() => undefined).then(() => drawFloorGrid(root, onPick, onBack));
+}
+
+function drawFloorGrid(root: HTMLElement, onPick: (pick: StagePick) => void, onBack: () => void): void {
   const energy = getEnergy();
   const maxCleared = getMaxCleared();
 
