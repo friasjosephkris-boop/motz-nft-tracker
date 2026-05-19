@@ -6,7 +6,7 @@ import {
   adminClearAllLeaderboards, adminClearLeaderboard, AdminResetScope,
   recordFloorModeClear, getMaxFloorCleared,
   saveReplayBlob, loadReplayBlob,
-  adminWipeDevData, adminWipeAllData,
+  adminWipeDevData, adminWipeAllData, adminForceResetWallet,
   readAttempts, bumpAttempts, attemptsCap,
   readShopInventory, writeShopInventory, mutateShopInventory,
   readBoughtToday, markBoughtToday, consumeBuff,
@@ -138,6 +138,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     try {
       const r = await adminWipeAllData();
       res.status(200).json({ ok: true, scanned: r.scanned, deleted: r.deleted, patternHits: r.patternHits });
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+    }
+    return;
+  }
+  if (op === "admin_force_reset_wallet") {
+    // Targeted per-wallet reset. Use when a global wipe isn't viable (other
+    // players already mid-run on the fresh data). Clears the named wallet's
+    // server-side keys AND stamps a force-reset timestamp; their next
+    // /api/auth/me poll triggers a localStorage clear + reload.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
+      ? (req.body as { wallet: string }).wallet.trim() : "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+      res.status(400).json({ error: "wallet must be a 0x-prefixed 40-hex address" }); return;
+    }
+    try {
+      const r = await adminForceResetWallet(target);
+      res.status(200).json(r);
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
     }

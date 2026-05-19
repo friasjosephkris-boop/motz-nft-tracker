@@ -142,6 +142,12 @@ export async function hincrBy(key: string, field: string, amount: number): Promi
   return await call(["HINCRBY", key, field, Math.floor(amount)]) as number;
 }
 
+/** Delete one field from a hash. Returns the number actually removed (0 or 1). */
+export async function hdel(key: string, field: string): Promise<number> {
+  const r = await call(["HDEL", key, field]);
+  return typeof r === "number" ? r : 0;
+}
+
 /** Read every field from a hash. Returns a record { field: value }. Used by
  *  the analytics export to enumerate every wallet at once. Returns {} on miss. */
 export async function hgetAll(key: string): Promise<Record<string, string>> {

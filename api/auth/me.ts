@@ -3,7 +3,7 @@ import { getAddress } from "viem";
 import { verifySession } from "../_lib/jwt.js";
 import { holdsAnyGatedNft, holdsMotzKey } from "../_lib/ronin.js";
 import { isDevBypassWallet } from "../_lib/devBypass.js";
-import { hasActiveTempMotzKey, readWipeEpoch } from "../_lib/runState.js";
+import { hasActiveTempMotzKey, readWipeEpoch, readForceResetAt } from "../_lib/runState.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const auth = req.headers.authorization;
@@ -32,16 +32,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // is sold/transferred mid-session. Also honor any active temporary MoTZ
     // Key (seasonal pass bought from the shop) — its expiry is persisted
     // server-side, so the client can't fake it from devtools.
-    const [onChainKey, tempKey, wipeEpoch] = await Promise.all([
+    const [onChainKey, tempKey, wipeEpoch, forceResetAt] = await Promise.all([
       bypass ? Promise.resolve(true) : holdsMotzKey(address).catch(() => false),
       bypass ? Promise.resolve(false) : hasActiveTempMotzKey(address).catch(() => false),
       readWipeEpoch().catch(() => 0),
+      readForceResetAt(address).catch(() => 0),
     ]);
     const motzKey = onChainKey || tempKey;
-    // wipeEpoch lets the client detect a server wipe and force a localStorage
-    // clear + reload. Sent on every session check (5-min poll) so even sleeping
-    // tabs converge within minutes of a wipe.
-    res.status(200).json({ address: payload.address, perks: { motzKey }, wipeEpoch });
+    // wipeEpoch:    global counter, bumped on full prod wipes
+    // forceResetAt: per-wallet timestamp, bumped by targeted admin reset
+    // Either advancing past the client's cached value triggers a local nuke
+    // + reload on the next session-check poll (5-min cadence).
+    res.status(200).json({ address: payload.address, perks: { motzKey }, wipeEpoch, forceResetAt });
   } catch {
     res.status(401).json({ error: "invalid session" });
   }

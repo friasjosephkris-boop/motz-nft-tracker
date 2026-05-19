@@ -1,4 +1,4 @@
-import { getJson, setJson, del, zaddGt, zaddLt, zrangeWithScores, zrevrank, zrevrange, incrWithExpire, hset, hmget, hgetAll, incrBy, incrByWithExpire, getNumber, isPrefixedEnvironment, scanAllPrefixed, scanAllByPattern, delManyRaw, withWalletLock } from "./redis.js";
+import { getJson, setJson, del, zaddGt, zaddLt, zrangeWithScores, zrevrank, zrevrange, incrWithExpire, hset, hmget, hgetAll, hdel, incrBy, incrByWithExpire, getNumber, isPrefixedEnvironment, scanAllPrefixed, scanAllByPattern, delManyRaw, withWalletLock } from "./redis.js";
 import { bumpVouchersAcquired } from "./analytics.js";
 
 // ---- Admin: leaderboard resets ----
@@ -48,6 +48,49 @@ export const WIPE_EPOCH_KEY = "wipe_epoch";
 
 export async function readWipeEpoch(): Promise<number> {
   return await getNumber(WIPE_EPOCH_KEY);
+}
+
+/** Per-wallet force-reset stamp. Set by the admin to nuke ONE wallet's
+ *  server-side data AND force their client to clear localStorage + reload on
+ *  next session check — without disturbing other players. Used when a global
+ *  wipe isn't an option because fresh post-wipe players are already mid-run. */
+function forceResetKey(address: string): string { return `forcereset:${address.toLowerCase()}`; }
+
+export async function readForceResetAt(address: string): Promise<number> {
+  return await getNumber(forceResetKey(address));
+}
+
+/** Admin op: nuke a single wallet's per-wallet keys and stamp force-reset so
+ *  their next /api/auth/me poll triggers a client localStorage clear + reload.
+ *  Returns the per-key delete counts so the admin UI can confirm the wipe. */
+export async function adminForceResetWallet(address: string): Promise<{ ok: boolean; wallet: string; resetAt: number; deleted: Record<string, number> }> {
+  const wallet = address.toLowerCase();
+  const PER_WALLET_PREFIXES = [
+    "progress:", "xpcap:", "energy:", "maxfloor:", "shop:", "attempts:",
+    "retries:", "starts:", "pendingClears:", "challenges:", "daily:", "season:",
+    "tempkey:motz:", "replay:campaign:", "replay:survival:", "replay:boss_raid:",
+  ];
+  const deleted: Record<string, number> = {};
+  for (const prefix of PER_WALLET_PREFIXES) {
+    const n = await del(`${prefix}${wallet}`).catch(() => 0);
+    deleted[prefix] = typeof n === "number" ? n : 0;
+  }
+  // Also remove this wallet from the analytics hashes so the daily sheet
+  // export reflects the reset (otherwise stale hours / XP / vouchers rows
+  // would survive).
+  const ANALYTICS_HASHES = [
+    "analytics:minutes", "analytics:ron_spent", "analytics:vouchers_acquired",
+    "analytics:vouchers_spent", "analytics:energy_used",
+  ];
+  for (const h of ANALYTICS_HASHES) {
+    await hdel(h, wallet).catch(() => 0);
+  }
+  // Stamp force-reset LAST so concurrent polls either see the old stamp
+  // (and possibly stale data, which is fine — next poll catches up) or the
+  // new stamp (and a fully cleared keyspace).
+  const resetAt = Date.now();
+  await setJson(forceResetKey(wallet), resetAt, 30 * 24 * 60 * 60).catch(() => undefined);
+  return { ok: true, wallet, resetAt, deleted };
 }
 
 export async function adminWipeAllData(): Promise<{ ok: boolean; scanned: number; deleted: number; patternHits: Record<string, number> }> {

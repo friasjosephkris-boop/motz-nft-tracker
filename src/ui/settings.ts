@@ -3,7 +3,7 @@ import { addEnergy, getEnergy, ENERGY_MAX, msUntilNextRefill } from "../core/ene
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -121,6 +121,13 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
               <div class="admin-row admin-wipe-prod-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
                 <span class="admin-info" style="color:#ff5a6b;">☠ <strong>PRODUCTION WIPE</strong> — irreversibly deletes EVERY wallet's progress, energy, vouchers, leaderboards, shop inventory, run state, and analytics. Three confirmations required.</span>
                 <button class="ghost-btn admin-wipe-prod-btn" id="admin-wipe-prod" type="button">☠ Wipe ALL Production Data</button>
+              </div>
+              <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
+                <span class="admin-info">🎯 <strong>Force-Reset One Wallet</strong> — nukes server data for a single wallet AND forces their browser to clear cached state on next session check. Use when a full wipe isn't viable.</span>
+                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                  <input type="text" id="admin-force-reset-wallet" placeholder="0x…" style="font-family:monospace; padding:4px 8px; min-width:280px;" />
+                  <button class="ghost-btn" id="admin-force-reset-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🎯 Force-Reset Wallet</button>
+                </div>
               </div>
             ` : ""}
             <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 6px;">
@@ -276,6 +283,39 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       message: `Scanned <strong>${r.scanned}</strong> keys, deleted <strong>${r.deleted}</strong>. Reloading now — the game is now in a fresh-season state.`,
     });
     location.reload();
+  });
+
+  // ---- Targeted per-wallet force reset (main builds only) ----
+  // Use when a global wipe isn't viable (e.g. fresh players already mid-run).
+  // Nukes one wallet's server-side keys AND forces their client to clear
+  // localStorage + reload on next session check.
+  root.querySelector<HTMLButtonElement>("#admin-force-reset-btn")?.addEventListener("click", async () => {
+    const input = root.querySelector<HTMLInputElement>("#admin-force-reset-wallet");
+    const wallet = (input?.value ?? "").trim();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
+      await alertModal({ kind: "warning", title: "Invalid Wallet", message: "Wallet must be a 0x-prefixed 40-hex address." });
+      return;
+    }
+    const ok = await confirmModal({
+      title: "🎯 Force-Reset This Wallet?",
+      message: `Wipe all server-side data for <strong style="font-family:monospace;">${wallet}</strong> and force their browser to clear cached state on next session check (~within 5 min, or instantly on next page load).<br><br>This is a single-wallet operation — other players are unaffected.`,
+      confirmLabel: "Reset Wallet",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
+    const r = await adminForceResetWallet(wallet);
+    if (!r.ok) {
+      await alertModal({ kind: "error", title: "Reset Failed", message: `Server returned: ${r.error ?? "unknown error"}` });
+      return;
+    }
+    const deletedCount = r.deleted ? Object.values(r.deleted).reduce((a, b) => a + b, 0) : 0;
+    await alertModal({
+      kind: "success",
+      title: "Wallet Reset Complete",
+      message: `Deleted <strong>${deletedCount}</strong> keys for this wallet. Their client will auto-clear + reload on next session poll.`,
+    });
+    if (input) input.value = "";
   });
 
   // ---- Season halt admin controls ----

@@ -101,6 +101,27 @@ export async function adminWipeAllProdData(): Promise<{ ok: boolean; scanned?: n
   }
 }
 
+/** Admin: targeted per-wallet reset. Nukes that wallet's server-side keys AND
+ *  stamps a force-reset timestamp so their client clears localStorage + reloads
+ *  on next session-check poll. Use when a global wipe isn't viable because
+ *  other players are already mid-run on the fresh data. */
+export async function adminForceResetWallet(wallet: string): Promise<{ ok: boolean; deleted?: Record<string, number>; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_force_reset_wallet", wallet }),
+    });
+    const data = await r.json().catch(() => ({} as { error?: string; deleted?: Record<string, number> }));
+    if (!r.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: true, deleted: data.deleted };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "network" };
+  }
+}
+
 /** POST /api/energy/consume. Returns ok:false with the server's current amount on insufficient. */
 export async function consumeServerEnergy(cost: number): Promise<ConsumeResult> {
   const tok = token();

@@ -43,10 +43,33 @@ export async function validateSession(token: string): Promise<{ address: string;
     if (typeof data?.wipeEpoch === "number") {
       maybeApplyWipeEpoch(data.wipeEpoch);
     }
+    if (typeof data?.forceResetAt === "number") {
+      maybeApplyForceReset(data.forceResetAt);
+    }
     return { address: data.address, perks: { motzKey } };
   } catch {
     return null;
   }
+}
+
+const FORCE_RESET_KEY = "tower-of-zeal.force-reset-at.v1";
+function maybeApplyForceReset(serverStamp: number): void {
+  if (!serverStamp) return;
+  let local = 0;
+  try { local = Number(localStorage.getItem(FORCE_RESET_KEY) ?? "0") || 0; } catch { /* ignore */ }
+  if (serverStamp <= local) return;
+  // First time seeing a non-zero stamp on this client. Two cases:
+  //   - admin set it for THIS wallet on purpose → we should nuke
+  //   - this is just a stale stamp from before this client existed → nuke is fine,
+  //     localStorage is empty or first-boot anyway
+  // No harm either way, so always honor the advance (unlike the global epoch).
+  const sessionBackup = localStorage.getItem(STORAGE_KEY);
+  try { localStorage.clear(); } catch { /* ignore */ }
+  if (sessionBackup) {
+    try { localStorage.setItem(STORAGE_KEY, sessionBackup); } catch { /* ignore */ }
+  }
+  try { localStorage.setItem(FORCE_RESET_KEY, String(serverStamp)); } catch { /* ignore */ }
+  window.location.reload();
 }
 
 const WIPE_EPOCH_KEY = "tower-of-zeal.wipe-epoch.v1";
