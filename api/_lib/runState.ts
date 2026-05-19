@@ -44,21 +44,23 @@ export async function adminWipeAllData(): Promise<{ ok: boolean; scanned: number
   const PATTERNS = [
     "progress:*",
     "energy:*",
-    "lb:*",
+    "lb:*",              // covers lb:survival:v1, lb:bossraid:v1, lb:world_ender_fastest:v1
+    "achievement:*",     // covers achievement:first_conquer:v1 (was incorrectly listed as "first_conquer")
     "attempts:*",
     "retries:*",
     "shop:*",
     "paymenttx:*",
     "bronroll:*",
-    "analytics:*",
+    "analytics:*",       // covers analytics:total_ron_revenue too — full nuke per ops decision
     "pendingClears:*",
     "season:*",
     "run:*",
     "starts:*",
+    "replay:*",          // saved replay blobs (replay:scope:address)
+    "tempkey:*",         // temporary MoTZ key (seasonal pass) expiry records
     "ign_set_at",
-    "igns",
-    "first_conquer",
-    "maxfloor:*",    // was wrong as "max_floor:*" — actual key uses no underscore
+    "igns",              // IGN registry — full nuke per ops decision
+    "maxfloor:*",        // was wrong as "max_floor:*" — actual key uses no underscore
     "xpcap:*",
     "challenges:*",
     "daily:*",
@@ -94,6 +96,7 @@ export async function adminWipeAllData(): Promise<{ ok: boolean; scanned: number
     const PER_WALLET_PREFIXES = [
       "progress:", "xpcap:", "energy:", "maxfloor:", "shop:", "attempts:",
       "retries:", "starts:", "pendingClears:", "challenges:", "daily:", "season:",
+      "tempkey:motz:", "replay:campaign:", "replay:survival:", "replay:boss_raid:",
     ];
     let directDeleted = 0;
     for (const wallet of wallets) {
