@@ -52,8 +52,17 @@ export function getEnergy(): number {
 }
 
 export function setEnergy(n: number): void {
+  const prev = getEnergy();
   const clamped = Math.max(0, Math.floor(n));
   try { localStorage.setItem(KEY(), String(clamped)); } catch { /* ignore */ }
+  // One-time first-energy-bundle offer trigger: when the wallet transitions
+  // from "had some energy" to "completely empty", fire the offer-status
+  // check. Dynamic import keeps the modal/UI layer out of this core module's
+  // dependency graph. The modal self-rate-limits so repeated 0-transitions
+  // don't spam fetches.
+  if (clamped === 0 && prev > 0) {
+    void import("../ui/firstEnergyOffer").then(m => m.maybeShowFirstEnergyOffer()).catch(() => undefined);
+  }
 }
 
 export function consumeEnergy(amount = 1): boolean {

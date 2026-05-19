@@ -12,7 +12,7 @@ import { awardXp, xpToNext, MAX_LEVEL } from "./levels";
 import { isRecording, recordAction } from "./replay";
 import { getProgress, setProgress, UnitProgress, autoEquipNewlyUnlocked } from "./progress";
 import { pushDamage, pushMiss, pushBronDrop, pushSkillVfx } from "./animations";
-import { sfx } from "./audio";
+import { sfx, playSkillCastSfx } from "./audio";
 import {
   ActiveEffect,
   EffectApplication,
@@ -747,8 +747,14 @@ function executeAction(b: Battle, attacker: Combatant, action: QueuedAction): vo
     attacker.hp = Math.max(1, attacker.hp - skill.hpCost);
   }
 
-  // Buff skills get a soft cast chant alongside the action. Idle and Guard skip it.
-  if (skill.kind === "buff" && skill.id !== "guard") sfx.castBuff();
+  // Cast SFX is for buff/summon skills only — the empower / charging cue.
+  // Damaging skills (physical / magical) already play a hit SFX on impact,
+  // and an additional cast cue right before just stacks two clashing sounds.
+  // Idle and Guard play their own dedicated cues (sfx.idle / sfx.shield)
+  // inside runActionResolution, so we skip both here to avoid doubling up.
+  if ((skill.kind === "buff" || skill.kind === "summon") && skill.id !== "guard" && skill.id !== "idle") {
+    playSkillCastSfx(skill);
+  }
 
   // Resolve the action immediately — no wind-up delay. The action lock that
   // gates the next combatant is set inside finalizePostAction based on whether
@@ -827,6 +833,7 @@ function runActionResolution(b: Battle, attacker: Combatant, skill: Skill, actio
     } else if (skill.kind === "buff" && skill.id === "guard") {
       attacker.guarding = true;
       b.log.push(`${attacker.name} guards.`);
+      sfx.shield();
     } else if (skill.kind === "buff") {
       b.log.push(`${attacker.name} uses ${skill.name}.`);
       // castBuff was already played in Phase 1.

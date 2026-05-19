@@ -716,6 +716,12 @@ function showHome(): void {
   // the 500ms-debounced push and can overwrite localStorage with stale
   // server data, "losing" the just-saved progress.
   void pushProgress().then(() => pullCanonicalProgress()).catch(() => undefined);
+  // Safety-net poll for the one-time floor-20-clear offer. The post-battle
+  // trigger fires immediately on the cleared floor, but this catches players
+  // who already cleared 20 before this build deployed, or who missed the
+  // initial popup (closed tab, etc.). Self-rate-limited; returns immediately
+  // if the offer is consumed or floor 20 hasn't been cleared yet.
+  void import("./ui/floor20Offer").then(m => m.maybeShowFloor20Offer()).catch(() => undefined);
 }
 
 function onHomeAction(a: HomeAction): void {
@@ -1168,6 +1174,14 @@ function frame(t: number): void {
         );
         recordedThisBattle = true;
         const cleared = currentStageId;
+        // After a floor-20 victory, the server-side recordFloorModeClear has
+        // promoted the one-time campaign-buff-bundle offer from "pending" to
+        // "available". Fire-and-forget poll → modal opens on top of the run
+        // summary if the wallet just unlocked it. Self-rate-limited so it
+        // can't double-fire.
+        if (cleared === 20) {
+          void import("./ui/floor20Offer").then(m => m.maybeShowFloor20Offer()).catch(() => undefined);
+        }
         setTimeout(() => { void showRunSummary("victory", cleared); }, 1500);
       }
       if (mode === "survival") {

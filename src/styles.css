@@ -3740,7 +3740,8 @@ body:has(.battle) {
   font-size: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
-.lb-row:has(.lb-replay-btn) { grid-template-columns: 32px 1fr 60px 80px auto; }
+.lb-row:has(.lb-replay-btn),
+.lb-row:has(.lb-loadout-btn) { grid-template-columns: 32px 1fr 60px 80px auto; }
 .lb-fastest .lb-row {
   grid-template-columns: 32px 1fr 80px auto;
 }
@@ -3784,6 +3785,149 @@ body:has(.battle) {
 .lb-replay-btn:hover:not(:disabled) { background: rgba(244, 211, 94, 0.2); }
 .lb-replay-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .lb-replay-btn.lb-replay-empty { color: var(--muted); border-color: var(--border); background: transparent; font-size: 11px; }
+
+/* View Loadout button — replaces the old Replay button. Same chip styling
+   but in cool teal/blue (replay was gold) so the two don't look identical. */
+.lb-loadout-btn {
+  background: rgba(120, 200, 240, 0.10);
+  color: #9fd6ec;
+  border: 1px solid rgba(120, 200, 240, 0.6);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  font-family: inherit;
+}
+.lb-loadout-btn:hover:not(:disabled) { background: rgba(120, 200, 240, 0.22); }
+.lb-loadout-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.lb-loadout-btn.lb-loadout-empty { color: var(--muted); border-color: var(--border); background: transparent; font-size: 11px; }
+
+/* Loadout viewer modal */
+.lb-loadout-modal {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.lb-loadout-card {
+  background: var(--motz-bg-panel, #14171e);
+  border: 1px solid rgba(255, 215, 100, 0.3);
+  border-radius: 10px;
+  max-width: 880px;
+  width: 100%;
+  max-height: 86vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+.lb-loadout-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.lb-loadout-title {
+  font-family: var(--motz-font-display);
+  font-size: 18px;
+  color: var(--gold-bright);
+}
+.lb-loadout-sub {
+  font-family: var(--motz-font-mono);
+  font-size: 11px;
+  color: var(--motz-text-muted);
+  margin-top: 2px;
+}
+.lb-loadout-close {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+.lb-loadout-close:hover { background: rgba(255, 255, 255, 0.08); }
+.lb-loadout-body { padding: 16px; overflow-y: auto; }
+
+/* ---- First Energy Bundle (one-time offer) modal ---- */
+.first-offer-modal {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 250;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: foFadeIn 200ms ease-out;
+}
+@keyframes foFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.first-offer-card {
+  background: linear-gradient(180deg, #1a1f2c, #14171e);
+  border: 2px solid var(--gold-bright);
+  border-radius: 12px;
+  max-width: 480px;
+  width: 100%;
+  padding: 28px;
+  text-align: center;
+  box-shadow: 0 12px 40px rgba(244, 211, 94, 0.25), 0 0 60px rgba(244, 211, 94, 0.15);
+  animation: foSlideIn 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes foSlideIn { from { transform: translateY(40px) scale(0.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+.first-offer-banner {
+  display: inline-block;
+  background: var(--gold-bright);
+  color: #1a1f2c;
+  font-family: var(--motz-font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  padding: 4px 14px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+.first-offer-title {
+  font-family: var(--motz-font-display);
+  font-size: 24px;
+  color: var(--gold-bright);
+  margin: 0 0 16px 0;
+}
+.first-offer-deal {
+  display: flex; align-items: baseline; justify-content: center; gap: 12px;
+  margin-bottom: 16px;
+}
+.first-offer-deal-energy {
+  font-family: var(--motz-font-display);
+  font-size: 32px;
+  color: #ffd76b;
+  font-weight: 700;
+}
+.first-offer-deal-sep { color: var(--motz-text-muted); font-size: 20px; }
+.first-offer-deal-price {
+  font-family: var(--motz-font-mono);
+  font-size: 22px;
+  color: var(--text);
+}
+.first-offer-desc {
+  color: var(--motz-text-secondary, var(--text));
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 14px;
+}
+.first-offer-warning {
+  background: rgba(255, 90, 107, 0.12);
+  border: 1px solid rgba(255, 90, 107, 0.55);
+  color: #ffb8c0;
+  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.first-offer-actions {
+  display: flex; flex-direction: column; gap: 8px;
+}
 @media (max-width: 1100px) {
   .lb-grid { grid-template-columns: 1fr; }
 }

@@ -342,6 +342,16 @@ export async function recordFloorModeClear(address: string, stageId: number, par
   if (stageId === cur + 1) {
     newMax = stageId;
     await setJson(maxFloorKey(address), newMax, 60 * 60 * 24 * 365 * 5);
+    // One-time floor-20 clear offer: if THIS clear is the first time the
+    // wallet crossed floor 20, mark the offer available. The offer module
+    // ignores already-consumed states, so re-clears (post-wipe) won't
+    // double-fire.
+    if (cur < 20 && newMax >= 20) {
+      try {
+        const { markFloor20OfferAvailable } = await import("./floor20Offer.js");
+        await markFloor20OfferAvailable(address);
+      } catch { /* non-fatal */ }
+    }
   }
   let awardedConqueror = false;
   if (newMax >= TOWER_FINAL_FLOOR) {
@@ -428,6 +438,8 @@ export function attemptsCap(mode: "survival" | "boss_raid"): number {
 
 export type ShopItemId =
   | "energy_5" | "energy_10" | "energy_20"
+  | "energy_first_offer"   // one-time post-zero-energy bundle (20 RON → 35 energy)
+  | "floor20_offer_bundle" // one-time floor-20-clear bundle (20 RON → all campaign buffs)
   | "unit_stat_reset" | "unit_class_change" | "unit_temp_motz_key"
   | "buff_battle_cry" | "buff_phoenix_embers" | "buff_scholars_insight"
   | "buff_quickdraw" | "buff_last_stand";

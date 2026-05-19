@@ -27,6 +27,8 @@ export const ITEM_PRICES_WEI: Record<ShopItemId, bigint> = {
   energy_5:  5n  * 10n ** 18n,
   energy_10: 10n * 10n ** 18n,
   energy_20: 20n * 10n ** 18n,
+  energy_first_offer: 20n * 10n ** 18n,   // one-time first-offer bundle: 35 energy for 20 RON
+  floor20_offer_bundle: 20n * 10n ** 18n, // one-time floor-20 bundle: all campaign buffs for 20 RON
   unit_stat_reset:    10n * 10n ** 18n,
   unit_class_change:  10n * 10n ** 18n,
   unit_temp_motz_key: 40n * 10n ** 18n,
