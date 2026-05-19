@@ -668,23 +668,37 @@ export function isPostGameFloor(floorId: number): boolean {
  *  the floor inherits the floor's randomized resist profile — see below. */
 export const RESIST_RANDO_FIRST_FLOOR = 100;
 
-/** Compute a deterministic resistance profile for the given floor. From F100
- *  onward, every floor randomly assigns:
- *    - 2 of the 4 resist channels (physical / magical / melee / range) → 100% resist (mul = 0)
- *    - the other 2                                                     → 70% resist (mul = 0.3)
+/** Per-mode resist intensity. Campaign + Survival use brutal numbers (100%/70%);
+ *  Boss Raid uses gentler numbers (90%/60%) because the full 58-boss run
+ *  already compounds difficulty from boss-raid stat scaling + 1.25× ATB —
+ *  brutal immunes on top would be unfair. */
+const RESIST_PROFILES = {
+  floor:     { highMul: 0,   lowMul: 0.3 },  // 100% / 70% resist
+  survival:  { highMul: 0,   lowMul: 0.3 },  // 100% / 70% resist
+  boss_raid: { highMul: 0.1, lowMul: 0.4 },  // 90% / 60% resist (gentler)
+} as const;
+export type ResistMode = keyof typeof RESIST_PROFILES;
+
+/** Compute a deterministic resistance profile for the given floor + mode.
+ *  From F100 onward, every floor randomly assigns:
+ *    - 2 of the 4 resist channels (physical / magical / melee / range) → high resist
+ *    - the other 2                                                     → low resist
  *  The selection is seeded by floorId so the same floor always produces the
- *  same resist profile (fair across replays / leaderboard). Returns null
- *  when the floor is below the rando threshold so the caller can skip. */
-export function resistProfileForFloor(floorId: number): import("./types").DamageResistance | null {
+ *  same resist profile (fair across replays / leaderboard). The MAGNITUDE
+ *  comes from `mode`: floor/survival = brutal, boss_raid = lighter. */
+export function resistProfileForFloor(
+  floorId: number,
+  mode: ResistMode = "floor",
+): import("./types").DamageResistance | null {
   if (floorId < RESIST_RANDO_FIRST_FLOOR) return null;
   // xorshift-ish hash of the floorId → 32-bit unsigned.
   let h = (floorId * 2654435761) >>> 0;
   h ^= h >>> 13;
   h = (h * 1597334677) >>> 0;
   h ^= h >>> 16;
-  // Pick 2 of 4 indices to receive 100% resist. The remaining 2 get 70%.
-  // We iterate through the 6 possible 2-of-4 combinations and pick one
-  // deterministically. (C(4,2) = 6.)
+  // Pick 2 of 4 indices to receive the high resist. The remaining 2 get the
+  // low resist. We iterate through the 6 possible 2-of-4 combinations and
+  // pick one deterministically. (C(4,2) = 6.)
   type Slot = "physical" | "magical" | "melee" | "range";
   const slots: Slot[] = ["physical", "magical", "melee", "range"];
   const combos: [Slot, Slot][] = [
@@ -696,11 +710,11 @@ export function resistProfileForFloor(floorId: number): import("./types").Damage
     ["melee",    "range"],
   ];
   const picked = combos[h % combos.length];
+  const { highMul, lowMul } = RESIST_PROFILES[mode];
   const profile: import("./types").DamageResistance = {};
   for (const slot of slots) {
-    const isMax = slot === picked[0] || slot === picked[1];
-    // 100% resist → mul 0  (target takes 1 dmg floor); 70% resist → mul 0.3
-    profile[slot] = isMax ? 0 : 0.3;
+    const isHigh = slot === picked[0] || slot === picked[1];
+    profile[slot] = isHigh ? highMul : lowMul;
   }
   return profile;
 }
