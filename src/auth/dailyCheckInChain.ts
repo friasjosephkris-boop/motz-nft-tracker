@@ -40,12 +40,49 @@ interface EthProvider {
   request(args: { method: string; params?: unknown[] }): Promise<unknown>;
 }
 
+interface MultiProvider extends EthProvider {
+  providers?: EthProvider[];
+}
+
+/** Walk the various Ronin Wallet injection shapes and return an EIP-1193
+ *  provider with a .request() method. Ronin Wallet uses three different
+ *  injection patterns depending on extension version + tanto-connect:
+ *    1. window.ronin.request(...)      — old direct-provider shape
+ *    2. window.ronin.provider.request  — current wrapped shape (causes the
+ *                                         't.request is not a function' bug
+ *                                         we hit when assuming shape 1)
+ *    3. window.ethereum                — legacy fallback (Ronin Wallet also
+ *                                         injects here for compat with
+ *                                         MetaMask-style sites)
+ *  Mirrors the detection logic in payment.ts so the daily-claim signing
+ *  path uses the same provider the rest of the app does. */
 function getRoninProvider(): EthProvider | null {
   if (typeof window === "undefined") return null;
-  const w = window as unknown as { ronin?: EthProvider; ethereum?: EthProvider };
-  // Prefer the explicit window.ronin injection. Falls back to window.ethereum
-  // (Ronin Wallet also exposes itself there, alongside MetaMask if installed).
-  return w.ronin ?? w.ethereum ?? null;
+  const w = window as unknown as {
+    ronin?: EthProvider & { provider?: EthProvider };
+    ethereum?: MultiProvider;
+  };
+  // Shape 1 / 2: window.ronin — either a provider directly or wrapped one
+  // level deep in .provider.
+  if (w.ronin) {
+    const r = w.ronin;
+    if (typeof r.request === "function") return r;
+    if (r.provider && typeof r.provider.request === "function") return r.provider;
+  }
+  // Shape 3: window.ethereum — legacy path. Some installs expose multiple
+  // providers in .providers (e.g., MetaMask + Ronin); prefer one that looks
+  // like Ronin if possible, otherwise fall through to the first.
+  const eth = w.ethereum;
+  if (eth) {
+    if (Array.isArray(eth.providers) && eth.providers.length > 0) {
+      // Cheap heuristic: providers that announce themselves with isRonin = true.
+      const ronin = eth.providers.find(p => (p as { isRonin?: boolean }).isRonin === true);
+      if (ronin && typeof ronin.request === "function") return ronin;
+      if (typeof eth.providers[0].request === "function") return eth.providers[0];
+    }
+    if (typeof eth.request === "function") return eth;
+  }
+  return null;
 }
 
 /** Confirm the connected wallet is on Ronin Mainnet (2020). Prompts a
