@@ -750,8 +750,9 @@ function executeAction(b: Battle, attacker: Combatant, action: QueuedAction): vo
   // Cast SFX is for buff/summon skills only — the empower / charging cue.
   // Damaging skills (physical / magical) already play a hit SFX on impact,
   // and an additional cast cue right before just stacks two clashing sounds.
-  // Idle and Guard are quiet by design.
-  if ((skill.kind === "buff" || skill.kind === "summon") && skill.id !== "guard") {
+  // Idle and Guard play their own dedicated cues (sfx.idle / sfx.shield)
+  // inside runActionResolution, so we skip both here to avoid doubling up.
+  if ((skill.kind === "buff" || skill.kind === "summon") && skill.id !== "guard" && skill.id !== "idle") {
     playSkillCastSfx(skill);
   }
 
