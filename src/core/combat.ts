@@ -832,6 +832,7 @@ function runActionResolution(b: Battle, attacker: Combatant, skill: Skill, actio
     } else if (skill.kind === "buff" && skill.id === "guard") {
       attacker.guarding = true;
       b.log.push(`${attacker.name} guards.`);
+      sfx.shield();
     } else if (skill.kind === "buff") {
       b.log.push(`${attacker.name} uses ${skill.name}.`);
       // castBuff was already played in Phase 1.

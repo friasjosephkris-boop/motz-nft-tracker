@@ -205,6 +205,14 @@ export const sfx = {
     { freq: 311, type: "sawtooth", durMs: 320, gain: 0.07 },
   ]),
   idle: () => blip({ freq: 440, type: "sine", durMs: 50, gain: 0.04 }),
+  /** Guard: metallic shield raise — sharp clank + brief steel ring. Shorter
+   *  and snappier than the DEF stat-buff cue since Guard is a fast one-turn
+   *  defensive stance rather than a multi-action empowerment. */
+  shield: () => {
+    blip({ freq: 660, type: "square", durMs: 50, gain: 0.10 });   // metallic clank
+    blip({ freq: 1320, type: "triangle", durMs: 180, gain: 0.05 }); // steel ring
+    noise({ durMs: 160, freqStart: 3500, freqEnd: 1800, filterType: "bandpass", q: 5, gain: 0.05 });
+  },
 
   // ---- Themed skill-cast SFX ----
   // Built from filtered noise + targeted tones so each theme has natural
