@@ -1,5 +1,6 @@
 import { Battle, startBattle, tickAccum, queueAction, surrenderBattle, persistPartyProgress, distributeEndOfBattleXp, BattleOptions, Combatant } from "./core/combat";
 import { renderBattle, updateLive, PostBattleAction } from "./ui/battle";
+import { getBattleSpeed, setBattleSpeed, isFastForwardAllowed } from "./core/battleSpeed";
 import { renderSquadSelect, SquadResult } from "./ui/squadSelect";
 import { renderHome, HomeAction } from "./ui/home";
 import { renderStageSelect, StagePick, SURVIVAL_ENERGY_COST, BOSS_RAID_ENERGY_COST } from "./ui/stageSelect";
@@ -279,6 +280,7 @@ let currentBattleStageId = 0;
 const SLOWMO_STAGE_THRESHOLD = 31;
 const SLOWMO_FACTOR = 0.75;
 function isSlowMoStage(): boolean { return currentBattleStageId >= SLOWMO_STAGE_THRESHOLD; }
+
 
 // Boss Raid state.
 let brIndex = 0;                              // index into BOSS_RAID_FLOORS, 0 = first boss
@@ -928,11 +930,14 @@ function runBossRaidFloor(party: SquadResult["players"], floorId: number): void 
   recordedThisBattle = false;
   battleConcluded = false;
   currentBattleStageId = floorId;
+  // Reset fast-forward at every fresh battle start so an admin or player
+  // can't carry 4x speed into floors 21+ where it's disallowed by policy.
+  setBattleSpeed(1);
   lastStateKind = battle.state.kind;
   lastCombatantCount = battle.combatants.length;
   lastAliveCount = battle.combatants.filter(c => c.alive).length;
   playBattleBgm(floorId, "boss_raid", !!stage.soloBoss);
-  renderBattle(root!, battle, handleAction, onPostBattle, { slowMo: isSlowMoStage(), stageId: floorId });
+  renderBattle(root!, battle, handleAction, onPostBattle, { slowMo: isSlowMoStage(), stageId: floorId, mode });
 }
 
 function runFloor(party: SquadResult["players"], floorId: number, xpMultiplier: number): void {
@@ -989,12 +994,15 @@ function runFloor(party: SquadResult["players"], floorId: number, xpMultiplier: 
   recordedThisBattle = false;
   battleConcluded = false;
   currentBattleStageId = floorId;
+  // Reset fast-forward at every fresh battle start so an admin or player
+  // can't carry 4x speed into floors 21+ where it's disallowed by policy.
+  setBattleSpeed(1);
   if (mode === "floor") floorBattleStartedAt = Date.now();
   lastStateKind = battle.state.kind;
   lastCombatantCount = battle.combatants.length;
   lastAliveCount = battle.combatants.filter(c => c.alive).length;
   playBattleBgm(floorId, mode, !!stage.soloBoss);
-  renderBattle(root!, battle, handleAction, onPostBattle, { slowMo: isSlowMoStage(), stageId: floorId });
+  renderBattle(root!, battle, handleAction, onPostBattle, { slowMo: isSlowMoStage(), stageId: floorId, mode });
 }
 
 /** Build per-template party state at floor start for the replay recorder.
@@ -1084,7 +1092,13 @@ function frame(t: number): void {
   lastT = t;
   // Slow-mo scaling for floors 31+. Affects gauge fill + actionLock decay so
   // animations and turn cadence both stretch proportionally to the CSS slowdown.
-  const dt = isSlowMoStage() ? realDt * SLOWMO_FACTOR : realDt;
+  // Fast-forward (2x / 4x) applies on top for stages 1-20 only — clamped to
+  // 1x for any other context so high-floor pacing isn't affected.
+  let dt = isSlowMoStage() ? realDt * SLOWMO_FACTOR : realDt;
+  const ffMul = getBattleSpeed();
+  if (ffMul > 1 && isFastForwardAllowed(currentStageId, mode)) {
+    dt *= ffMul;
+  }
 
   if (screen === "replay" && battle) {
     if (battle.state.kind === "ticking") {
@@ -1204,7 +1218,7 @@ function frame(t: number): void {
 
     const aliveNow = battle.combatants.filter(c => c.alive).length;
     if (battle.state.kind !== lastStateKind || battle.combatants.length !== lastCombatantCount || aliveNow !== lastAliveCount) {
-      renderBattle(root!, battle, handleAction, onPostBattle, { showPostBattleButtons: shouldShowPostButtons(battle), slowMo: isSlowMoStage(), stageId: currentBattleStageId });
+      renderBattle(root!, battle, handleAction, onPostBattle, { showPostBattleButtons: shouldShowPostButtons(battle), slowMo: isSlowMoStage(), stageId: currentBattleStageId, mode });
       lastStateKind = battle.state.kind;
       lastCombatantCount = battle.combatants.length;
       lastAliveCount = aliveNow;
