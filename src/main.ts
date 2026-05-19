@@ -744,6 +744,15 @@ function showHome(): void {
   // initial popup (closed tab, etc.). Self-rate-limited; returns immediately
   // if the offer is consumed or floor 20 hasn't been cleared yet.
   void import("./ui/floor20Offer").then(m => m.maybeShowFloor20Offer()).catch(() => undefined);
+  // Safety-net poll for the one-time first-energy-bundle offer. The energy-
+  // consume path only triggers on the >0→0 transition, so wallets that
+  // already hit 0 before this feature shipped never see the modal otherwise.
+  // Firing it on home entry when current energy is 0 catches them on next
+  // visit. Self-rate-limits via server-side offer status (returns "consumed"
+  // after the modal is decided once), so no risk of spam for repeat empties.
+  if (getEnergy() <= 0) {
+    void import("./ui/firstEnergyOffer").then(m => m.maybeShowFirstEnergyOffer()).catch(() => undefined);
+  }
 }
 
 function onHomeAction(a: HomeAction): void {
