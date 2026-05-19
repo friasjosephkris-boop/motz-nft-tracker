@@ -932,6 +932,16 @@ function runBossRaidFloor(party: SquadResult["players"], floorId: number): void 
   if (activeRunBuffs.phoenixEmbers)         opts.phoenixEmbers = true;
   if (activeRunBuffs.quickdrawAtbMul > 1)   opts.playerAtbSpeedMul = activeRunBuffs.quickdrawAtbMul;
   if (activeRunBuffs.lastStandDmgMul > 1)   opts.lastStandDamageMul = activeRunBuffs.lastStandDmgMul;
+  // Post-game scaling for boss-raid late floors (Echo of X bosses on F60+).
+  // Same level scaling as campaign so the boss stats track the player's
+  // Lv30→Lv70 climb. Resist randomization uses the BOSS_RAID profile
+  // (90%/60% — gentler than campaign's 100%/70%) because boss-raid already
+  // stacks bossRaid stat-mul + 1.25× ATB on top of these.
+  if (isPostGameFloor(floorId)) {
+    opts.enemyLevelOverride = postGameEnemyLevelFor(floorId);
+    const resists = resistProfileForFloor(floorId, "boss_raid");
+    if (resists) opts.enemyResistOverride = resists;
+  }
   // Snapshot the boon state BEFORE pendingHeal is consumed so the replay
   // can reproduce it exactly.
   const bossRaidSnapshot = {
@@ -998,13 +1008,11 @@ function runFloor(party: SquadResult["players"], floorId: number, xpMultiplier: 
   // Post-game floors (51+) scale enemy levels linearly from Lv30 → Lv70.
   // Stat-scaling-only; the enemy templates themselves are reused. The override
   // is ignored for floors 1-50 so the hand-tuned curve there is preserved.
+  // For resists: floor mode uses the brutal campaign profile, survival uses
+  // the same. Boss raid uses its own gentler profile (see runBossRaidFloor).
   if (isPostGameFloor(floorId)) {
     opts.enemyLevelOverride = postGameEnemyLevelFor(floorId);
-    // From Floor 100 onward, randomize enemy resist profile per floor: 2 of
-    // {physical, magical, melee, range} at 100% resist, the other 2 at 70%.
-    // Deterministic per floor id — same floor rolls the same resists every
-    // time so leaderboard / replay outcomes stay reproducible.
-    const resists = resistProfileForFloor(floorId);
+    const resists = resistProfileForFloor(floorId, mode === "survival" ? "survival" : "floor");
     if (resists) opts.enemyResistOverride = resists;
   }
   // Replay scope:
