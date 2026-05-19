@@ -74,6 +74,7 @@ export const SKILLS: Record<string, Skill> = {
     description: "AOE execute — 50% chance to instantly kill each player. Bypasses defense, resists, and shields. 10-action cooldown. Starts on cooldown.",
     instantKill: { chance: 0.5 },
     initialCooldown: 10,
+    vfx: "lightning_strike",
   },
 
   // ============================================================
@@ -105,6 +106,7 @@ export const SKILLS: Record<string, Skill> = {
     power: POW.high, mpCost: 45, cooldown: 4, unlockLevel: 10,
     description: "High AOE melee phys (scales with STR/DEF/VIT).",
     scalesWith: [{ stat: "STR" }, { stat: "DEF" }, { stat: "VIT" }],
+    vfx: "physical_impact",
   },
 
   // Fire Mage
@@ -131,6 +133,7 @@ export const SKILLS: Record<string, Skill> = {
     description: "Very high single melee magical. Inflicts burn (12 dmg/action × 3).",
     applies: [{ id: "burn", duration: 3, power: 12 }],
     scalesWith: [{ stat: "INT" }],
+    vfx: "flame_burst",
   },
 
   // Sharpshooter
@@ -183,6 +186,7 @@ export const SKILLS: Record<string, Skill> = {
     description: "High AOE range magical. Freezes all enemies (-25% ATB for 2 actions).",
     applies: [{ id: "freeze", duration: 2, power: 0.25 }],
     scalesWith: [{ stat: "INT" }],
+    vfx: "frost_burst",
   },
 
   // Scout
@@ -210,6 +214,7 @@ export const SKILLS: Record<string, Skill> = {
     multiHit: 10,
     applies: [{ id: "bleed", chance: 0.2, duration: 3, power: 0.04 }],
     scalesWith: [{ stat: "AGI" }],
+    vfx: "wind_slash",
   },
 
   // Defender
@@ -238,6 +243,7 @@ export const SKILLS: Record<string, Skill> = {
     description: "High AOE melee phys. Stuns all enemies (skip next action).",
     applies: [{ id: "stun", duration: 1, power: 1 }],
     scalesWith: [{ stat: "STR" }, { stat: "VIT" }],
+    vfx: "physical_impact",
   },
 
   // Warden
@@ -262,6 +268,7 @@ export const SKILLS: Record<string, Skill> = {
     power: POW.high, mpCost: 30, cooldown: 5, unlockLevel: 10,
     description: "High AOE range magical (scales INT + VIT).",
     scalesWith: [{ stat: "INT" }, { stat: "VIT" }],
+    vfx: "holy_beam",
   },
 
   // ============================================================
@@ -291,6 +298,7 @@ export const SKILLS: Record<string, Skill> = {
     description: "High AOE range magical. 20% chance to burn (10 dmg/action × 3).",
     applies: [{ id: "burn", chance: 0.2, duration: 3, power: 10 }],
     scalesWith: [{ stat: "INT" }],
+    vfx: "holy_beam",
   },
 
   // Aspen (physical)

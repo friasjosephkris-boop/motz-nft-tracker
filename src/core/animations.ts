@@ -126,6 +126,36 @@ export function drainEvents(): FloatEvent[] {
   return out;
 }
 
+// ---- Skill VFX queue ----
+// Separate from the damage-popup queue because VFX fire once per skill use
+// (regardless of hit/miss/multi-hit count) and need both endpoints (caster +
+// target) for positioning. Damage popups only care about the target.
+
+import type { SkillVfxKind } from "../skills/types";
+
+export interface SkillVfxEvent {
+  casterId: string;
+  targetId: string;
+  kind: SkillVfxKind;
+  skillId: string;
+}
+
+const vfxQueue: SkillVfxEvent[] = [];
+
+/** Queue a skill-visual-effect to play on the next battle render tick. Called
+ *  from combat.ts when a skill resolves — fires even if the attack misses so
+ *  players see consistent feedback whenever they activate a skill. */
+export function pushSkillVfx(casterId: string, targetId: string, kind: SkillVfxKind, skillId: string): void {
+  vfxQueue.push({ casterId, targetId, kind, skillId });
+}
+
+export function drainSkillVfx(): SkillVfxEvent[] {
+  if (vfxQueue.length === 0) return [];
+  const out = vfxQueue.slice();
+  vfxQueue.length = 0;
+  return out;
+}
+
 export function iconGlyph(icon: DamageIcon): string {
   switch (icon) {
     case "sword": return "🗡";

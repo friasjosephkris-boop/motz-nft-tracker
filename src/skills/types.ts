@@ -60,4 +60,25 @@ export interface Skill {
   /** Cooldown the skill starts the battle on (so it can't be used as an
    *  opener). Applied in makeCombatant. Defaults to 0 (immediately usable). */
   initialCooldown?: number;
+  /** Visual effect played when this skill fires. Plays regardless of hit/miss
+   *  so the player gets feedback on every use. See SkillVfxKind for the menu
+   *  of styled effects. Omit to fall back to a generic hit flash. */
+  vfx?: SkillVfxKind;
 }
+
+/** Catalogue of stylized skill visual effects. Each kind maps to a CSS class
+ *  in styles.css (.skill-vfx-<kind>) that defines the keyframe animation.
+ *  Adding a new effect: pick a kind name here, add the CSS in styles.css, and
+ *  tag the relevant skills with `vfx: "<kind>"`. */
+export type SkillVfxKind =
+  | "slash"             // diagonal melee swipe at target (white-yellow streak)
+  | "physical_impact"   // generic gray shockwave ring at target (default melee)
+  | "flame_burst"       // expanding orange/red ring at target
+  | "frost_burst"       // radial blue spikes at target
+  | "lightning_strike"  // vertical bolt from above at target
+  | "arrow_volley"      // projectile from caster to target
+  | "heal_glow"         // rising green particles at target
+  | "buff_aura"         // golden pulsing ring at caster
+  | "holy_beam"         // vertical white-gold column at target
+  | "dark_pulse"        // purple/violet expanding ring at target
+  | "wind_slash";       // cyan crescent wave at target

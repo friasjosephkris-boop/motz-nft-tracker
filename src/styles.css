@@ -291,6 +291,180 @@ body:has(.battle) {
   overflow: hidden;
 }
 
+/* ===========================================================================
+   Skill VFX system
+   Each .skill-vfx-<kind> is positioned at the target tile center (left/top
+   set inline by flushSkillVfx). Use transform-origin: center so scale/rotate
+   animations expand outward from that anchor.
+   =========================================================================== */
+
+.skill-vfx {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 5; /* above sprites, below damage popups (which are z-index 10+) */
+  will-change: transform, opacity;
+}
+
+/* ---- slash: diagonal white-yellow streak (default melee feel) ---- */
+.skill-vfx-slash {
+  width: 120px; height: 12px;
+  background: linear-gradient(90deg, transparent 0%, #fff7c2 30%, #ffd23f 50%, #fff7c2 70%, transparent 100%);
+  border-radius: 8px;
+  filter: drop-shadow(0 0 8px rgba(255, 210, 63, 0.85));
+  animation: vfx-slash 360ms ease-out forwards;
+}
+@keyframes vfx-slash {
+  0%   { transform: translate(-50%, -50%) rotate(-30deg) scaleX(0.2); opacity: 0; }
+  20%  { opacity: 1; }
+  60%  { transform: translate(-50%, -50%) rotate(-30deg) scaleX(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(-30deg) scaleX(1.4); opacity: 0; }
+}
+
+/* ---- physical_impact: gray shockwave ring (generic fallback) ---- */
+.skill-vfx-physical_impact {
+  width: 80px; height: 80px;
+  border: 3px solid rgba(220, 220, 220, 0.9);
+  border-radius: 50%;
+  animation: vfx-ring-expand 480ms ease-out forwards;
+}
+@keyframes vfx-ring-expand {
+  0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+}
+
+/* ---- flame_burst: orange/red expanding ring with inner glow ---- */
+.skill-vfx-flame_burst {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 200, 80, 0.85) 0%, rgba(255, 90, 40, 0.55) 35%, transparent 70%);
+  box-shadow: 0 0 24px rgba(255, 120, 40, 0.9), inset 0 0 16px rgba(255, 230, 120, 0.7);
+  animation: vfx-burst 520ms ease-out forwards;
+}
+@keyframes vfx-burst {
+  0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+  25%  { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+
+/* ---- frost_burst: blue radial spikes ---- */
+.skill-vfx-frost_burst {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180, 230, 255, 0.9) 0%, rgba(80, 160, 255, 0.6) 40%, transparent 75%);
+  box-shadow: 0 0 22px rgba(120, 180, 255, 0.85);
+  animation: vfx-burst 500ms ease-out forwards;
+}
+.skill-vfx-frost_burst::before,
+.skill-vfx-frost_burst::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 6px; height: 70px;
+  background: linear-gradient(180deg, transparent, #cfeaff, transparent);
+  border-radius: 3px;
+  transform: translate(-50%, -50%);
+}
+.skill-vfx-frost_burst::after { transform: translate(-50%, -50%) rotate(60deg); }
+.skill-vfx-frost_burst::before { box-shadow: 0 0 12px rgba(180, 230, 255, 0.95); }
+
+/* ---- lightning_strike: vertical bolt from above + flash ---- */
+.skill-vfx-lightning_strike {
+  width: 14px; height: 220px;
+  background: linear-gradient(180deg, transparent 0%, #e0f0ff 20%, #c8e2ff 50%, #88b0ff 80%, transparent 100%);
+  filter: drop-shadow(0 0 14px rgba(180, 220, 255, 1));
+  transform-origin: 50% 100%;
+  animation: vfx-bolt 420ms ease-out forwards;
+}
+@keyframes vfx-bolt {
+  0%   { transform: translate(-50%, -100%) scaleY(0); opacity: 0; }
+  15%  { transform: translate(-50%, -100%) scaleY(1); opacity: 1; }
+  60%  { transform: translate(-50%, -100%) scaleY(1) scaleX(1.8); opacity: 1; }
+  100% { transform: translate(-50%, -100%) scaleY(1) scaleX(2.4); opacity: 0; }
+}
+
+/* ---- arrow_volley: projectile flies from caster to target ---- */
+.skill-vfx-arrow_volley {
+  width: 36px; height: 4px;
+  background: linear-gradient(90deg, transparent 0%, #ffd980 30%, #fff 70%, #ffd980 100%);
+  border-radius: 2px;
+  filter: drop-shadow(0 0 6px rgba(255, 220, 130, 0.9));
+  /* --from-x / --from-y set inline = (casterX - targetX). Start there, fly to 0. */
+  animation: vfx-arrow 320ms ease-in forwards;
+}
+@keyframes vfx-arrow {
+  0%   { transform: translate(calc(-50% + var(--from-x, 0px)), calc(-50% + var(--from-y, 0px))) scaleX(0.4); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scaleX(1.4); opacity: 0; }
+}
+
+/* ---- heal_glow: rising green particle ring ---- */
+.skill-vfx-heal_glow {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(150, 255, 180, 0.7) 0%, rgba(60, 200, 120, 0.45) 40%, transparent 75%);
+  box-shadow: 0 0 18px rgba(100, 230, 150, 0.9);
+  animation: vfx-heal 700ms ease-out forwards;
+}
+@keyframes vfx-heal {
+  0%   { transform: translate(-50%, -30%) scale(0.4); opacity: 0; }
+  30%  { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -90%) scale(0.7); opacity: 0; }
+}
+
+/* ---- buff_aura: golden pulsing ring at caster ---- */
+.skill-vfx-buff_aura {
+  width: 100px; height: 100px;
+  border: 3px solid rgba(255, 215, 100, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(255, 215, 100, 0.7), inset 0 0 16px rgba(255, 235, 160, 0.5);
+  animation: vfx-aura 720ms ease-out forwards;
+}
+@keyframes vfx-aura {
+  0%   { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+  30%  { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+  70%  { transform: translate(-50%, -50%) scale(1.15); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+
+/* ---- holy_beam: vertical white-gold column ---- */
+.skill-vfx-holy_beam {
+  width: 60px; height: 260px;
+  background: linear-gradient(180deg, transparent 0%, rgba(255, 245, 200, 0.9) 30%, rgba(255, 220, 120, 0.9) 60%, transparent 100%);
+  filter: drop-shadow(0 0 18px rgba(255, 230, 140, 0.95));
+  border-radius: 30px;
+  transform-origin: 50% 100%;
+  animation: vfx-beam 620ms ease-out forwards;
+}
+@keyframes vfx-beam {
+  0%   { transform: translate(-50%, -100%) scaleY(0) scaleX(0.4); opacity: 0; }
+  30%  { transform: translate(-50%, -100%) scaleY(1) scaleX(1); opacity: 1; }
+  100% { transform: translate(-50%, -100%) scaleY(1) scaleX(1.6); opacity: 0; }
+}
+
+/* ---- dark_pulse: violet expanding ring ---- */
+.skill-vfx-dark_pulse {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(180, 100, 220, 0.7) 0%, rgba(110, 40, 180, 0.5) 40%, transparent 75%);
+  box-shadow: 0 0 22px rgba(160, 80, 220, 0.85);
+  animation: vfx-burst 540ms ease-out forwards;
+}
+
+/* ---- wind_slash: cyan crescent wave ---- */
+.skill-vfx-wind_slash {
+  width: 140px; height: 70px;
+  border: 4px solid rgba(140, 230, 255, 0.9);
+  border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+  border-bottom: none;
+  filter: drop-shadow(0 0 12px rgba(140, 230, 255, 0.85));
+  animation: vfx-crescent 440ms ease-out forwards;
+}
+@keyframes vfx-crescent {
+  0%   { transform: translate(-50%, -50%) scale(0.3) rotate(-15deg); opacity: 0; }
+  30%  { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5) rotate(15deg); opacity: 0; }
+}
+
 .combatant {
   background: var(--panel);
   border-radius: 10px;

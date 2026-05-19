@@ -1,7 +1,7 @@
 import { Battle, Combatant } from "../core/combat";
 import { ATB_FULL } from "../core/timeline";
 import { getSkill } from "../skills/registry";
-import { drainEvents, FloatEvent, iconGlyph } from "../core/animations";
+import { drainEvents, FloatEvent, iconGlyph, drainSkillVfx, SkillVfxEvent } from "../core/animations";
 import { effectIcon, effectName, isDebuff, isSkillBlockedBySilence, isSilenced } from "../core/effects";
 import { portraitInner, capeHtml } from "../units/art";
 import { runCheatCheck } from "../core/cheatCheck";
@@ -275,8 +275,48 @@ export function updateLive(root: HTMLElement, b: Battle): void {
     }
   }
 
+  // Skill VFX (drain first so animations are layered behind popups in z-order).
+  flushSkillVfx(root);
   // Float damage popups.
   flushFloats(root);
+}
+
+/** Render queued skill-visual-effects. Each VFX spawns a positioned overlay
+ *  div in the float-layer with a CSS-keyframe animation tied to its kind.
+ *  Self-targeted effects (buff_aura, heal_glow on caster) anchor at the
+ *  caster's tile center. Target effects anchor at the target's tile center.
+ *  Projectile effects (arrow_volley) draw a transform from caster → target. */
+function flushSkillVfx(root: HTMLElement): void {
+  const layer = root.querySelector<HTMLElement>("#float-layer");
+  const field = root.querySelector<HTMLElement>("#battle-field");
+  if (!layer || !field) return;
+  const events: SkillVfxEvent[] = drainSkillVfx();
+  if (events.length === 0) return;
+  const fieldRect = field.getBoundingClientRect();
+  for (const e of events) {
+    const casterEl = root.querySelector<HTMLElement>(`[data-id="${cssAttr(e.casterId)}"]`);
+    const targetEl = root.querySelector<HTMLElement>(`[data-id="${cssAttr(e.targetId)}"]`);
+    if (!targetEl) continue;
+    const tRect = targetEl.getBoundingClientRect();
+    const tx = tRect.left - fieldRect.left + tRect.width / 2;
+    const ty = tRect.top - fieldRect.top + tRect.height / 2;
+    const div = document.createElement("div");
+    div.className = `skill-vfx skill-vfx-${e.kind}`;
+    div.style.left = `${tx}px`;
+    div.style.top = `${ty}px`;
+    // Projectile-style effects need the caster origin so the CSS transform
+    // can interpolate the flight path. We pass dx/dy as custom properties.
+    if (e.kind === "arrow_volley" && casterEl) {
+      const cRect = casterEl.getBoundingClientRect();
+      const cx = cRect.left - fieldRect.left + cRect.width / 2;
+      const cy = cRect.top - fieldRect.top + cRect.height / 2;
+      div.style.setProperty("--from-x", `${cx - tx}px`);
+      div.style.setProperty("--from-y", `${cy - ty}px`);
+    }
+    layer.appendChild(div);
+    // 900ms covers the longest keyframe; remove after to keep the DOM clean.
+    setTimeout(() => div.remove(), 1000);
+  }
 }
 
 function flushFloats(root: HTMLElement): void {
