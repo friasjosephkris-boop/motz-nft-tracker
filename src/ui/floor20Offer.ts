@@ -67,7 +67,20 @@ async function openOfferModal(priceRon: number): Promise<void> {
     </div>
   `;
   document.body.appendChild(overlay);
-  const closeOverlay = () => { try { overlay.remove(); } catch { /* ignore */ } modalOpen = false; unlockOneTimeOffer(); };
+  const closeOverlay = () => {
+    try { overlay.remove(); } catch { /* ignore */ }
+    modalOpen = false;
+    unlockOneTimeOffer();
+    // After closing, check if the OTHER one-time offer should now fire.
+    // Common scenario: player clears floor 20 with 0 energy — both offers
+    // qualify, this modal grabbed the lock first, the first-energy modal
+    // was suppressed. Once we release, fire its check so the player still
+    // gets to see it. Self-rate-limited via server-side `consumed` state,
+    // so safe to call unconditionally — already-decided wallets no-op.
+    setTimeout(() => {
+      void import("./firstEnergyOffer").then(m => m.maybeShowFirstEnergyOffer()).catch(() => undefined);
+    }, 0);
+  };
 
   const ronBtn = overlay.querySelector<HTMLButtonElement>("#fo20-pay-ron");
   const voucherBtn = overlay.querySelector<HTMLButtonElement>("#fo20-pay-voucher");

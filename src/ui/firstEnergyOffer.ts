@@ -73,7 +73,18 @@ async function openOfferModal(energyGrant: number, priceRon: number): Promise<vo
   `;
   document.body.appendChild(overlay);
 
-  const closeOverlay = () => { try { overlay.remove(); } catch { /* ignore */ } modalOpen = false; unlockOneTimeOffer(); };
+  const closeOverlay = () => {
+    try { overlay.remove(); } catch { /* ignore */ }
+    modalOpen = false;
+    unlockOneTimeOffer();
+    // Mirror floor20Offer's close handler — after releasing the lock, fire
+    // the OTHER one-time offer's check in case both qualified simultaneously
+    // (e.g. player cleared F20 with 0 energy). Self-rate-limited server-side,
+    // so already-consumed wallets no-op cleanly.
+    setTimeout(() => {
+      void import("./floor20Offer").then(m => m.maybeShowFloor20Offer()).catch(() => undefined);
+    }, 0);
+  };
 
   const ronBtn = overlay.querySelector<HTMLButtonElement>("#fo-pay-ron");
   const voucherBtn = overlay.querySelector<HTMLButtonElement>("#fo-pay-voucher");
