@@ -101,6 +101,28 @@ export async function adminWipeAllProdData(): Promise<{ ok: boolean; scanned?: n
   }
 }
 
+/** Admin: bump the caller's server-side XP cap by `delta`. Lets the dev-build
+ *  "+ Level" button raise the ceiling before pushing the new level state, so
+ *  the server's anti-cheat validator doesn't reject the claim as overshooting
+ *  legitimate play. Idempotency: each call adds delta to whatever the cap
+ *  currently is — call once per level grant, not in a loop. */
+export async function adminBumpXpCap(delta: number): Promise<{ ok: boolean; newCap?: number; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_bump_xp_cap", delta }),
+    });
+    const data = await r.json().catch(() => ({} as { error?: string; newCap?: number }));
+    if (!r.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: true, newCap: data.newCap };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "network" };
+  }
+}
+
 /** Admin: targeted per-wallet reset. Nukes that wallet's server-side keys AND
  *  stamps a force-reset timestamp so their client clears localStorage + reloads
  *  on next session-check poll. Use when a global wipe isn't viable because

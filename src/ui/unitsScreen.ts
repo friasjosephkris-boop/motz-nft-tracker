@@ -8,6 +8,8 @@ import { getProgress, setProgress, UnitProgress, MAX_EQUIPPED_SKILLS, autoEquipN
 import { xpToNext, MAX_LEVEL } from "../core/levels";
 import { CLASS_SKILLS, CHARACTER_SKILLS, getSkill } from "../skills/registry";
 import { isAdmin } from "../core/admin";
+import { adminBumpXpCap } from "../auth/energyApi";
+import { XP_TABLE } from "../core/levels";
 import { portraitInner, capeHtml, isUnitLocked } from "../units/art";
 import { confirmModal, alertModal } from "./confirmModal";
 
@@ -574,10 +576,28 @@ function wireSkillLoadout(root: HTMLElement, editing: Set<string>, redraw: () =>
 function wireAdminControls(root: HTMLElement, admin: boolean, redraw: () => void): void {
   if (!admin) return;
   root.querySelectorAll<HTMLButtonElement>("[data-admin-levelup]").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const tid = btn.dataset.adminLevelup!;
       const cur = getProgress(tid);
       if (cur.level >= MAX_LEVEL) return;
+      // Bump the server XP cap BEFORE writing the local level. The server's
+      // progress_sync validator rejects any wallet whose claimed totalXp
+      // exceeds the cap + slack — without this pre-bump, the next push
+      // (debounced 500ms after setProgress) would roll the level back to
+      // canonical. Bump by exactly the XP needed for the new level, so
+      // legit play continues to count after the admin grant.
+      const xpForLevel = XP_TABLE[cur.level - 1] ?? 0;
+      if (xpForLevel > 0) {
+        btn.disabled = true;
+        const r = await adminBumpXpCap(xpForLevel);
+        btn.disabled = false;
+        if (!r.ok) {
+          // Surface the server reason so it's clear why nothing happened.
+          // eslint-disable-next-line no-alert
+          alert(`Couldn't raise XP cap: ${r.error ?? "unknown error"}`);
+          return;
+        }
+      }
       const newLevel = cur.level + 1;
       const equippedSkills = autoEquipNewlyUnlocked(tid, cur.classId, newLevel, cur.equippedSkills ?? []);
       setProgress(tid, {
