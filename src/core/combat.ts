@@ -12,7 +12,7 @@ import { awardXp, xpToNext, MAX_LEVEL } from "./levels";
 import { isRecording, recordAction } from "./replay";
 import { getProgress, setProgress, UnitProgress, autoEquipNewlyUnlocked } from "./progress";
 import { pushDamage, pushMiss, pushBronDrop, pushSkillVfx } from "./animations";
-import { sfx } from "./audio";
+import { sfx, playSkillCastSfx } from "./audio";
 import {
   ActiveEffect,
   EffectApplication,
@@ -747,8 +747,14 @@ function executeAction(b: Battle, attacker: Combatant, action: QueuedAction): vo
     attacker.hp = Math.max(1, attacker.hp - skill.hpCost);
   }
 
-  // Buff skills get a soft cast chant alongside the action. Idle and Guard skip it.
-  if (skill.kind === "buff" && skill.id !== "guard") sfx.castBuff();
+  // Themed cast SFX — picks the audio by keywords in the skill's display name
+  // (Fireball → fire whoosh, Tidal Wave → splash, World End → ominous low,
+  // etc.). Idle and Guard skip it; pure physical with no matching keyword
+  // also stays quiet to avoid doubling up with the hit SFX. See audio.ts
+  // playSkillCastSfx() for the keyword table.
+  if (skill.id !== "idle" && skill.id !== "guard") {
+    playSkillCastSfx(skill.name, skill.kind);
+  }
 
   // Resolve the action immediately — no wind-up delay. The action lock that
   // gates the next combatant is set inside finalizePostAction based on whether

@@ -137,7 +137,127 @@ export const sfx = {
     { freq: 311, type: "sawtooth", durMs: 320, gain: 0.07 },
   ]),
   idle: () => blip({ freq: 440, type: "sine", durMs: 50, gain: 0.04 }),
+
+  // ---- Themed skill-cast SFX ----
+  // Each one is a short synth chord designed to read as the theme without
+  // requiring a sound file. Routed by playSkillCastSfx() below based on
+  // keywords in the skill name.
+  spellFire: () => chord([
+    { freq: 220, endFreq: 110, type: "sawtooth", durMs: 220, gain: 0.10 },
+    { freq: 880, endFreq: 440, type: "triangle", durMs: 180, gain: 0.06 },
+  ]),
+  spellIce: () => chord([
+    { freq: 1760, endFreq: 1320, type: "sine", durMs: 220, gain: 0.06 },
+    { freq: 2200, endFreq: 1760, type: "sine", durMs: 200, gain: 0.04 },
+    { freq: 660, type: "triangle", durMs: 160, gain: 0.05 },
+  ]),
+  spellWater: () => chord([
+    { freq: 440, endFreq: 220, type: "sine", durMs: 280, gain: 0.08 },
+    { freq: 660, endFreq: 330, type: "sine", durMs: 280, gain: 0.05 },
+  ]),
+  spellLightning: () => chord([
+    { freq: 2400, type: "square", durMs: 40, gain: 0.10 },
+    { freq: 1200, endFreq: 220, type: "sawtooth", durMs: 200, gain: 0.09 },
+  ]),
+  spellHoly: () => chord([
+    { freq: 880, endFreq: 1760, type: "sine", durMs: 320, gain: 0.07 },
+    { freq: 1320, endFreq: 2640, type: "sine", durMs: 320, gain: 0.05 },
+    { freq: 660, endFreq: 1320, type: "triangle", durMs: 280, gain: 0.04 },
+  ]),
+  spellDark: () => chord([
+    { freq: 110, endFreq: 55, type: "sawtooth", durMs: 360, gain: 0.10 },
+    { freq: 220, endFreq: 110, type: "triangle", durMs: 320, gain: 0.06 },
+  ]),
+  spellWind: () => chord([
+    { freq: 1320, endFreq: 2200, type: "triangle", durMs: 220, gain: 0.06 },
+    { freq: 1760, endFreq: 2640, type: "triangle", durMs: 200, gain: 0.04 },
+  ]),
+  spellSlash: () => chord([
+    { freq: 1760, endFreq: 880, type: "square", durMs: 90, gain: 0.10 },
+    { freq: 880, endFreq: 440, type: "sawtooth", durMs: 60, gain: 0.06 },
+  ]),
+  spellImpact: () => chord([
+    { freq: 165, endFreq: 55, type: "sawtooth", durMs: 240, gain: 0.12 },
+    { freq: 330, endFreq: 165, type: "square", durMs: 120, gain: 0.06 },
+  ]),
+  spellArrow: () => chord([
+    { freq: 1320, endFreq: 2640, type: "triangle", durMs: 80, gain: 0.07 },
+    { freq: 660, endFreq: 1320, type: "sine", durMs: 70, gain: 0.04 },
+  ]),
+  spellShadow: () => chord([
+    { freq: 165, endFreq: 110, type: "triangle", durMs: 280, gain: 0.07 },
+    { freq: 330, endFreq: 220, type: "sine", durMs: 320, gain: 0.05 },
+  ]),
+  spellHeal: () => chord([
+    { freq: 880, endFreq: 1760, type: "sine", durMs: 280, gain: 0.07 },
+    { freq: 1320, endFreq: 1980, type: "sine", durMs: 280, gain: 0.05 },
+  ]),
+  spellBuff: () => chord([
+    { freq: 660, endFreq: 990, type: "triangle", durMs: 240, gain: 0.06 },
+    { freq: 990, endFreq: 1320, type: "sine", durMs: 240, gain: 0.04 },
+  ]),
+  spellSummon: () => chord([
+    { freq: 220, endFreq: 880, type: "square", durMs: 280, gain: 0.07 },
+    { freq: 440, type: "triangle", durMs: 240, gain: 0.05 },
+  ]),
+  spellGeneric: () => chord([
+    { freq: 660, endFreq: 880, type: "triangle", durMs: 140, gain: 0.06 },
+  ]),
 };
+
+/** Theme keywords matched against the skill name (case-insensitive) to pick
+ *  the appropriate spell-cast SFX. First match wins; ordering matters because
+ *  some words overlap (e.g. "Solar Flare" contains both "solar" → holy and
+ *  "flare" → fire — we want holy to win since it's the brighter theme).
+ *  Keep keywords plural-/conjugation-tolerant by using substrings. */
+const SPELL_SFX_THEMES: Array<{ match: RegExp; play: () => void }> = [
+  // Light / holy first — beats fire/heat themes when both words appear.
+  { match: /\b(holy|radiant|celestial|solar|light|divine|sacred|aura|halo|sun)/i, play: () => sfx.spellHoly() },
+  // Shadow / dark before generic magic.
+  { match: /\b(shadow|dark|void|abyss|phantom|wraith|necro)/i, play: () => sfx.spellShadow() },
+  // Fire family.
+  { match: /\b(fire|flame|blaz|ignit|inferno|burn|ember|pyro|combust|scorch)/i, play: () => sfx.spellFire() },
+  // Ice / frost.
+  { match: /\b(ice|frost|froz|freeze|cold|chill|glacial|cryo)/i, play: () => sfx.spellIce() },
+  // Water / hydro.
+  { match: /\b(water|hydro|tidal|wave|aqua|ocean|sea|stream|vortex|drown|tsunami)/i, play: () => sfx.spellWater() },
+  // Lightning / thunder.
+  { match: /\b(lightning|thunder|bolt|shock|static|electric|spark|storm)/i, play: () => sfx.spellLightning() },
+  // Wind / movement.
+  { match: /\b(wind|gust|tornado|cyclone|swift|whirl|sweep|dash)/i, play: () => sfx.spellWind() },
+  // Slash / blade.
+  { match: /\b(slash|slice|cut|blade|edge|cleav|sever|carve|twin|whirlwind)/i, play: () => sfx.spellSlash() },
+  // Arrow / shot.
+  { match: /\b(arrow|shot|volley|draw|tap|apex|fire(?=\s|$)|pierc|barrage|bind)/i, play: () => sfx.spellArrow() },
+  // Heavy impact / slam / stomp.
+  { match: /\b(strike|slam|smash|bash|punch|crush|crash|pound|stomp|quake|shake|earth|colossal|hammer|fist)/i, play: () => sfx.spellImpact() },
+  // Heal-keyword skills.
+  { match: /\b(heal|cure|restor|revive|mend|regen|recover|soda(?=\s+pop))/i, play: () => sfx.spellHeal() },
+  // Summon.
+  { match: /\b(summon|spawn|conjure|call|bastion)/i, play: () => sfx.spellSummon() },
+  // Buff-y verbs (focus, pulse, shield, guard, bulwark, heart) — last resort
+  // before falling through to kind-based default.
+  { match: /\b(focus|pulse|shield|bulwark|heart|unyielding|wall|barrier|might|fury|rage|frenzy|guard)/i, play: () => sfx.spellBuff() },
+];
+
+/** Public dispatcher. Picks an SFX by skill name keywords, falling back to
+ *  the skill's kind (physical / magical / buff / summon). Called from the
+ *  combat loop the moment a skill resolves. */
+export function playSkillCastSfx(skillName: string, skillKind: "physical" | "magical" | "buff" | "summon"): void {
+  for (const theme of SPELL_SFX_THEMES) {
+    if (theme.match.test(skillName)) {
+      theme.play();
+      return;
+    }
+  }
+  // No keyword hit — fall back to the skill kind so we still play SOMETHING
+  // distinct. Generic physical skills also covered by hit SFX on impact,
+  // so we keep this very subtle to avoid doubling up.
+  if (skillKind === "summon") sfx.spellSummon();
+  else if (skillKind === "buff") sfx.spellBuff();
+  else if (skillKind === "magical") sfx.spellGeneric();
+  // Pure physical with no keyword: stay silent here, the hit SFX covers it.
+}
 
 // Global click/hover delegation for any clickable element.
 let clickWired = false;
