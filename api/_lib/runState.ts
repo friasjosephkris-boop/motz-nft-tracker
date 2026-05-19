@@ -428,6 +428,7 @@ export function attemptsCap(mode: "survival" | "boss_raid"): number {
 
 export type ShopItemId =
   | "energy_5" | "energy_10" | "energy_20"
+  | "energy_first_offer"   // one-time post-zero-energy bundle (20 RON → 35 energy)
   | "unit_stat_reset" | "unit_class_change" | "unit_temp_motz_key"
   | "buff_battle_cry" | "buff_phoenix_embers" | "buff_scholars_insight"
   | "buff_quickdraw" | "buff_last_stand";

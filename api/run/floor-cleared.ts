@@ -524,6 +524,74 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // season, the shop closes alongside run starts. shop_status / shop_consume /
   // inventory_use_energy remain open so players can still SEE what they own
   // and use already-purchased items.
+  // ---- One-time first-energy-bundle offer (35 energy for 20 RON / 20 bRON) ----
+  // Status check, RON-claim, voucher-claim, dismiss. Status is also auto-marked
+  // "shown" on first read so a reload doesn't refire the modal until the player
+  // explicitly picks an action.
+  if (op === "first_offer_status") {
+    try {
+      const { markOfferShown, FIRST_OFFER_ENERGY_GRANT, FIRST_OFFER_RON_PRICE } = await import("../_lib/firstEnergyOffer.js");
+      const state = await markOfferShown(address);
+      res.status(200).json({ ok: true, status: state.status, energy: FIRST_OFFER_ENERGY_GRANT, priceRon: FIRST_OFFER_RON_PRICE });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "first_offer_dismiss") {
+    try {
+      const { dismissOffer } = await import("../_lib/firstEnergyOffer.js");
+      const state = await dismissOffer(address);
+      res.status(200).json({ ok: true, status: state.status });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "first_offer_claim_ron") {
+    // RON claim path: same payment-verify infrastructure as the regular shop,
+    // synthetic itemId "energy_first_offer" looks up the 20 RON price.
+    const txHash = typeof (req.body as { txHash?: unknown }).txHash === "string"
+      ? (req.body as { txHash: string }).txHash : "";
+    if (!txHash) { res.status(400).json({ error: "txHash required" }); return; }
+    try {
+      const { readOffer, grantOfferBundle } = await import("../_lib/firstEnergyOffer.js");
+      const cur = await readOffer(address);
+      if (cur.status === "consumed") {
+        res.status(409).json({ ok: false, reason: "offer already consumed" }); return;
+      }
+      const pay = await verifyShopPayment(txHash, address, "energy_first_offer");
+      if (!pay.ok) {
+        res.status(pay.pending ? 202 : 400).json({ ok: false, pending: pay.pending, reason: pay.reason });
+        return;
+      }
+      const grant = await grantOfferBundle(address, "ron");
+      if (!grant.ok) {
+        res.status(409).json({ ok: false, reason: grant.reason });
+        return;
+      }
+      await consumeTxHash(txHash, address, "energy_first_offer", pay.valueWei);
+      res.status(200).json({ ok: true, energy: grant.energy });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "first_offer_claim_voucher") {
+    try {
+      const { claimWithVouchers } = await import("../_lib/firstEnergyOffer.js");
+      const r = await claimWithVouchers(address);
+      if (!r.ok) { res.status(400).json({ ok: false, reason: r.reason }); return; }
+      res.status(200).json({ ok: true, energy: r.energy, deducted: r.deducted });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "shop_buy" || op === "shop_buy_voucher") {
     if (await isSeasonHalted()) {
       res.status(SEASON_HALTED_RESPONSE.status).json(SEASON_HALTED_RESPONSE.body);
