@@ -61,6 +61,11 @@ export interface RunSummaryActions {
   onNextFloor?: () => void;
   /** Label override; defaults to "Next Floor". */
   nextFloorLabel?: string;
+  /** If provided, render a "Replay Floor" button. Lets the player re-fight
+   *  the same floor (consumes energy again, no leaderboard impact since
+   *  campaign floors aren't ranked). Use it for the same-floor restart UX
+   *  on victory or defeat. */
+  onReplayFloor?: () => void;
 }
 
 export function renderRunSummary(root: HTMLElement, summary: RunSummary, onClose: () => void, actions: RunSummaryActions = {}): void {
@@ -138,6 +143,7 @@ export function renderRunSummary(root: HTMLElement, summary: RunSummary, onClose
         <div class="rs-actions">
           ${summary.battleLog && summary.battleLog.length > 0 ? `<button class="ghost-btn" id="rs-log" type="button">Review Battle Log</button>` : ""}
           <button class="ghost-btn" id="rs-home" type="button">Home</button>
+          ${actions.onReplayFloor ? `<button class="ghost-btn" id="rs-replay" type="button">↻ Replay Floor</button>` : ""}
           ${actions.onNextFloor ? `<button class="confirm-btn" id="rs-next" type="button">${escapeHtml(actions.nextFloorLabel ?? "Next Floor")}</button>` : ""}
         </div>
       </div>
@@ -147,6 +153,9 @@ export function renderRunSummary(root: HTMLElement, summary: RunSummary, onClose
   root.querySelector<HTMLButtonElement>("#rs-home")?.addEventListener("click", onClose);
   if (actions.onNextFloor) {
     root.querySelector<HTMLButtonElement>("#rs-next")?.addEventListener("click", actions.onNextFloor);
+  }
+  if (actions.onReplayFloor) {
+    root.querySelector<HTMLButtonElement>("#rs-replay")?.addEventListener("click", actions.onReplayFloor);
   }
   if (summary.battleLog && summary.battleLog.length > 0) {
     root.querySelector<HTMLButtonElement>("#rs-log")?.addEventListener("click", () => {

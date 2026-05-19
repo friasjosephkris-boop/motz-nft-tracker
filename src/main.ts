@@ -571,7 +571,12 @@ async function showRunSummary(outcome: "victory" | "defeat", floorsCleared: numb
         }
         const left = claim.remaining;
         const notice = `+1 energy refunded for the loss · ${left} refund${left === 1 ? "" : "s"} left today`;
-        renderRunSummary(root!, summary, showHome, { refundNotice: notice });
+        const partyForReplay = floorParty;
+        const replayStageId = currentStageId;
+        renderRunSummary(root!, summary, showHome, {
+          refundNotice: notice,
+          onReplayFloor: partyForReplay ? async () => { await advanceToNextFloor(replayStageId, partyForReplay); } : undefined,
+        });
         return;
       }
       // Claim failed (race or network): fall through to plain summary.
@@ -581,20 +586,30 @@ async function showRunSummary(outcome: "victory" | "defeat", floorsCleared: numb
     }
   }
 
-  // Floor-mode victory: offer "Next Floor" so the player can keep climbing
-  // without bouncing through Home → Tower → Squad Select each time. Only on
-  // floors 1-49 (floor 50 is the final). Energy is consumed when they click.
-  if (runMode === "floor" && outcome === "victory" && currentStageId < 50) {
-    const nextStageId = currentStageId + 1;
-    const nextStage = getStage(nextStageId);
-    const partyForNext = floorParty;
-    if (nextStage && partyForNext) {
-      renderRunSummary(root!, summary, showHome, {
-        onNextFloor: async () => { await advanceToNextFloor(nextStageId, partyForNext); },
-        nextFloorLabel: `Next Floor → ${nextStage.name}`,
-      });
-      return;
+  // Floor-mode: offer Replay (same floor, same party) on either outcome so
+  // players can grind / re-attempt without bouncing through Home → Tower →
+  // Squad Select. Costs 1 energy each time. Wins also get the Next Floor
+  // button if there's a next floor unlocked.
+  if (runMode === "floor" && floorParty) {
+    const partyForRetry = floorParty;
+    const replayStageId = currentStageId;
+    const replayAction = async () => { await advanceToNextFloor(replayStageId, partyForRetry); };
+
+    if (outcome === "victory" && currentStageId < 50) {
+      const nextStageId = currentStageId + 1;
+      const nextStage = getStage(nextStageId);
+      if (nextStage) {
+        renderRunSummary(root!, summary, showHome, {
+          onNextFloor: async () => { await advanceToNextFloor(nextStageId, partyForRetry); },
+          nextFloorLabel: `Next Floor → ${nextStage.name}`,
+          onReplayFloor: replayAction,
+        });
+        return;
+      }
     }
+    // Victory on Floor 50, or any defeat: replay button alone (no Next Floor).
+    renderRunSummary(root!, summary, showHome, { onReplayFloor: replayAction });
+    return;
   }
 
   renderRunSummary(root!, summary, showHome);
@@ -606,10 +621,12 @@ async function showRunSummary(outcome: "victory" | "defeat", floorsCleared: numb
 async function advanceToNextFloor(stageId: number, party: SquadResult["players"]): Promise<void> {
   const nextStage = getStage(stageId);
   const partyNames = party.map(p => p.template.name).join(", ");
+  // Detect replay (same floor we just finished) so the modal title is accurate.
+  const isReplay = stageId === currentStageId;
   const ok = await confirmModal({
-    title: "Begin Next Floor?",
-    message: `Continue to <strong>Floor ${stageId}${nextStage ? ` · ${escapeHtmlSimple(nextStage.name)}` : ""}</strong> with <strong>${party.length}</strong> unit${party.length === 1 ? "" : "s"} — <strong>${escapeHtmlSimple(partyNames)}</strong>?<br><br>Costs <strong>1 energy</strong>.`,
-    confirmLabel: "Begin",
+    title: isReplay ? "Replay This Floor?" : "Begin Next Floor?",
+    message: `${isReplay ? "Re-fight" : "Continue to"} <strong>Floor ${stageId}${nextStage ? ` · ${escapeHtmlSimple(nextStage.name)}` : ""}</strong> with <strong>${party.length}</strong> unit${party.length === 1 ? "" : "s"} — <strong>${escapeHtmlSimple(partyNames)}</strong>?<br><br>Costs <strong>1 energy</strong>.`,
+    confirmLabel: isReplay ? "Replay" : "Begin",
     cancelLabel: "Cancel",
   });
   if (!ok) return;
