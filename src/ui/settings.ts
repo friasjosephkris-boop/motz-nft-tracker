@@ -3,7 +3,7 @@ import { addEnergy, getEnergy, ENERGY_MAX, msUntilNextRefill } from "../core/ene
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -131,12 +131,16 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
                 </div>
               </div>
               <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
-                <span class="admin-info">🎁 <strong>Close One-Time Offers</strong> — mark a wallet's one-time offer(s) as already consumed so the modal won't reappear. Use after comp-granting (e.g. player paid for energy but got the wrong bundle).</span>
-                <input type="text" id="admin-close-offer-wallet" placeholder="0x..." style="font-family:monospace; padding:4px 8px; min-width:340px;" />
+                <span class="admin-info">🎁 <strong>Comp a Wallet (Grant Energy + Close Offers)</strong> — paste a wallet, then add energy directly to their pool and/or mark their one-time offer(s) as consumed so the modal won't reappear. Use when a player paid for the wrong bundle.</span>
+                <input type="text" id="admin-comp-wallet" placeholder="0x..." style="font-family:monospace; padding:4px 8px; min-width:340px;" />
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                  <input type="number" id="admin-comp-energy-amt" placeholder="35" min="-999" max="999" value="35" style="width:80px; padding:4px 6px;" />
+                  <button class="ghost-btn" id="admin-comp-energy-btn" type="button" style="border-color:#9bff9b;color:#c5f0c5;">⚡ Grant Energy</button>
+                </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                   <button class="ghost-btn" id="admin-close-offer-first-btn" type="button">Close First-Energy</button>
                   <button class="ghost-btn" id="admin-close-offer-floor20-btn" type="button">Close Floor-20</button>
-                  <button class="ghost-btn" id="admin-close-offer-both-btn" type="button">Close Both</button>
+                  <button class="ghost-btn" id="admin-close-offer-both-btn" type="button">Close Both Offers</button>
                 </div>
               </div>
             ` : ""}
@@ -391,9 +395,38 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
   // the modal won't pop again. Used after a comp-grant (player paid for the
   // wrong bundle, admin manually grants the missing reward + closes the
   // offer so it doesn't haunt them later).
+  // Shared wallet input lookup — the comp form reuses #admin-comp-wallet for
+  // both the energy-grant button and the close-offer buttons.
+  function readCompWallet(): string {
+    const input = root.querySelector<HTMLInputElement>("#admin-comp-wallet");
+    return (input?.value ?? "").trim();
+  }
+  root.querySelector<HTMLButtonElement>("#admin-comp-energy-btn")?.addEventListener("click", async () => {
+    const wallet = readCompWallet();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
+      await alertModal({ kind: "warning", title: "Invalid Wallet", message: "Paste a 0x-prefixed 40-hex address first." });
+      return;
+    }
+    const amtInput = root.querySelector<HTMLInputElement>("#admin-comp-energy-amt");
+    const delta = Number(amtInput?.value ?? "0") | 0;
+    if (delta === 0 || Math.abs(delta) > 999) {
+      await alertModal({ kind: "warning", title: "Invalid Amount", message: "Energy delta must be a non-zero integer between -999 and 999." });
+      return;
+    }
+    const r = await adminGrantEnergyToWallet(wallet, delta);
+    if (!r.ok) {
+      await alertModal({ kind: "error", title: "Grant Failed", message: `Server: ${r.error ?? "unknown"}` });
+      return;
+    }
+    await alertModal({
+      kind: "success",
+      title: "Energy Granted",
+      message: `Granted <strong>${delta >= 0 ? "+" : ""}${delta}</strong> energy to <strong style="font-family:monospace;">${wallet}</strong>.<br>New balance: <strong>${r.amount}</strong>.`,
+    });
+  });
+
   async function closeOffersFor(offers: ("first_energy" | "floor20" | "both")[]): Promise<void> {
-    const input = root.querySelector<HTMLInputElement>("#admin-close-offer-wallet");
-    const wallet = (input?.value ?? "").trim();
+    const wallet = readCompWallet();
     if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
       await alertModal({ kind: "warning", title: "Invalid Wallet", message: "Wallet must be a 0x-prefixed 40-hex address." });
       return;
@@ -409,7 +442,6 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       title: "Offer(s) Closed",
       message: `Marked consumed for <strong style="font-family:monospace;">${wallet}</strong>:<br>${list}`,
     });
-    if (input) input.value = "";
   }
   root.querySelector<HTMLButtonElement>("#admin-close-offer-first-btn")?.addEventListener("click", () => closeOffersFor(["first_energy"]));
   root.querySelector<HTMLButtonElement>("#admin-close-offer-floor20-btn")?.addEventListener("click", () => closeOffersFor(["floor20"]));

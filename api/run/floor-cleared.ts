@@ -586,6 +586,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  if (op === "admin_grant_energy_to") {
+    // Variant of admin_grant_energy that targets a SPECIFIC wallet rather
+    // than the admin's own. Use for comp grants (player paid for a bundle
+    // but got the wrong reward, manually add the energy they should have
+    // received). Same delta sanity cap (±999) to prevent finger-fumbles.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
+      ? (req.body as { wallet: string }).wallet.trim().toLowerCase() : "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+      res.status(400).json({ error: "wallet must be a 0x-prefixed 40-hex address" }); return;
+    }
+    const delta = typeof (req.body as { delta?: unknown }).delta === "number"
+      ? Math.floor((req.body as { delta: number }).delta) : 0;
+    if (delta === 0) { res.status(400).json({ error: "delta required (non-zero integer)" }); return; }
+    if (Math.abs(delta) > 999) { res.status(400).json({ error: "delta too large (|delta| > 999)" }); return; }
+    try {
+      const amount = await adminGrantEnergy(target, delta);
+      res.status(200).json({ ok: true, wallet: target, amount, max: ENERGY_MAX, delta });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "admin_consume_one_time_offers") {
     // Admin op: mark a target wallet's one-time-offer state as "consumed" so
     // the modal won't reappear. Used to close out offers after a comp grant

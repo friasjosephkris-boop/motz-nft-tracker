@@ -123,6 +123,26 @@ export async function adminBumpXpCap(delta: number): Promise<{ ok: boolean; newC
   }
 }
 
+/** Admin: grant energy to a SPECIFIC wallet (different from
+ *  adminGrantServerEnergy which adds to the caller's own). Use for comp
+ *  grants when a player paid for the wrong bundle. Delta is clamped to ±999. */
+export async function adminGrantEnergyToWallet(wallet: string, delta: number): Promise<{ ok: boolean; amount?: number; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_grant_energy_to", wallet, delta }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; amount?: number; error?: string }));
+    if (!r.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: true, amount: data.amount };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "network" };
+  }
+}
+
 /** Admin: close one-time offers on a target wallet by marking them as
  *  consumed. Use after a comp grant so the offer modal doesn't reappear. */
 export async function adminConsumeOneTimeOffers(wallet: string, offers: ("first_energy" | "floor20" | "both")[]): Promise<{ ok: boolean; closed?: string[]; error?: string }> {
