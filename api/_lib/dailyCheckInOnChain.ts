@@ -129,9 +129,31 @@ export async function callOnChainCheckIn(player: Address): Promise<CheckInResult
     }
     return { ok: true, txHash: hash };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "unknown rpc error";
-    // Trim viem's verbose error blob to one line so it fits cleanly in logs
-    // and any error returned to the client.
-    return { ok: false, reason: msg.split("\n")[0].slice(0, 200) };
+    // Pull the actual revert reason out of viem's verbose error blob. viem
+    // exposes it on .shortMessage / .metaMessages / .details — fall back to
+    // walking the message text if those aren't present. The earlier
+    // single-line truncation hid the real reason (e.g. "not owner") because
+    // viem puts the headline on line 1 and the actual reason on line 2+.
+    const err = e as { shortMessage?: string; details?: string; metaMessages?: unknown; message?: string };
+    const candidates: string[] = [];
+    if (typeof err.shortMessage === "string") candidates.push(err.shortMessage);
+    if (typeof err.details === "string") candidates.push(err.details);
+    if (Array.isArray(err.metaMessages)) {
+      for (const m of err.metaMessages) {
+        if (typeof m === "string") candidates.push(m);
+      }
+    }
+    // Look for an explicit revert reason inside the full message body.
+    const rawMsg = typeof err.message === "string" ? err.message : "";
+    const reasonMatch = rawMsg.match(/reverted with the following reason:\s*\n?\s*([^\n]+)/i);
+    if (reasonMatch && reasonMatch[1]) candidates.push(reasonMatch[1].trim());
+    // Strip surrounding quotes / Solidity-style wrappers and dedupe.
+    const cleaned = candidates
+      .map(s => s.replace(/^["']|["']$/g, "").trim())
+      .filter(s => s.length > 0);
+    const reason = cleaned.length > 0
+      ? Array.from(new Set(cleaned)).join(" | ").slice(0, 400)
+      : (rawMsg.split("\n").filter(l => l.trim().length > 0).slice(0, 3).join(" | ").slice(0, 400) || "unknown rpc error");
+    return { ok: false, reason };
   }
 }
