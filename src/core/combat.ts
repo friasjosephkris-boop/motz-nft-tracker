@@ -747,12 +747,11 @@ function executeAction(b: Battle, attacker: Combatant, action: QueuedAction): vo
     attacker.hp = Math.max(1, attacker.hp - skill.hpCost);
   }
 
-  // Themed cast SFX — picks the audio by keywords in the skill's display name
-  // (Fireball → fire whoosh, Tidal Wave → splash, World End → ominous low,
-  // etc.). Idle and Guard skip it; pure physical with no matching keyword
-  // also stays quiet to avoid doubling up with the hit SFX. See audio.ts
-  // playSkillCastSfx() for the keyword table.
-  if (skill.id !== "idle" && skill.id !== "guard") {
+  // Cast SFX is for buff/summon skills only — the empower / charging cue.
+  // Damaging skills (physical / magical) already play a hit SFX on impact,
+  // and an additional cast cue right before just stacks two clashing sounds.
+  // Idle and Guard are quiet by design.
+  if ((skill.kind === "buff" || skill.kind === "summon") && skill.id !== "guard") {
     playSkillCastSfx(skill);
   }
 
