@@ -10,6 +10,7 @@ import { payWithWallet } from "../auth/payment";
 import { showTxProgress } from "./txProgressOverlay";
 import { fetchFirstOfferStatus, claimFirstOfferWithRon, claimFirstOfferWithVouchers, dismissFirstOffer } from "../core/firstEnergyOffer";
 import { setEnergy } from "../core/energy";
+import { isOneTimeOfferOpen, lockOneTimeOffer, unlockOneTimeOffer } from "./oneTimeOfferLock";
 
 // 20 RON in wei. Mirrors the server's ITEM_PRICES_WEI["energy_first_offer"].
 const OFFER_PRICE_WEI: bigint = 20n * 10n ** 18n;
@@ -23,13 +24,16 @@ let checkInFlight = false;
  *  offer is no longer available). */
 export async function maybeShowFirstEnergyOffer(): Promise<void> {
   if (modalOpen || checkInFlight) return;
+  // Cross-offer lock: never stack a second one-time-offer modal on top of an
+  // already-visible one. Player otherwise pays for the visible modal while
+  // thinking they're paying for the one underneath (gioblo incident).
+  if (isOneTimeOfferOpen()) return;
   checkInFlight = true;
   try {
     const status = await fetchFirstOfferStatus();
     if (!status || !status.ok) return;
     if (status.status === "consumed") return; // already used or dismissed — done forever
-    // "available" or "shown" both qualify: "available" = first time; "shown"
-    // = previously displayed but no decision yet (refresh-safe).
+    if (isOneTimeOfferOpen()) return; // another modal opened during the await
     await openOfferModal(status.energy ?? 35, status.priceRon ?? 20);
   } finally {
     checkInFlight = false;
@@ -38,6 +42,7 @@ export async function maybeShowFirstEnergyOffer(): Promise<void> {
 
 async function openOfferModal(energyGrant: number, priceRon: number): Promise<void> {
   if (modalOpen) return;
+  if (!lockOneTimeOffer()) return; // another offer modal grabbed the lock first
   modalOpen = true;
   const overlay = document.createElement("div");
   overlay.className = "first-offer-modal";
@@ -68,7 +73,7 @@ async function openOfferModal(energyGrant: number, priceRon: number): Promise<vo
   `;
   document.body.appendChild(overlay);
 
-  const closeOverlay = () => { try { overlay.remove(); } catch { /* ignore */ } modalOpen = false; };
+  const closeOverlay = () => { try { overlay.remove(); } catch { /* ignore */ } modalOpen = false; unlockOneTimeOffer(); };
 
   const ronBtn = overlay.querySelector<HTMLButtonElement>("#fo-pay-ron");
   const voucherBtn = overlay.querySelector<HTMLButtonElement>("#fo-pay-voucher");
