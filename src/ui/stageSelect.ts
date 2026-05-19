@@ -160,7 +160,14 @@ function drawFloorGrid(root: HTMLElement, onPick: (pick: StagePick) => void, onB
   const activeTier = FLOOR_TIERS.find(t => nextUp >= t.firstFloor && nextUp <= t.lastFloor);
   if (activeTier) expandedTiers.add(activeTier.id);
 
-  const tiersHtml = FLOOR_TIERS.map(tier => renderTier(tier, energy, maxCleared)).join("");
+  // Visibility rule: only render tiers the player has actually reached. A tier
+  // is shown when its first floor is at-or-below the player's next-up floor
+  // (so the player sees the Campaign tier always, then 51-100 once they clear
+  // 50, then 101-150 once they clear 100, etc.). Locked-but-visible tiers
+  // (further than next-up) are hidden entirely so the screen stays clean —
+  // they appear one-by-one as the player progresses.
+  const visibleTiers = FLOOR_TIERS.filter(tier => tier.firstFloor <= nextUp);
+  const tiersHtml = visibleTiers.map(tier => renderTier(tier, energy, maxCleared)).join("");
 
   root.innerHTML = `
     <div class="screen-frame stage-select-screen">
