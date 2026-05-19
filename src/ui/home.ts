@@ -179,7 +179,7 @@ function renderDailyWidget(slot: HTMLElement, status: DailyStatus): void {
         await alertModal({
           kind: "error",
           title: "On-Chain Check-In Failed",
-          message: `The on-chain Daily Check-In couldn't complete, so the in-game reward was held back. You also need this signature to earn Ronin Voyages credit.<br><br><span style="font-family:monospace; font-size:11px; opacity:0.8;">${result.onchainError ?? "unknown error"}</span><br><br>Try again in a moment.`,
+          message: `The on-chain Daily Check-In couldn't complete, so the in-game reward was held back. You also need this signature to earn Gauntlet Energy and XP multiplier.<br><br><span style="font-family:monospace; font-size:11px; opacity:0.8;">${result.onchainError ?? "unknown error"}</span><br><br>Try again in a moment.`,
         });
         return;
       }
