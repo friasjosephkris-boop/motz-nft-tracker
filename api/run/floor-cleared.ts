@@ -249,6 +249,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return;
   }
 
+  if (op === "admin_bump_xp_cap") {
+    // Admin op: raise the wallet's server-side XP ceiling by `delta`. Used by
+    // the dev-build "+ Level" button so the next progress_sync push doesn't
+    // get rejected as a cheating attempt (the new level's totalXp would
+    // otherwise exceed the cap that legit play hadn't earned yet).
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const delta = typeof (req.body as { delta?: unknown }).delta === "number"
+      ? Math.max(0, Math.min(100000, Math.floor((req.body as { delta: number }).delta))) : 0;
+    if (delta === 0) { res.status(400).json({ error: "delta must be a positive number ≤100000" }); return; }
+    try {
+      const newCap = await bumpXpCap(address, delta);
+      res.status(200).json({ ok: true, newCap });
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+    }
+    return;
+  }
   if (op === "admin_grant_vouchers") {
     // Hard gate: only the admin wallet (server-side allowlist in api/_lib/admin.ts)
     // can fire this. `address` comes from the JWT-verified session, so the body
