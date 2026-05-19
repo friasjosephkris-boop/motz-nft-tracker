@@ -34,10 +34,40 @@ export async function validateSession(token: string): Promise<{ address: string;
     const data = await r.json();
     if (typeof data?.address !== "string") return null;
     const motzKey = !!data?.perks?.motzKey;
+    // Wipe-epoch check: if the server's wipe counter has advanced since the
+    // last time this browser saw it, every cached value (XP, stage unlocks,
+    // inventory, …) is stale by definition. Preserve the session token,
+    // nuke everything else, reload. Without this, players whose tabs were
+    // open during a wipe keep seeing pre-wipe data until they manually
+    // clear browser storage — which is exactly what's been happening.
+    if (typeof data?.wipeEpoch === "number") {
+      maybeApplyWipeEpoch(data.wipeEpoch);
+    }
     return { address: data.address, perks: { motzKey } };
   } catch {
     return null;
   }
+}
+
+const WIPE_EPOCH_KEY = "tower-of-zeal.wipe-epoch.v1";
+function maybeApplyWipeEpoch(serverEpoch: number): void {
+  let local = 0;
+  try { local = Number(localStorage.getItem(WIPE_EPOCH_KEY) ?? "0") || 0; } catch { /* ignore */ }
+  if (serverEpoch <= local) return;
+  // First time this browser ever saw the field: just record it, don't nuke
+  // (would clobber fresh first-time players). Only react when we have a
+  // baseline AND the server moved past it.
+  if (local === 0) {
+    try { localStorage.setItem(WIPE_EPOCH_KEY, String(serverEpoch)); } catch { /* ignore */ }
+    return;
+  }
+  const sessionBackup = localStorage.getItem(STORAGE_KEY);
+  try { localStorage.clear(); } catch { /* ignore */ }
+  if (sessionBackup) {
+    try { localStorage.setItem(STORAGE_KEY, sessionBackup); } catch { /* ignore */ }
+  }
+  try { localStorage.setItem(WIPE_EPOCH_KEY, String(serverEpoch)); } catch { /* ignore */ }
+  window.location.reload();
 }
 
 // Module-level cache of the wallet address the server actually verified for

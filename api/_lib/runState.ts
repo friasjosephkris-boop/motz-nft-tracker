@@ -39,6 +39,17 @@ export async function adminWipeDevData(): Promise<{ ok: boolean; reason?: string
  *  that the API op is admin-gated). Targets each top-level prefix the game
  *  uses so we don't accidentally nuke unrelated keys if the Upstash instance
  *  is ever shared. Returns aggregate scanned/deleted counts. */
+/** Monotonic counter incremented every time a prod wipe runs. The client
+ *  reads this at session-check time, compares against its cached value, and
+ *  if higher (i.e. a wipe happened since last visit) does localStorage.clear()
+ *  + reload. This is the safety net that catches CDN-cached old clients and
+ *  weird browser state that the per-key reconciliation might miss. */
+export const WIPE_EPOCH_KEY = "wipe_epoch";
+
+export async function readWipeEpoch(): Promise<number> {
+  return await getNumber(WIPE_EPOCH_KEY);
+}
+
 export async function adminWipeAllData(): Promise<{ ok: boolean; scanned: number; deleted: number; patternHits: Record<string, number> }> {
   // Every top-level pattern the game writes to. Update when adding new keyspaces.
   const PATTERNS = [
@@ -110,6 +121,10 @@ export async function adminWipeAllData(): Promise<{ ok: boolean; scanned: number
   } catch {
     // Direct-delete is a safety net — don't fail the whole wipe if it errors.
   }
+  // Bump the wipe epoch LAST, after deletes, so clients pulling concurrently
+  // either see the old epoch (and stale data, which is fine — they'll catch
+  // up next poll) or the new epoch (and reload into a clean state).
+  await incrBy(WIPE_EPOCH_KEY, 1).catch(() => 0);
   return { ok: true, scanned: totalScanned, deleted: totalDeleted, patternHits };
 }
 

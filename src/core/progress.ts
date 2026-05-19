@@ -1,5 +1,6 @@
 import { Stats, ZERO_STATS } from "./stats";
 import { CLASS_SKILLS, CHARACTER_SKILLS, getSkill } from "../skills/registry";
+import { setMaxClearedFromServer } from "./clears";
 
 // Persistent per-unit progress, keyed by template id.
 // Resets to defaults when there's no entry for that id.
@@ -295,7 +296,6 @@ export async function pullCanonicalProgress(): Promise<{ ok: boolean; reason?: s
     // until we explicitly overwrite. typeof check keeps us compatible with
     // older server builds that don't return maxFloor.
     if (typeof data.maxFloor === "number") {
-      const { setMaxClearedFromServer } = await import("./clears");
       setMaxClearedFromServer(data.maxFloor);
     }
     return { ok: true };

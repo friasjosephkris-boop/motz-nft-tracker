@@ -3,7 +3,7 @@ import { getAddress } from "viem";
 import { verifySession } from "../_lib/jwt.js";
 import { holdsAnyGatedNft, holdsMotzKey } from "../_lib/ronin.js";
 import { isDevBypassWallet } from "../_lib/devBypass.js";
-import { hasActiveTempMotzKey } from "../_lib/runState.js";
+import { hasActiveTempMotzKey, readWipeEpoch } from "../_lib/runState.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const auth = req.headers.authorization;
@@ -32,10 +32,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // is sold/transferred mid-session. Also honor any active temporary MoTZ
     // Key (seasonal pass bought from the shop) — its expiry is persisted
     // server-side, so the client can't fake it from devtools.
-    const onChainKey = bypass ? true : await holdsMotzKey(address).catch(() => false);
-    const tempKey = bypass ? false : await hasActiveTempMotzKey(address).catch(() => false);
+    const [onChainKey, tempKey, wipeEpoch] = await Promise.all([
+      bypass ? Promise.resolve(true) : holdsMotzKey(address).catch(() => false),
+      bypass ? Promise.resolve(false) : hasActiveTempMotzKey(address).catch(() => false),
+      readWipeEpoch().catch(() => 0),
+    ]);
     const motzKey = onChainKey || tempKey;
-    res.status(200).json({ address: payload.address, perks: { motzKey } });
+    // wipeEpoch lets the client detect a server wipe and force a localStorage
+    // clear + reload. Sent on every session check (5-min poll) so even sleeping
+    // tabs converge within minutes of a wipe.
+    res.status(200).json({ address: payload.address, perks: { motzKey }, wipeEpoch });
   } catch {
     res.status(401).json({ error: "invalid session" });
   }
