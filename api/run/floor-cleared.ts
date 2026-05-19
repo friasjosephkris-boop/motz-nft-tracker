@@ -592,6 +592,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  // ---- One-time floor-20 clear offer (all campaign buffs for 20 RON / 20 bRON) ----
+  if (op === "floor20_offer_status") {
+    try {
+      const { markFloor20OfferShown, FLOOR20_OFFER_RON_PRICE } = await import("../_lib/floor20Offer.js");
+      const state = await markFloor20OfferShown(address);
+      res.status(200).json({ ok: true, status: state.status, priceRon: FLOOR20_OFFER_RON_PRICE });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "floor20_offer_dismiss") {
+    try {
+      const { dismissFloor20Offer } = await import("../_lib/floor20Offer.js");
+      const state = await dismissFloor20Offer(address);
+      res.status(200).json({ ok: true, status: state.status });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "floor20_offer_claim_ron") {
+    const txHash = typeof (req.body as { txHash?: unknown }).txHash === "string"
+      ? (req.body as { txHash: string }).txHash : "";
+    if (!txHash) { res.status(400).json({ error: "txHash required" }); return; }
+    try {
+      const { readFloor20Offer, grantFloor20Bundle } = await import("../_lib/floor20Offer.js");
+      const cur = await readFloor20Offer(address);
+      if (cur.status === "consumed") { res.status(409).json({ ok: false, reason: "offer already consumed" }); return; }
+      if (cur.status === "pending") { res.status(403).json({ ok: false, reason: "clear floor 20 first" }); return; }
+      const pay = await verifyShopPayment(txHash, address, "floor20_offer_bundle");
+      if (!pay.ok) {
+        res.status(pay.pending ? 202 : 400).json({ ok: false, pending: pay.pending, reason: pay.reason });
+        return;
+      }
+      const grant = await grantFloor20Bundle(address, "ron");
+      if (!grant.ok) { res.status(409).json({ ok: false, reason: grant.reason }); return; }
+      await consumeTxHash(txHash, address, "floor20_offer_bundle", pay.valueWei);
+      res.status(200).json({ ok: true, grants: grant.grants });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "floor20_offer_claim_voucher") {
+    try {
+      const { claimFloor20WithVouchers } = await import("../_lib/floor20Offer.js");
+      const r = await claimFloor20WithVouchers(address);
+      if (!r.ok) { res.status(400).json({ ok: false, reason: r.reason }); return; }
+      res.status(200).json({ ok: true, grants: r.grants, deducted: r.deducted });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "shop_buy" || op === "shop_buy_voucher") {
     if (await isSeasonHalted()) {
       res.status(SEASON_HALTED_RESPONSE.status).json(SEASON_HALTED_RESPONSE.body);

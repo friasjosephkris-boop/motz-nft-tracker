@@ -283,8 +283,10 @@ function fillFirstConquer(elId: string, fc: FirstConquerEntry | null, myAddr: st
 }
 
 function conquerPartyCardHtml(m: { templateId: string; classId?: string; level: number; customStats: Record<string, number>; equippedSkills: string[] }): string {
-  const STAT_KEYS = ["STR", "DEF", "AGI", "DEX", "VIT", "INT"];
-  const statRow = STAT_KEYS.map(k => `<span class="lb-stat"><span class="lb-stat-k">${k}</span><span class="lb-stat-v">+${(m.customStats as Record<string, number>)[k] ?? 0}</span></span>`).join("");
+  // Stat allocation is intentionally hidden from the loadout viewer so other
+  // players can't copy the exact build that won the placement. Class +
+  // equipped skills are still shown — those are the strategic surface;
+  // stats are the deeper trade secret.
   const skills = m.equippedSkills.length > 0
     ? m.equippedSkills.map(s => `<span class="lb-skill-chip">${escapeHtml(s)}</span>`).join("")
     : `<span class="lb-skill-chip dim">(none)</span>`;
@@ -295,7 +297,6 @@ function conquerPartyCardHtml(m: { templateId: string; classId?: string; level: 
         <span class="lv-inline">Lv${m.level}</span>
         ${m.classId ? `<span class="lb-conquer-class">${escapeHtml(m.classId)}</span>` : ""}
       </div>
-      <div class="lb-conquer-stats">${statRow}</div>
       <div class="lb-conquer-skills">${skills}</div>
     </div>
   `;
