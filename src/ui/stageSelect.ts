@@ -129,9 +129,38 @@ function renderCampaignFloors(root: HTMLElement, onPick: (pick: StagePick) => vo
   void pullCanonicalProgress().catch(() => undefined).then(() => drawFloorGrid(root, onPick, onBack));
 }
 
+// Tier groupings. The first tier (Floors 1-50) is the hand-tuned campaign;
+// post-game tiers (51-500) bundle 50 floors each. When a tier is fully
+// cleared it collapses into a single summary banner; the tier containing
+// the player's "next-up" floor is expanded; locked tiers are collapsed
+// with a 🔒 indicator. Player can click any unlocked tier to manually
+// expand/collapse it.
+interface FloorTier { id: string; label: string; firstFloor: number; lastFloor: number; }
+const FLOOR_TIERS: FloorTier[] = (() => {
+  const tiers: FloorTier[] = [{ id: "tier-main", label: "Campaign", firstFloor: 1, lastFloor: 50 }];
+  for (let start = 51; start <= 500; start += 50) {
+    const end = Math.min(start + 49, 500);
+    tiers.push({ id: `tier-${start}-${end}`, label: `Floors ${start}–${end}`, firstFloor: start, lastFloor: end });
+  }
+  return tiers;
+})();
+
+/** Which tiers should render expanded on initial load. By default: the tier
+ *  containing maxCleared+1 (the next-up floor). Player toggles are stored
+ *  in-memory on the closure so re-renders honor manual expansions. */
+const expandedTiers = new Set<string>();
+
 function drawFloorGrid(root: HTMLElement, onPick: (pick: StagePick) => void, onBack: () => void): void {
   const energy = getEnergy();
   const maxCleared = getMaxCleared();
+  const nextUp = maxCleared + 1;
+
+  // Default-expand the active tier on every render. Manual toggles add to
+  // expandedTiers and persist across re-renders within this screen session.
+  const activeTier = FLOOR_TIERS.find(t => nextUp >= t.firstFloor && nextUp <= t.lastFloor);
+  if (activeTier) expandedTiers.add(activeTier.id);
+
+  const tiersHtml = FLOOR_TIERS.map(tier => renderTier(tier, energy, maxCleared)).join("");
 
   root.innerHTML = `
     <div class="screen-frame stage-select-screen">
@@ -140,14 +169,30 @@ function drawFloorGrid(root: HTMLElement, onPick: (pick: StagePick) => void, onB
         <span class="energy-icon">⚡</span><span>${energy} / ${ENERGY_MAX}</span>
         <span class="energy-hint">refills in <span id="energy-refill-timer">${formatCountdown(msUntilNextRefill())}</span></span>
       </div>
-      <div class="stage-grid full-width">
-        ${STAGE_DEFS.map(s => stageTileHtml(s, energy, maxCleared)).join("")}
-      </div>
+      <div class="stage-tier-list">${tiersHtml}</div>
     </div>
   `;
   root.querySelector("#back-btn")?.addEventListener("click", onBack);
+
+  // Tier headers: toggle expand/collapse on click (only for unlocked tiers —
+  // locked ones reject the click).
+  root.querySelectorAll<HTMLElement>(".stage-tier-header").forEach(header => {
+    header.addEventListener("click", () => {
+      const tierId = header.dataset.tier;
+      if (!tierId) return;
+      const tier = FLOOR_TIERS.find(t => t.id === tierId);
+      if (!tier) return;
+      // Locked tiers (first floor > nextUp) can't be expanded — show why.
+      if (tier.firstFloor > nextUp) return;
+      if (expandedTiers.has(tierId)) expandedTiers.delete(tierId);
+      else expandedTiers.add(tierId);
+      drawFloorGrid(root, onPick, onBack);
+    });
+  });
+
   root.querySelectorAll<HTMLButtonElement>(".stage-tile").forEach(btn => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation(); // don't bubble up to the tier-header toggle
       const id = Number(btn.dataset.stage);
       const stage = STAGE_DEFS.find(s => s.id === id);
       if (!stage) return;
@@ -174,6 +219,55 @@ function formatCountdown(ms: number): string {
   const s = total % 60;
   const pad = (n: number) => n < 10 ? `0${n}` : `${n}`;
   return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+/** Render one tier as a header banner + (when expanded) the grid of floor tiles. */
+function renderTier(tier: FloorTier, energy: number, maxCleared: number): string {
+  const tierFloors = STAGE_DEFS.filter(s => s.id >= tier.firstFloor && s.id <= tier.lastFloor);
+  const totalFloors = tierFloors.length;
+  const clearedInTier = Math.max(0, Math.min(totalFloors, maxCleared - tier.firstFloor + 1));
+  const isFullyCleared = maxCleared >= tier.lastFloor;
+  const isLocked = tier.firstFloor > maxCleared + 1;
+  const isActive = !isFullyCleared && !isLocked;
+  const isExpanded = expandedTiers.has(tier.id);
+
+  // Status label + chevron. Active = chevron-down, otherwise indicator emoji.
+  let statusBadge: string;
+  if (isFullyCleared) statusBadge = `<span class="tier-badge cleared">✓ ALL CLEARED</span>`;
+  else if (isLocked) statusBadge = `<span class="tier-badge locked">🔒 Locked</span>`;
+  else statusBadge = `<span class="tier-badge active">${clearedInTier} / ${totalFloors} cleared</span>`;
+  const chevron = isExpanded ? "▾" : "▸";
+
+  const headerCls = ["stage-tier-header",
+    isFullyCleared ? "cleared" : "",
+    isLocked ? "locked" : "",
+    isActive ? "active" : "",
+    isExpanded ? "expanded" : "",
+  ].filter(Boolean).join(" ");
+
+  const subtitle = isLocked
+    ? `Clear Floor ${tier.firstFloor - 1} to unlock`
+    : isFullyCleared
+      ? `Floors ${tier.firstFloor}–${tier.lastFloor} mastered`
+      : `Floor ${maxCleared + 1} unlocked — keep climbing`;
+
+  let body = "";
+  if (isExpanded && !isLocked) {
+    body = `<div class="stage-grid full-width">${tierFloors.map(s => stageTileHtml(s, energy, maxCleared)).join("")}</div>`;
+  }
+
+  return `
+    <div class="stage-tier ${isLocked ? "tier-locked" : ""}">
+      <button class="${headerCls}" data-tier="${tier.id}" type="button" ${isLocked ? "disabled" : ""}>
+        <span class="tier-chevron">${chevron}</span>
+        <span class="tier-label">${tier.label}</span>
+        <span class="tier-range">Floor ${tier.firstFloor}–${tier.lastFloor}</span>
+        ${statusBadge}
+        <span class="tier-sub">${subtitle}</span>
+      </button>
+      ${body}
+    </div>
+  `;
 }
 
 function stageTileHtml(s: StageEnemyDef, energy: number, maxCleared: number): string {

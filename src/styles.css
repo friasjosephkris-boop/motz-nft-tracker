@@ -1645,6 +1645,72 @@ body:has(.battle) {
 }
 .stage-grid.full-width { max-width: 1200px; margin: 0 auto; }
 
+/* ---- Stage-tier groupings (floors collapsed into expandable banners) ---- */
+.stage-tier-list {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px;
+}
+.stage-tier { display: flex; flex-direction: column; gap: 12px; }
+.stage-tier-header {
+  display: grid;
+  grid-template-columns: 28px 1fr auto auto;
+  grid-template-rows: auto auto;
+  grid-template-areas: "chev label range badge" "chev sub sub sub";
+  gap: 4px 14px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms, border-color 120ms, transform 120ms;
+}
+.stage-tier-header:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(255, 215, 100, 0.08), rgba(255, 215, 100, 0.02));
+  border-color: rgba(255, 215, 100, 0.4);
+}
+.stage-tier-header:disabled { cursor: not-allowed; opacity: 0.55; }
+.stage-tier-header.cleared {
+  background: linear-gradient(180deg, rgba(120, 200, 120, 0.08), rgba(120, 200, 120, 0.02));
+  border-color: rgba(120, 200, 120, 0.45);
+}
+.stage-tier-header.active {
+  background: linear-gradient(180deg, rgba(255, 215, 100, 0.12), rgba(255, 175, 60, 0.04));
+  border-color: rgba(255, 215, 100, 0.7);
+  box-shadow: 0 0 12px rgba(255, 215, 100, 0.2);
+}
+.stage-tier-header.locked { background: rgba(0, 0, 0, 0.25); border-color: rgba(255, 255, 255, 0.05); }
+.tier-chevron { grid-area: chev; font-size: 18px; color: var(--gold-bright); }
+.tier-label {
+  grid-area: label;
+  font-family: var(--motz-font-display);
+  font-size: 18px;
+  color: var(--gold-bright);
+  letter-spacing: 0.04em;
+}
+.tier-range { grid-area: range; font-family: var(--motz-font-mono); font-size: 11px; color: var(--motz-text-muted); }
+.tier-badge {
+  grid-area: badge;
+  font-family: var(--motz-font-display);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+.tier-badge.cleared { background: rgba(120, 200, 120, 0.25); color: #9bff9b; border: 1px solid rgba(120, 200, 120, 0.6); }
+.tier-badge.active  { background: rgba(255, 215, 100, 0.25); color: #ffe78a; border: 1px solid rgba(255, 215, 100, 0.7); }
+.tier-badge.locked  { background: rgba(120, 120, 120, 0.2); color: #aaa; border: 1px solid rgba(150, 150, 150, 0.3); }
+.tier-sub { grid-area: sub; font-size: 12px; color: var(--motz-text-muted); opacity: 0.85; }
+
 /* Three-tile mode picker (Campaign / Survival / Boss Raid).
    Reuses existing .survival-tile and .bossraid-tile art treatments. */
 .mode-picker {
