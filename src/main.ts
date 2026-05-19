@@ -101,10 +101,13 @@ async function bootstrap(): Promise<void> {
  *  revocation (e.g. JWT_SECRET rotation). */
 const REVALIDATE_MS = 5 * 60 * 1000; // 5 min
 let revalidateTimer: ReturnType<typeof setInterval> | null = null;
-function startSessionRevalidator(): void {
-  if (revalidateTimer) clearInterval(revalidateTimer);
-  revalidateTimer = setInterval(async () => {
-    if (!currentSession) return;
+let visibilityListenerInstalled = false;
+let revalidateInFlight = false;
+async function runRevalidate(): Promise<void> {
+  if (!currentSession) return;
+  if (revalidateInFlight) return;
+  revalidateInFlight = true;
+  try {
     const v = await validateSession(currentSession.token);
     if (v) {
       // Refresh perks in case key holding changed (sold/bought MoTZ Key).
@@ -114,7 +117,26 @@ function startSessionRevalidator(): void {
     // Session invalidated server-side — wallet sold NFT, JWT expired, or
     // secret rotated. Hard-clear and route back to the gate.
     forceReauth();
-  }, REVALIDATE_MS);
+  } finally {
+    revalidateInFlight = false;
+  }
+}
+function startSessionRevalidator(): void {
+  if (revalidateTimer) clearInterval(revalidateTimer);
+  revalidateTimer = setInterval(() => { void runRevalidate(); }, REVALIDATE_MS);
+  // Visibility-driven revalidation: browsers throttle setInterval heavily for
+  // backgrounded tabs (sometimes pausing it entirely), so a player who left
+  // the game open in another tab can miss the 5-min poll for hours. Firing
+  // on tab focus guarantees admin force-reset / wipe-epoch stamps + NFT
+  // hold checks are picked up the instant the player looks back at the game.
+  if (!visibilityListenerInstalled && typeof document !== "undefined") {
+    visibilityListenerInstalled = true;
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") void runRevalidate();
+    });
+    // Some browsers fire only `focus` on alt-tab back into the window.
+    window.addEventListener("focus", () => { void runRevalidate(); });
+  }
 }
 
 function forceReauth(): void {
