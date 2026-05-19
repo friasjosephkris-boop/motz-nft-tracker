@@ -5,13 +5,13 @@ import { Rng } from "./rng";
 import { physicalDamage, magicalDamage, DamageResult } from "./formulas";
 import { tickGauges, ATB_FULL } from "./timeline";
 import { UnitTemplate } from "../units/types";
-import { Skill } from "../skills/types";
+import { Skill, SkillVfxKind } from "../skills/types";
 import { getSkill, CLASS_SKILLS, CHARACTER_SKILLS, SKILLS } from "../skills/registry";
 import { SLIME, SLIME_KING } from "../units/roster";
 import { awardXp, xpToNext, MAX_LEVEL } from "./levels";
 import { isRecording, recordAction } from "./replay";
 import { getProgress, setProgress, UnitProgress, autoEquipNewlyUnlocked } from "./progress";
-import { pushDamage, pushMiss, pushBronDrop } from "./animations";
+import { pushDamage, pushMiss, pushBronDrop, pushSkillVfx } from "./animations";
 import { sfx } from "./audio";
 import {
   ActiveEffect,
@@ -759,8 +759,51 @@ function executeAction(b: Battle, attacker: Combatant, action: QueuedAction): vo
 
 /** Runs the body of the action — applies damage, summons, or buff effects.
  *  Pre-conditions (MP/HP cost + cast SFX) must have already been committed. */
+/** Pick a sensible default VFX for any skill that hasn't been explicitly
+ *  tagged. Heuristic by kind / range / targeting / applied effects. Keeps
+ *  every skill visually distinct without requiring hand-tagging all 50+
+ *  entries in the registry. Hand-tagged `skill.vfx` always wins. */
+function defaultVfxForSkill(skill: Skill): SkillVfxKind {
+  // Heal-applying buff skills get the green glow.
+  if (skill.kind === "buff" || skill.targeting === "self") {
+    const applies = [...(skill.applies ?? []), ...(skill.selfApplies ?? [])];
+    if (applies.some(e => e.id === "heal")) return "heal_glow";
+    return "buff_aura";
+  }
+  if (skill.kind === "summon") return "buff_aura";
+  if (skill.kind === "magical") {
+    // Magical AOE feels like a frost or arcane explosion; magical single can
+    // be a flame burst. World End! and other instant-kill specials get the
+    // ominous dark pulse.
+    if (skill.instantKill) return "dark_pulse";
+    if (skill.range === "range") return "frost_burst";
+    return "flame_burst";
+  }
+  // Physical: range = arrow, melee = slash.
+  if (skill.range === "range") return "arrow_volley";
+  return "slash";
+}
+
 function runActionResolution(b: Battle, attacker: Combatant, skill: Skill, action: QueuedAction): boolean {
   let didDamage = false;
+
+  // Skill VFX: fire BEFORE resolution so the visual plays even on miss /
+  // dodge. Self / buff skills target the caster; all_enemies fires on every
+  // target so AOE skills paint the whole enemy row. Single-target uses the
+  // queued targetId. Skills without an explicit `vfx` field fall through to
+  // an auto-derived default based on kind / range / targeting — so every
+  // skill gets some animation, even ones we haven't hand-tagged yet.
+  if (skill.id !== "idle" && skill.id !== "guard") {
+    const vfxKind = skill.vfx ?? defaultVfxForSkill(skill);
+    if (skill.targeting === "self") {
+      pushSkillVfx(attacker.id, attacker.id, vfxKind, skill.id);
+    } else if (skill.targeting === "all_enemies") {
+      const targets = b.combatants.filter(c => c.alive && c.side !== attacker.side);
+      for (const t of targets) pushSkillVfx(attacker.id, t.id, vfxKind, skill.id);
+    } else if (action.targetId) {
+      pushSkillVfx(attacker.id, action.targetId, vfxKind, skill.id);
+    }
+  }
 
   if (skill.id === "idle") {
     // Recover a small slice of HP/MP — rewards stalling without trivializing it.
