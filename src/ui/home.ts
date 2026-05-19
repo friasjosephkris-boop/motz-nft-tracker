@@ -157,6 +157,19 @@ function renderDailyWidget(slot: HTMLElement, status: DailyStatus): void {
       return;
     }
     if (!result.ok) {
+      // On-chain check-in failure (RPC down, contract revert, etc.) — the
+      // server intentionally didn't grant the in-game reward, so surface the
+      // error and re-enable the button for retry. Don't flip the widget to
+      // "claimed today" because the player still has a claim to make.
+      if (result.reason === "onchain_failed") {
+        if (btn) btn.disabled = false;
+        await alertModal({
+          kind: "error",
+          title: "On-Chain Check-In Failed",
+          message: `Your on-chain Daily Check-In transaction couldn't complete, so the in-game reward was held back.<br><br><span style="font-family:monospace; font-size:11px; opacity:0.8;">${result.onchainError ?? "unknown error"}</span><br><br>Try again in a moment.`,
+        });
+        return;
+      }
       // Race: another tab claimed first; refresh to claimed view.
       renderDailyWidget(slot, {
         streak: result.streak, claimedToday: true,

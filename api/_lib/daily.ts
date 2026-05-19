@@ -4,6 +4,8 @@
 
 import { getJson, setJson, setNxWithExpire } from "./redis.js";
 import { getEnergy, ENERGY_MAX } from "./energy.js";
+import { callOnChainCheckIn } from "./dailyCheckInOnChain.js";
+import { getAddress } from "viem";
 
 const PH_OFFSET_MS = 8 * 60 * 60 * 1000;
 const RESET_HOUR = 8;
@@ -88,7 +90,14 @@ export async function getDailyStatus(address: string): Promise<DailyStatus> {
 
 export interface DailyClaimResult {
   ok: boolean;
-  reason?: "already_claimed";
+  reason?: "already_claimed" | "onchain_failed";
+  /** Human-readable detail when reason === "onchain_failed". Surfaced to the
+   *  player so they know the in-game claim was held back because the on-chain
+   *  tx didn't succeed (RPC down, relayer out of gas, contract revert, etc.). */
+  onchainError?: string;
+  /** Transaction hash of the successful on-chain checkIn, when the integration
+   *  is configured and the tx confirmed. Omitted when integration is disabled. */
+  txHash?: string;
   streak: number;
   reward: DailyReward;
   energy: number;       // new energy balance after the bonus
@@ -134,6 +143,26 @@ export async function claimDaily(address: string): Promise<DailyClaimResult> {
   const newStreak = cur.lastClaim >= yesterday ? cur.streak + 1 : 1;
   const reward = rewardForStreak(newStreak);
 
+  // On-chain check-in MUST succeed before we grant the in-game reward (ops
+  // decision: strict integrity). When the integration env vars are unset,
+  // callOnChainCheckIn returns ok:true as a no-op, so unconfigured
+  // environments keep working exactly as before. When it's configured and
+  // fails, we abort — no state mutation, no energy granted, lock auto-expires
+  // in 30s so the player can retry.
+  const onchain = await callOnChainCheckIn(getAddress(address));
+  if (!onchain.ok) {
+    const e = await getEnergy(address);
+    return {
+      ok: false,
+      reason: "onchain_failed",
+      onchainError: onchain.reason,
+      streak: cur.streak,
+      reward: rewardForStreak(cur.streak + 1),
+      energy: e.amount,
+      multiplier: cur.multiplier,
+    };
+  }
+
   // Persist the state change first so a crash mid-claim doesn't double-grant.
   await write(address, { streak: newStreak, lastClaim: today, multiplier: reward.multiplier });
 
@@ -143,7 +172,7 @@ export async function claimDaily(address: string): Promise<DailyClaimResult> {
   const newAmount = Math.min(ENERGY_MAX + reward.energy, e.amount + reward.energy);
   await setEnergyAmount(address, newAmount, e.lastReset);
 
-  return { ok: true, streak: newStreak, reward, energy: newAmount, multiplier: reward.multiplier };
+  return { ok: true, streak: newStreak, reward, energy: newAmount, multiplier: reward.multiplier, txHash: onchain.txHash };
 }
 
 /** Currently-active XP multiplier for this wallet (1.0 if not claimed today). */
