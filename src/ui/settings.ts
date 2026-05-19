@@ -123,11 +123,9 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
                 <button class="ghost-btn admin-wipe-prod-btn" id="admin-wipe-prod" type="button">☠ Wipe ALL Production Data</button>
               </div>
               <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
-                <span class="admin-info">🎯 <strong>Force-Reset One Wallet</strong> — nukes server data for a single wallet AND forces their browser to clear cached state on next session check. Use when a full wipe isn't viable.</span>
-                <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                  <input type="text" id="admin-force-reset-wallet" placeholder="0x…" style="font-family:monospace; padding:4px 8px; min-width:280px;" />
-                  <button class="ghost-btn" id="admin-force-reset-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🎯 Force-Reset Wallet</button>
-                </div>
+                <span class="admin-info">🎯 <strong>Force-Reset Wallets</strong> — nukes server data for one or more wallets AND forces their browsers to clear cached state on next session check. Use when a full wipe isn't viable. Paste one wallet per line (or comma-separated).</span>
+                <textarea id="admin-force-reset-wallet" placeholder="0x...&#10;0x...&#10;0x..." style="font-family:monospace; padding:6px 8px; min-width:380px; min-height:80px; resize:vertical;"></textarea>
+                <button class="ghost-btn" id="admin-force-reset-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🎯 Force-Reset Wallet(s)</button>
               </div>
             ` : ""}
             <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 6px;">
@@ -290,32 +288,47 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
   // Nukes one wallet's server-side keys AND forces their client to clear
   // localStorage + reload on next session check.
   root.querySelector<HTMLButtonElement>("#admin-force-reset-btn")?.addEventListener("click", async () => {
-    const input = root.querySelector<HTMLInputElement>("#admin-force-reset-wallet");
-    const wallet = (input?.value ?? "").trim();
-    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
-      await alertModal({ kind: "warning", title: "Invalid Wallet", message: "Wallet must be a 0x-prefixed 40-hex address." });
+    const input = root.querySelector<HTMLTextAreaElement>("#admin-force-reset-wallet");
+    const raw = (input?.value ?? "").trim();
+    // Accept newline-, comma-, or whitespace-separated lists.
+    const tokens = raw.split(/[\s,]+/).map(s => s.trim()).filter(Boolean);
+    const wallets: string[] = [];
+    const bad: string[] = [];
+    for (const t of tokens) {
+      if (/^0x[0-9a-fA-F]{40}$/.test(t)) wallets.push(t.toLowerCase());
+      else bad.push(t);
+    }
+    if (wallets.length === 0) {
+      await alertModal({ kind: "warning", title: "No Valid Wallets", message: "Paste at least one 0x-prefixed 40-hex address. Whitespace, newlines, and commas all work as separators." });
       return;
     }
+    const summary = wallets.map(w => `<div style="font-family:monospace; font-size:11px;">${w}</div>`).join("");
+    const badNote = bad.length > 0 ? `<br><span style="color:#ffb14a;">Skipping ${bad.length} invalid token(s).</span>` : "";
     const ok = await confirmModal({
-      title: "🎯 Force-Reset This Wallet?",
-      message: `Wipe all server-side data for <strong style="font-family:monospace;">${wallet}</strong> and force their browser to clear cached state on next session check (~within 5 min, or instantly on next page load).<br><br>This is a single-wallet operation — other players are unaffected.`,
-      confirmLabel: "Reset Wallet",
+      title: `🎯 Force-Reset ${wallets.length} Wallet${wallets.length === 1 ? "" : "s"}?`,
+      message: `Wipe all server-side data for the wallets below and force their browsers to clear cached state on next session check (~within 5 min, or instantly on next page load).<br><br>${summary}${badNote}<br>Other players are unaffected.`,
+      confirmLabel: `Reset ${wallets.length} Wallet${wallets.length === 1 ? "" : "s"}`,
       cancelLabel: "Cancel",
       danger: true,
     });
     if (!ok) return;
-    const r = await adminForceResetWallet(wallet);
-    if (!r.ok) {
-      await alertModal({ kind: "error", title: "Reset Failed", message: `Server returned: ${r.error ?? "unknown error"}` });
-      return;
+    const results: { wallet: string; ok: boolean; deleted: number; error?: string }[] = [];
+    for (const w of wallets) {
+      const r = await adminForceResetWallet(w);
+      const deletedCount = r.deleted ? Object.values(r.deleted).reduce((a, b) => a + b, 0) : 0;
+      results.push({ wallet: w, ok: r.ok, deleted: deletedCount, error: r.error });
     }
-    const deletedCount = r.deleted ? Object.values(r.deleted).reduce((a, b) => a + b, 0) : 0;
+    const successCount = results.filter(r => r.ok).length;
+    const failCount = results.length - successCount;
+    const rows = results.map(r =>
+      `<div style="font-family:monospace; font-size:11px; color:${r.ok ? "#9bff9b" : "#ff8888"};">${r.ok ? "✓" : "✗"} ${r.wallet} — ${r.ok ? `${r.deleted} keys` : (r.error ?? "failed")}</div>`
+    ).join("");
     await alertModal({
-      kind: "success",
-      title: "Wallet Reset Complete",
-      message: `Deleted <strong>${deletedCount}</strong> keys for this wallet. Their client will auto-clear + reload on next session poll.`,
+      kind: failCount === 0 ? "success" : "warning",
+      title: `Reset Complete (${successCount}/${results.length})`,
+      message: `${rows}<br>Affected clients will auto-clear + reload on next session poll.`,
     });
-    if (input) input.value = "";
+    if (input && failCount === 0) input.value = "";
   });
 
   // ---- Season halt admin controls ----
