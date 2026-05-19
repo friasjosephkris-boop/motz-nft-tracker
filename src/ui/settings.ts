@@ -3,7 +3,7 @@ import { addEnergy, getEnergy, ENERGY_MAX, msUntilNextRefill } from "../core/ene
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -128,6 +128,15 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
                 <div style="display:flex; gap:6px; flex-wrap:wrap;">
                   <button class="ghost-btn" id="admin-force-reset-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🎯 Reset These Wallets</button>
                   <button class="ghost-btn" id="admin-force-reset-except-btn" type="button" style="border-color:#ff5a6b;color:#ffb8c0;">🔁 Reset EVERYONE EXCEPT These</button>
+                </div>
+              </div>
+              <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
+                <span class="admin-info">🎁 <strong>Close One-Time Offers</strong> — mark a wallet's one-time offer(s) as already consumed so the modal won't reappear. Use after comp-granting (e.g. player paid for energy but got the wrong bundle).</span>
+                <input type="text" id="admin-close-offer-wallet" placeholder="0x..." style="font-family:monospace; padding:4px 8px; min-width:340px;" />
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <button class="ghost-btn" id="admin-close-offer-first-btn" type="button">Close First-Energy</button>
+                  <button class="ghost-btn" id="admin-close-offer-floor20-btn" type="button">Close Floor-20</button>
+                  <button class="ghost-btn" id="admin-close-offer-both-btn" type="button">Close Both</button>
                 </div>
               </div>
             ` : ""}
@@ -376,6 +385,35 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       message: `<div>Total wallets scanned: <strong>${r.totalWallets}</strong></div><div>Kept (allowlist): <strong>${keep.length}</strong></div><div>Reset: <strong>${r.resetCount}</strong>, Failed: <strong>${r.failCount}</strong></div><br>${rows}<br>Affected clients will auto-clear + reload on next session poll.`,
     });
   });
+
+  // ---- Close one-time offers on a single wallet ----
+  // Marks first-energy / floor-20 / both as consumed for the named wallet so
+  // the modal won't pop again. Used after a comp-grant (player paid for the
+  // wrong bundle, admin manually grants the missing reward + closes the
+  // offer so it doesn't haunt them later).
+  async function closeOffersFor(offers: ("first_energy" | "floor20" | "both")[]): Promise<void> {
+    const input = root.querySelector<HTMLInputElement>("#admin-close-offer-wallet");
+    const wallet = (input?.value ?? "").trim();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
+      await alertModal({ kind: "warning", title: "Invalid Wallet", message: "Wallet must be a 0x-prefixed 40-hex address." });
+      return;
+    }
+    const r = await adminConsumeOneTimeOffers(wallet, offers);
+    if (!r.ok) {
+      await alertModal({ kind: "error", title: "Close Failed", message: `Server returned: ${r.error ?? "unknown error"}` });
+      return;
+    }
+    const list = (r.closed ?? []).join(", ") || "(none)";
+    await alertModal({
+      kind: "success",
+      title: "Offer(s) Closed",
+      message: `Marked consumed for <strong style="font-family:monospace;">${wallet}</strong>:<br>${list}`,
+    });
+    if (input) input.value = "";
+  }
+  root.querySelector<HTMLButtonElement>("#admin-close-offer-first-btn")?.addEventListener("click", () => closeOffersFor(["first_energy"]));
+  root.querySelector<HTMLButtonElement>("#admin-close-offer-floor20-btn")?.addEventListener("click", () => closeOffersFor(["floor20"]));
+  root.querySelector<HTMLButtonElement>("#admin-close-offer-both-btn")?.addEventListener("click", () => closeOffersFor(["both"]));
 
   // ---- Season halt admin controls ----
   // The two buttons hit admin_season_halt / admin_season_resume on the server.

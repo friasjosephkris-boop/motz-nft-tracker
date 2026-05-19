@@ -586,6 +586,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  if (op === "admin_consume_one_time_offers") {
+    // Admin op: mark a target wallet's one-time-offer state as "consumed" so
+    // the modal won't reappear. Used to close out offers after a comp grant
+    // (e.g. gioblo paid for energy but got the buff bundle — admin grants
+    // the energy manually + closes the offer so it doesn't haunt him).
+    // Body: { wallet, offers: ["first_energy"|"floor20"|"both"] }
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
+      ? (req.body as { wallet: string }).wallet.trim().toLowerCase() : "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+      res.status(400).json({ error: "wallet must be a 0x-prefixed 40-hex address" }); return;
+    }
+    const offers = (req.body as { offers?: unknown }).offers;
+    const wantFirst = Array.isArray(offers) ? offers.includes("first_energy") || offers.includes("both") : false;
+    const wantFloor20 = Array.isArray(offers) ? offers.includes("floor20") || offers.includes("both") : false;
+    if (!wantFirst && !wantFloor20) {
+      res.status(400).json({ error: "offers must include 'first_energy', 'floor20', or 'both'" }); return;
+    }
+    try {
+      const closed: string[] = [];
+      if (wantFirst) {
+        const { dismissOffer } = await import("../_lib/firstEnergyOffer.js");
+        await dismissOffer(target);
+        closed.push("first_energy");
+      }
+      if (wantFloor20) {
+        const { dismissFloor20Offer } = await import("../_lib/floor20Offer.js");
+        await dismissFloor20Offer(target);
+        closed.push("floor20");
+      }
+      res.status(200).json({ ok: true, wallet: target, closed });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "first_offer_claim_voucher") {
     try {
       const { claimWithVouchers, FIRST_OFFER_RON_PRICE } = await import("../_lib/firstEnergyOffer.js");

@@ -123,6 +123,25 @@ export async function adminBumpXpCap(delta: number): Promise<{ ok: boolean; newC
   }
 }
 
+/** Admin: close one-time offers on a target wallet by marking them as
+ *  consumed. Use after a comp grant so the offer modal doesn't reappear. */
+export async function adminConsumeOneTimeOffers(wallet: string, offers: ("first_energy" | "floor20" | "both")[]): Promise<{ ok: boolean; closed?: string[]; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_consume_one_time_offers", wallet, offers }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; closed?: string[]; error?: string }));
+    if (!r.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: true, closed: data.closed };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "network" };
+  }
+}
+
 /** Admin: targeted per-wallet reset. Nukes that wallet's server-side keys AND
  *  stamps a force-reset timestamp so their client clears localStorage + reloads
  *  on next session-check poll. Use when a global wipe isn't viable because
