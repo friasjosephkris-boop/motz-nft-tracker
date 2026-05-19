@@ -1153,7 +1153,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
     const dailyMul = await getCurrentMultiplier(address).catch(() => 1.0);
-    const cap = await bumpXpCap(address, XP_CAP_PER_FLOOR.floor * dailyMul);
+    // Post-game floors (51-500) award meaningfully more XP since enemies are
+    // higher level — the XP-cap allowance scales proportionally so the
+    // anti-cheat threshold doesn't trip on legitimate post-game grinding.
+    // Scale factor = enemyLevelOverride / 30 (base party level), clamped so
+    // the cap bump still grows monotonically.
+    let postGameScale = 1;
+    if (stageId >= 51 && stageId <= 500) {
+      const enemyLevel = 30 + Math.round(((stageId - 51) / (500 - 51)) * (70 - 30));
+      postGameScale = Math.max(1, enemyLevel / 30);
+    }
+    const cap = await bumpXpCap(address, XP_CAP_PER_FLOOR.floor * dailyMul * postGameScale);
 
     let worldEnderSubmitted = false;
     let worldEnderImproved = false;

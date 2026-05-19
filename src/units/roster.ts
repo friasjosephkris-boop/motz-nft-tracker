@@ -679,7 +679,118 @@ export const STAGE_DEFS: StageEnemyDef[] = [
   { id: 48, name: "Carapace Bastion", enemies: [HUSK_TITAN, HUSK_TITAN, CARAPACE_MATRON, CARAPACE_MATRON] },               // anti-range, stun + ally def-buff
   { id: 49, name: "Last Wall", enemies: [HUSK_TITAN, CARAPACE_MATRON, WRAITH_HEXER, WARDING_PALADIN] },                    // anti-range with mixed harassment
   { id: 50, name: "World Ender", enemies: [WORLD_ENDER], soloBoss: true },                                                  // capstone boss
+  ...generatePostGameFloors(),
 ];
+
+// ============================================================================
+// Post-game content — Floors 51–500
+// ----------------------------------------------------------------------------
+// Tier 1 (Floors 1–50) is hand-authored above. Floors 51–500 are generated
+// procedurally so we can ship 450 new floors without a 3000-line table.
+//
+// Design rules:
+//   • Enemy LEVEL scales linearly from 30 (Floor 50) to 70 (Floor 500). This
+//     scaling is applied at battle-start via BattleOptions.enemyLevelOverride
+//     (combat.ts → placeEnemies → makeCombatant), NOT by editing the template's
+//     intrinsic level field. So a Wraith at floor 100 hits MUCH harder than
+//     the same Wraith at floor 8.
+//   • Every 10th floor (60, 70, 80, …, 500) is a solo boss recycled from the
+//     existing boss roster. Visually distinct, mechanically familiar.
+//   • Every 5th floor (55, 65, 75, …, 495) is an "elite mob" room — 4 enemies
+//     including at least one tier-4/5 unit.
+//   • All other floors are 3-mob rooms drawn from the mid/late-game pool.
+//   • Picks are deterministic per floor-id (no rng) so the same floor always
+//     has the same enemy composition — fair for leaderboard / replay purity.
+//
+// Future-extension hook: when we add Floors 501–1000 later, just bump the
+// POST_GAME_LAST_FLOOR constant and (optionally) tune the level scaling. The
+// generator handles the rest.
+// ============================================================================
+
+export const POST_GAME_FIRST_FLOOR = 51;
+export const POST_GAME_LAST_FLOOR = 500;
+const POST_GAME_LEVEL_AT_FIRST = 30;   // Floor 51 enemies start near Lv 30 (matches a fresh Lv30 party)
+const POST_GAME_LEVEL_AT_LAST = 70;    // Floor 500 enemies sit at Lv 70 (target for Lv70 player units)
+
+/** Linearly interpolate the enemy level for a post-game floor.
+ *  Clamped to [LEVEL_AT_FIRST, LEVEL_AT_LAST]. Used by main.ts to set
+ *  BattleOptions.enemyLevelOverride before startBattle. */
+export function postGameEnemyLevelFor(floorId: number): number {
+  if (floorId <= POST_GAME_FIRST_FLOOR) return POST_GAME_LEVEL_AT_FIRST;
+  if (floorId >= POST_GAME_LAST_FLOOR) return POST_GAME_LEVEL_AT_LAST;
+  const t = (floorId - POST_GAME_FIRST_FLOOR) / (POST_GAME_LAST_FLOOR - POST_GAME_FIRST_FLOOR);
+  return Math.round(POST_GAME_LEVEL_AT_FIRST + t * (POST_GAME_LEVEL_AT_LAST - POST_GAME_LEVEL_AT_FIRST));
+}
+
+/** True when a floor is a post-game floor (51–500) and so should receive
+ *  the level-override scaling. */
+export function isPostGameFloor(floorId: number): boolean {
+  return floorId >= POST_GAME_FIRST_FLOOR && floorId <= POST_GAME_LAST_FLOOR;
+}
+
+function generatePostGameFloors(): StageEnemyDef[] {
+  // Enemy pools to roll from. Mid-game mobs are the bread-and-butter; late-game
+  // mobs add elite flavor at every 5th floor; bosses cycle through the existing
+  // soloBoss roster (which is varied enough to keep things from feeling stale).
+  const midMobs: UnitTemplate[] = [
+    DARK_KNIGHT, BERSERKER, NIGHT_HAG, LICH, GARGOYLE, DEMON_HOUND,
+    ELITE_WRAITH, SKELETON_KNIGHT, HEXER, PLAGUE_BEARER, JINX, GRAVELOCK,
+    ARCHON, CANTOR, CLERIC,
+  ];
+  const lateMobs: UnitTemplate[] = [
+    NULL_GUARDIAN, VOID_KNIGHT, SPECTRE, STORMCALLER, AIR_DANCER,
+    FLOATING_EYE, BULWARK_BEAR, SPIKED_SHELL, SHIELD_PRIEST, WARDING_PALADIN,
+    WRAITH_HEXER, STORM_ORACLE, DUST_DJINN, MIRROR_SPRITE, HUSK_TITAN, CARAPACE_MATRON,
+  ];
+  const bossRoster: UnitTemplate[] = [
+    STONE_SENTINEL, WRAITH_LORD, TOWER_LORD, IRON_BEHEMOTH, STORM_LORD,
+    DEMON_GENERAL, WITCH_QUEEN, DRAGON_LORD, TOWER_GOD,
+    NULL_HIEROPHANT, THE_UNTOUCHED, APEX_ARBITER, WORLD_ENDER,
+  ];
+
+  // Deterministic pick: hash(floorId, salt) % pool.length. xorshift-ish so
+  // adjacent floors don't pick the same template. Stable across deploys.
+  const pick = <T,>(pool: T[], floorId: number, salt: number): T => {
+    let h = (floorId * 2654435761) ^ (salt * 1597334677);
+    h = (h ^ (h >>> 13)) >>> 0;
+    return pool[h % pool.length];
+  };
+
+  const floors: StageEnemyDef[] = [];
+  for (let id = POST_GAME_FIRST_FLOOR; id <= POST_GAME_LAST_FLOOR; id++) {
+    const isBoss = id % 10 === 0;
+    const isElite = !isBoss && id % 5 === 0;
+    let enemies: UnitTemplate[];
+    let name: string;
+    let soloBoss = false;
+    if (isBoss) {
+      const b = pick(bossRoster, id, 1);
+      enemies = [b];
+      name = `Echo of ${b.name} (F${id})`;
+      soloBoss = true;
+    } else if (isElite) {
+      // 4-mob elite room with at least one late-mob elite mixed in.
+      enemies = [
+        pick(lateMobs, id, 1),
+        pick(midMobs, id, 2),
+        pick(midMobs, id, 3),
+        pick(lateMobs, id, 4),
+      ];
+      name = `Elite Vault (F${id})`;
+    } else {
+      // Standard 3-mob room from mid/late pool. The deeper the floor, the
+      // higher the late-mob weight (50% by F500).
+      const lateWeight = (id - POST_GAME_FIRST_FLOOR) / (POST_GAME_LAST_FLOOR - POST_GAME_FIRST_FLOOR);
+      enemies = [1, 2, 3].map(slot => {
+        const useLate = (((id * 2654435761) ^ (slot * 1597334677)) >>> 0) / 0xffffffff < lateWeight;
+        return pick(useLate ? lateMobs : midMobs, id, slot * 7 + 11);
+      });
+      name = `Post-Game F${id}`;
+    }
+    floors.push({ id, name, enemies, soloBoss: soloBoss || undefined });
+  }
+  return floors;
+}
 
 export function getStage(id: number): StageEnemyDef | null {
   return STAGE_DEFS.find(s => s.id === id) ?? null;

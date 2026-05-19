@@ -28,7 +28,7 @@ import { ATB_FULL } from "./core/timeline";
 import { recordClear } from "./core/clears";
 import { installGlobalClickSounds } from "./core/audio";
 import { mountWalletStatusBadge, refreshWalletStatusBadge } from "./ui/walletStatusBadge";
-import { STAGE_DEFS, getStage, BOSS_RAID_FLOORS, PLAYER_ROSTER } from "./units/roster";
+import { STAGE_DEFS, getStage, BOSS_RAID_FLOORS, PLAYER_ROSTER, isPostGameFloor, postGameEnemyLevelFor } from "./units/roster";
 import { Stats } from "./core/stats";
 import { loadSession, validateSession, clearSession, setVerifiedAddress, setVerifiedPerks, Session } from "./auth/session";
 import { setUserScope } from "./auth/scope";
@@ -994,6 +994,12 @@ function runFloor(party: SquadResult["players"], floorId: number, xpMultiplier: 
     if (activeRunBuffs.phoenixEmbers)         opts.phoenixEmbers = true;
     if (activeRunBuffs.quickdrawAtbMul > 1)   opts.playerAtbSpeedMul = activeRunBuffs.quickdrawAtbMul;
     if (activeRunBuffs.lastStandDmgMul > 1)   opts.lastStandDamageMul = activeRunBuffs.lastStandDmgMul;
+  }
+  // Post-game floors (51+) scale enemy levels linearly from Lv30 → Lv70.
+  // Stat-scaling-only; the enemy templates themselves are reused. The override
+  // is ignored for floors 1-50 so the hand-tuned curve there is preserved.
+  if (isPostGameFloor(floorId)) {
+    opts.enemyLevelOverride = postGameEnemyLevelFor(floorId);
   }
   // Replay scope:
   //   - floor mode: only the floor-50 World Ender battle is recorded
