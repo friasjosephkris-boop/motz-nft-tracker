@@ -556,14 +556,34 @@ function clusterPositions(n: number): { x: number; y: number }[] {
   return presets[Math.min(9, n)] ?? presets[9];
 }
 
+/** Level → aura tier. Post-game enemies (Lv30+) get progressively more
+ *  menacing portrait auras so a Lv65 Wraith reads visually distinct from
+ *  the Lv5 Wraith you fought on Floor 5. Tiers map to color families:
+ *    Lv  1-29  → none (vanilla portrait)
+ *    Lv 30-39  → bronze (faint warm glow)
+ *    Lv 40-49  → silver (cool sheen)
+ *    Lv 50-59  → gold (radiant pulse)
+ *    Lv 60-69  → violet (menacing crimson-purple)
+ *    Lv 70+    → void (intense dark aura with pulsing animation)
+ *  Returns "" for low-level enemies so floors 1-50 look exactly as before. */
+function enemyAuraTier(level: number): string {
+  if (level >= 70) return "aura-tier-void";
+  if (level >= 60) return "aura-tier-violet";
+  if (level >= 50) return "aura-tier-gold";
+  if (level >= 40) return "aura-tier-silver";
+  if (level >= 30) return "aura-tier-bronze";
+  return "";
+}
+
 function enemyChipHtml(c: Combatant, isBoss = false): string {
   const dead = !c.alive ? "dead" : "";
   const ready = c.alive && c.gauge >= ATB_FULL ? "ready" : "";
   const casting = c.casting ? "casting" : "";
   const boss = isBoss ? "boss" : "";
+  const auraTier = enemyAuraTier(c.level);
   const guardStyle = c.guarding ? "" : "display:none";
   return `
-    <div class="combatant enemy split ${boss} ${dead} ${ready} ${casting}" data-id="${escapeAttr(c.id)}">
+    <div class="combatant enemy split ${boss} ${dead} ${ready} ${casting} ${auraTier}" data-id="${escapeAttr(c.id)}">
       <div class="info">
         <div class="name">
           <span class="lv-inline">Lv${c.level}</span> ${escapeHtml(c.name)}
