@@ -293,12 +293,106 @@ export const sfx = {
     { freq: 1109, type: "sine", durMs: 340, gain: 0.05 },        // C#6
     { freq: 1319, type: "sine", durMs: 320, gain: 0.04 },        // E6
   ]),
-  // Buff: rising triangle arpeggio — clean and uplifting.
+  // Buff: rising triangle arpeggio — clean and uplifting (generic fallback).
   spellBuff: () => chord([
     { freq: 523, type: "triangle", durMs: 180, gain: 0.06 },     // C5
     { freq: 659, type: "triangle", durMs: 220, gain: 0.05 },     // E5
     { freq: 784, type: "triangle", durMs: 280, gain: 0.04 },     // G5
   ]),
+  // ---- Stat-specific charge-up SFX ----
+  // Each one reads as "powering up" with a flavor tied to the boosted stat.
+  // All share a common ramp-up structure (low → high pitch over ~300-450ms)
+  // so they feel like the same "empower" family with distinct timbres.
+  /** STR (physical strength): heavy bass thump + low rising growl. */
+  buffStr: () => {
+    blip({ freq: 80, endFreq: 220, type: "sawtooth", durMs: 320, gain: 0.10 });
+    blip({ freq: 110, endFreq: 330, type: "square", durMs: 280, gain: 0.05 });
+    noise({ durMs: 220, freqStart: 200, freqEnd: 800, filterType: "lowpass", q: 1, gain: 0.06, attack: "swell" });
+  },
+  /** DEF (defense): metallic clank + steel shimmer — armor reinforcing. */
+  buffDef: () => {
+    blip({ freq: 440, type: "square", durMs: 60, gain: 0.10 });    // metallic ping
+    setTimeout(() => {
+      blip({ freq: 880, type: "triangle", durMs: 280, gain: 0.05 });
+      blip({ freq: 1320, type: "sine", durMs: 280, gain: 0.04 });
+      noise({ durMs: 220, freqStart: 4000, freqEnd: 2000, filterType: "bandpass", q: 4, gain: 0.05 });
+    }, 40);
+  },
+  /** VIT (vitality): warm rising chord — healthy, like a heartbeat. */
+  buffVit: () => chord([
+    { freq: 196, endFreq: 392, type: "sine", durMs: 360, gain: 0.08 },     // G3 → G4
+    { freq: 261, endFreq: 523, type: "sine", durMs: 360, gain: 0.06 },     // C4 → C5
+    { freq: 392, endFreq: 784, type: "triangle", durMs: 360, gain: 0.05 }, // G4 → G5
+  ]),
+  /** INT (intellect): arcane shimmer + bell — magical empower. */
+  buffInt: () => {
+    blip({ freq: 1760, endFreq: 3520, type: "sine", durMs: 320, gain: 0.06 });
+    blip({ freq: 2640, endFreq: 5280, type: "sine", durMs: 280, gain: 0.04 });
+    noise({ durMs: 320, freqStart: 6000, freqEnd: 9000, filterType: "highpass", q: 1, gain: 0.04, attack: "swell" });
+    setTimeout(() => blip({ freq: 1320, type: "sine", durMs: 240, gain: 0.05 }), 60);
+  },
+  /** DEX (dexterity): quick percussive tap series — sharpening reflexes. */
+  buffDex: () => {
+    for (let i = 0; i < 4; i++) {
+      setTimeout(() => {
+        blip({ freq: 1200 + i * 200, type: "square", durMs: 30, gain: 0.06 });
+      }, i * 50);
+    }
+    setTimeout(() => blip({ freq: 2400, type: "triangle", durMs: 120, gain: 0.05 }), 200);
+  },
+  /** AGI (agility): light swift whoosh upward — quickening. */
+  buffAgi: () => {
+    noise({ durMs: 200, freqStart: 800, freqEnd: 3200, filterType: "bandpass", q: 3, gain: 0.08, attack: "swell" });
+    blip({ freq: 880, endFreq: 1760, type: "triangle", durMs: 220, gain: 0.05 });
+    blip({ freq: 1320, endFreq: 2640, type: "sine", durMs: 200, gain: 0.04 });
+  },
+  /** Phys ATK buff: low growl + power surge. */
+  buffAtkPhys: () => {
+    blip({ freq: 110, endFreq: 220, type: "sawtooth", durMs: 280, gain: 0.10 });
+    blip({ freq: 165, endFreq: 330, type: "square", durMs: 240, gain: 0.06 });
+    noise({ durMs: 280, freqStart: 600, freqEnd: 200, filterType: "lowpass", q: 2, gain: 0.07, attack: "swell" });
+  },
+  /** Mag ATK buff: arcane swell + harmonic rise. */
+  buffAtkMag: () => chord([
+    { freq: 440, endFreq: 880, type: "sine", durMs: 360, gain: 0.08 },     // A4 → A5
+    { freq: 660, endFreq: 1320, type: "sine", durMs: 360, gain: 0.06 },    // E5 → E6
+    { freq: 880, endFreq: 1760, type: "triangle", durMs: 320, gain: 0.04 },// A5 → A6
+  ]),
+  /** Haste (+ATB speed): rapidly accelerating ticks — speeding clock. */
+  buffHaste: () => {
+    for (let i = 0; i < 5; i++) {
+      // Tick interval shrinks: 70ms, 55ms, 40ms, 30ms, 25ms (accelerating).
+      const offset = i === 0 ? 0 : [70, 125, 165, 195, 220][i];
+      setTimeout(() => {
+        blip({ freq: 880 + i * 200, type: "triangle", durMs: 30, gain: 0.05 });
+      }, offset);
+    }
+    setTimeout(() => blip({ freq: 2200, endFreq: 3300, type: "sine", durMs: 180, gain: 0.04 }), 240);
+  },
+  /** Damage reduction: deep protective hum + shield shimmer. */
+  buffDmgRed: () => {
+    blip({ freq: 110, type: "sine", durMs: 480, gain: 0.07 });   // sustained low
+    blip({ freq: 165, type: "sine", durMs: 480, gain: 0.05 });
+    setTimeout(() => {
+      noise({ durMs: 320, freqStart: 3000, freqEnd: 1500, filterType: "bandpass", q: 6, gain: 0.05, attack: "swell" });
+      blip({ freq: 1760, type: "sine", durMs: 280, gain: 0.04 });
+    }, 60);
+  },
+  /** Taunt: low warhorn / battle roar. */
+  buffTaunt: () => {
+    blip({ freq: 220, endFreq: 110, type: "sawtooth", durMs: 480, gain: 0.10 });
+    blip({ freq: 330, endFreq: 165, type: "square", durMs: 440, gain: 0.06 });
+    noise({ durMs: 360, freqStart: 600, freqEnd: 200, filterType: "lowpass", q: 1, gain: 0.06, attack: "swell" });
+  },
+  /** Damage reflect: shield-like with metallic ring. */
+  buffReflect: () => {
+    blip({ freq: 1320, type: "sine", durMs: 320, gain: 0.06 });
+    blip({ freq: 1980, type: "sine", durMs: 320, gain: 0.05 });
+    setTimeout(() => {
+      blip({ freq: 880, type: "triangle", durMs: 280, gain: 0.04 });
+      noise({ durMs: 200, freqStart: 5000, freqEnd: 2500, filterType: "bandpass", q: 5, gain: 0.04 });
+    }, 80);
+  },
   // Summon: deep build-up with rising harmonic.
   spellSummon: () => {
     noise({ durMs: 420, freqStart: 100, freqEnd: 600, filterType: "lowpass", q: 2, gain: 0.10, attack: "swell" });
@@ -344,22 +438,71 @@ const SPELL_SFX_THEMES: Array<{ match: RegExp; play: () => void }> = [
   { match: /\b(focus|pulse|shield|bulwark|heart|unyielding|wall|barrier|might|fury|rage|frenzy|guard)/i, play: () => sfx.spellBuff() },
 ];
 
-/** Public dispatcher. Picks an SFX by skill name keywords, falling back to
- *  the skill's kind (physical / magical / buff / summon). Called from the
- *  combat loop the moment a skill resolves. */
-export function playSkillCastSfx(skillName: string, skillKind: "physical" | "magical" | "buff" | "summon"): void {
+/** Minimal shape of a skill needed for the cast-SFX dispatcher. Defined as
+ *  a structural type so we don't depend on the full Skill interface in audio.ts
+ *  (which would create a heavy circular import). The combat caller passes
+ *  through whatever `Skill` it has on hand. */
+interface SkillForSfx {
+  name: string;
+  kind: "physical" | "magical" | "buff" | "summon";
+  applies?: Array<{ id: string; target?: string }>;
+  selfApplies?: Array<{ id: string; target?: string }>;
+}
+
+/** For buff skills, pick the SFX by the dominant applied effect so the cast
+ *  audibly reflects WHAT'S being boosted (STR → bass thump, DEX → quick taps,
+ *  DEF → metallic, INT → arcane shimmer, etc.). Returns null if no specific
+ *  variant matches, letting the caller fall back to the keyword/generic path. */
+function buffSfxForEffects(skill: SkillForSfx): (() => void) | null {
+  const all = [...(skill.selfApplies ?? []), ...(skill.applies ?? [])];
+  for (const e of all) {
+    switch (e.id) {
+      case "haste":          return () => sfx.buffHaste();
+      case "dmg_reduction":  return () => sfx.buffDmgRed();
+      case "taunt":          return () => sfx.buffTaunt();
+      case "damage_reflect": return () => sfx.buffReflect();
+      case "atk_buff":
+        return e.target === "mag" ? () => sfx.buffAtkMag() : () => sfx.buffAtkPhys();
+      case "stat_buff":
+        switch (e.target) {
+          case "STR": return () => sfx.buffStr();
+          case "DEF": return () => sfx.buffDef();
+          case "VIT": return () => sfx.buffVit();
+          case "INT": return () => sfx.buffInt();
+          case "DEX": return () => sfx.buffDex();
+          case "AGI": return () => sfx.buffAgi();
+        }
+        break;
+      // heal handled via the heal-keyword path in SPELL_SFX_THEMES already.
+    }
+  }
+  return null;
+}
+
+/** Public dispatcher. Picks an SFX in this priority order:
+ *    1. For buff/self skills, the specific stat being increased (STR/DEF/VIT/…).
+ *    2. Keyword match on the skill's display name (Fireball → fire, etc.).
+ *    3. Per-kind fallback (buff/summon/magical → generic chord).
+ *  Pure physical with no keyword stays silent — the impact SFX covers it. */
+export function playSkillCastSfx(skill: SkillForSfx): void {
+  // Buff/self skills: route by what's actually being boosted FIRST so e.g.
+  // "Iron Bulwark" (DEF stat_buff) doesn't fall through to a generic chord
+  // just because no fire/ice/etc. keyword matches its name.
+  if (skill.kind === "buff") {
+    const variant = buffSfxForEffects(skill);
+    if (variant) { variant(); return; }
+  }
+  // Keyword match on the skill's display name.
   for (const theme of SPELL_SFX_THEMES) {
-    if (theme.match.test(skillName)) {
+    if (theme.match.test(skill.name)) {
       theme.play();
       return;
     }
   }
-  // No keyword hit — fall back to the skill kind so we still play SOMETHING
-  // distinct. Generic physical skills also covered by hit SFX on impact,
-  // so we keep this very subtle to avoid doubling up.
-  if (skillKind === "summon") sfx.spellSummon();
-  else if (skillKind === "buff") sfx.spellBuff();
-  else if (skillKind === "magical") sfx.spellGeneric();
+  // No keyword hit — fall back to the skill kind so we still play SOMETHING.
+  if (skill.kind === "summon") sfx.spellSummon();
+  else if (skill.kind === "buff") sfx.spellBuff();
+  else if (skill.kind === "magical") sfx.spellGeneric();
   // Pure physical with no keyword: stay silent here, the hit SFX covers it.
 }
 

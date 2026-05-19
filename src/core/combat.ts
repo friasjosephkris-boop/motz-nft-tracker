@@ -753,7 +753,7 @@ function executeAction(b: Battle, attacker: Combatant, action: QueuedAction): vo
   // also stays quiet to avoid doubling up with the hit SFX. See audio.ts
   // playSkillCastSfx() for the keyword table.
   if (skill.id !== "idle" && skill.id !== "guard") {
-    playSkillCastSfx(skill.name, skill.kind);
+    playSkillCastSfx(skill);
   }
 
   // Resolve the action immediately — no wind-up delay. The action lock that
