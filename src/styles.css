@@ -4566,6 +4566,46 @@ body:has(.battle) {
   border-radius: 4px;
 }
 
+/* ---- Fast-forward widget (campaign floors 1-20 only) ---- */
+.ff-widget {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 215, 100, 0.3);
+  border-radius: 6px;
+}
+.ff-widget .ff-label {
+  font-size: 11px;
+  color: #ffd76b;
+  letter-spacing: 0.06em;
+  margin-right: 2px;
+}
+.ff-widget .ff-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 215, 100, 0.25);
+  color: #d8d8d8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  min-width: 32px;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.ff-widget .ff-btn:hover {
+  border-color: rgba(255, 215, 100, 0.7);
+  color: #fff;
+}
+.ff-widget .ff-btn.active {
+  background: linear-gradient(180deg, rgba(255, 215, 100, 0.32), rgba(255, 175, 60, 0.32));
+  border-color: rgba(255, 215, 100, 0.95);
+  color: #fff7c2;
+  box-shadow: 0 0 6px rgba(255, 215, 100, 0.5);
+}
+
 .lb-board-title-row {
   display: flex;
   align-items: center;

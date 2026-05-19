@@ -6,6 +6,7 @@ import { effectIcon, effectName, isDebuff, isSkillBlockedBySilence, isSilenced }
 import { portraitInner, capeHtml } from "../units/art";
 import { runCheatCheck } from "../core/cheatCheck";
 import { confirmModal } from "./confirmModal";
+import { getBattleSpeed, setBattleSpeed, isFastForwardAllowed, FAST_FORWARD_MAX_STAGE, BattleSpeed } from "../core/battleSpeed";
 
 const BASE_SKILL_IDS = new Set(["idle", "basic_attack", "guard"]);
 type ActionTab = "basic" | "skills";
@@ -33,6 +34,8 @@ export interface RenderBattleOpts {
   slowMo?: boolean;
   /** Current stage id — drives the per-tier battle-field background image. Omit for tutorial / replay if you don't want it. */
   stageId?: number;
+  /** Run mode — gates the fast-forward feature to campaign floors only. */
+  mode?: "floor" | "survival" | "boss_raid";
 }
 
 export function renderBattle(
@@ -53,6 +56,7 @@ export function renderBattle(
       <div class="battle-toolbar">
         <button class="surrender-btn" id="surrender-btn" type="button">Surrender</button>
         ${slowMo ? `<span class="slowmo-tag">SLOW MOTION</span>` : ""}
+        ${fastForwardWidgetHtml(opts.stageId, opts.mode)}
       </div>
 
       <div class="battle-field" id="battle-field">
@@ -85,6 +89,7 @@ export function renderBattle(
   wireEnemyClicks(root, b, onAction);
   wireSurrender(root, b, onPost);
   wirePostBattleButtons(root, onPost);
+  wireFastForward(root);
 
   // Anti-cheat: ask the server whether this wallet's claimed total XP fits
   // the lifetime ceiling we've recorded. Admin wallets are exempt server-side.
@@ -458,6 +463,38 @@ function wireEnemyClicks(root: HTMLElement, b: Battle, onAction: ActionHandler):
     onAction(targeting.unitId, targeting.skillId, targetId);
     targeting = null;
     updateLive(root, b);
+  });
+}
+
+/** Renders the ▶▶ Fast Forward pill (1x / 2x / 4x) when the current battle is
+ *  a campaign floor 1..FAST_FORWARD_MAX_STAGE. For any other context (survival,
+ *  boss raid, floors 21+, tutorial, replay) we render nothing so the UI stays
+ *  clean and the option doesn't appear to be available. */
+function fastForwardWidgetHtml(stageId: number | undefined, mode: RenderBattleOpts["mode"]): string {
+  if (typeof stageId !== "number") return "";
+  if (!isFastForwardAllowed(stageId, mode ?? "")) return "";
+  const cur = getBattleSpeed();
+  return `
+    <div class="ff-widget" title="Fast forward — campaign floors 1-${FAST_FORWARD_MAX_STAGE} only">
+      <span class="ff-label">▶▶</span>
+      <button class="ff-btn ${cur === 1 ? "active" : ""}" data-ff="1" type="button">1x</button>
+      <button class="ff-btn ${cur === 2 ? "active" : ""}" data-ff="2" type="button">2x</button>
+      <button class="ff-btn ${cur === 4 ? "active" : ""}" data-ff="4" type="button">4x</button>
+    </div>
+  `;
+}
+
+function wireFastForward(root: HTMLElement): void {
+  root.querySelectorAll<HTMLButtonElement>(".ff-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const mul = Number(btn.dataset.ff);
+      const next: BattleSpeed = mul === 2 || mul === 4 ? mul : 1;
+      setBattleSpeed(next);
+      // Update active state across the row without re-rendering the whole battle.
+      root.querySelectorAll<HTMLButtonElement>(".ff-btn").forEach(b => {
+        b.classList.toggle("active", Number(b.dataset.ff) === next);
+      });
+    });
   });
 }
 
