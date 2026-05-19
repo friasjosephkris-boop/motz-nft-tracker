@@ -1,6 +1,6 @@
 import { topBarHtml } from "./settings";
 import { getEnergy, ENERGY_MAX, msUntilNextRefill } from "../core/energy";
-import { STAGE_DEFS, StageEnemyDef, PLAYER_ROSTER } from "../units/roster";
+import { STAGE_DEFS, StageEnemyDef, PLAYER_ROSTER, isPostGameFloor, postGameEnemyLevelFor, resistProfileForFloor } from "../units/roster";
 import { getMaxCleared } from "../core/clears";
 import { pullCanonicalProgress } from "../core/progress";
 import { UnitTemplate, DamageResistance } from "../units/types";
@@ -299,6 +299,13 @@ function stageTileHtml(s: StageEnemyDef, energy: number, maxCleared: number): st
 }
 
 function stageTooltipHtml(s: StageEnemyDef): string {
+  // Floors 100+ override enemy resists with a per-floor randomized profile
+  // (see resistProfileForFloor in roster.ts). Show that instead of the
+  // template's intrinsic resist so players can plan their party correctly.
+  const floorResists = resistProfileForFloor(s.id);
+  // Floors 51+ also override the level (Lv30→Lv70 linear scaling).
+  const floorLevel = isPostGameFloor(s.id) ? postGameEnemyLevelFor(s.id) : null;
+
   const counts = new Map<string, { unit: UnitTemplate; count: number }>();
   for (const u of s.enemies) {
     const cur = counts.get(u.id);
@@ -306,8 +313,9 @@ function stageTooltipHtml(s: StageEnemyDef): string {
     else counts.set(u.id, { unit: u, count: 1 });
   }
   const rows = [...counts.values()].map(({ unit, count }) => {
-    const lvl = unit.level ?? 1;
-    const tags = resistTags(unit.resist);
+    const lvl = floorLevel ?? unit.level ?? 1;
+    // Use the floor profile if defined; else fall back to the template's intrinsic resist.
+    const tags = resistTags(floorResists ?? unit.resist);
     const atk = unit.atkMultiplier && unit.atkMultiplier > 1
       ? `<span class="stt-tag stt-warn">×${unit.atkMultiplier} ATK</span>`
       : "";
@@ -332,13 +340,17 @@ function stageTooltipHtml(s: StageEnemyDef): string {
   `;
 }
 
-function resistTags(r: DamageResistance | undefined): string {
+function resistTags(r: DamageResistance | null | undefined): string {
   if (!r) return "";
   const tags: string[] = [];
   for (const key of ["physical", "magical", "melee", "range"] as const) {
     const v = r[key];
     if (v === undefined) continue;
-    if (v < 1) tags.push(`<span class="stt-tag stt-resist">resists ${key}</span>`);
+    // mul 0   = 100% resist (only 1 dmg passes through)  → "immune"
+    // mul <1  = partial resist (e.g. 0.3 → 70% resist)   → "resists"
+    // mul >1  = vulnerability                            → "weak"
+    if (v === 0) tags.push(`<span class="stt-tag stt-resist">immune ${key}</span>`);
+    else if (v < 1) tags.push(`<span class="stt-tag stt-resist">resists ${key}</span>`);
     else if (v > 1) tags.push(`<span class="stt-tag stt-weak">weak ${key}</span>`);
   }
   return tags.join("");

@@ -371,6 +371,13 @@ export interface BattleOptions {
    *  template's intrinsic `level` field is ignored. Solo-boss templates also
    *  honor this override — their stats grow alongside their mob counterparts. */
   enemyLevelOverride?: number;
+  /** Post-game resist randomization (Floor 100+): replace every enemy's
+   *  intrinsic resist field with this profile. Two of {physical, magical,
+   *  melee, range} are usually 0 (100% resist → 1 dmg floor); the others
+   *  are 0.3 (70% resist). main.ts computes the profile deterministically
+   *  from the floor id via resistProfileForFloor() so the same floor always
+   *  rolls the same resists. */
+  enemyResistOverride?: import("../units/types").DamageResistance;
 }
 
 export function startBattle(
@@ -417,6 +424,16 @@ export function startBattle(
     return c;
   });
   const enemyCombatants = placeEnemies(enemies, rng, opts.enemyLevelOverride);
+  // Post-game resist randomization: stamp every enemy's resist field with
+  // the floor's profile so all mobs on a floor share the same resist quirks.
+  // Boss templates that ship with an intrinsic resist (e.g. THE_UNTOUCHED)
+  // get OVERWRITTEN here — the floor-level resist takes precedence so the
+  // post-game floors feel mechanically distinct from their F1-50 cousins.
+  if (opts.enemyResistOverride) {
+    for (const c of enemyCombatants) {
+      c.resist = { ...opts.enemyResistOverride };
+    }
+  }
 
   // Shop buff: Battle Cry — fill all alive player gauges. Applied AFTER
   // carryover so it overrides survival/boss-raid gauge inheritance.

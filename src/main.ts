@@ -28,7 +28,7 @@ import { ATB_FULL } from "./core/timeline";
 import { recordClear } from "./core/clears";
 import { installGlobalClickSounds } from "./core/audio";
 import { mountWalletStatusBadge, refreshWalletStatusBadge } from "./ui/walletStatusBadge";
-import { STAGE_DEFS, getStage, BOSS_RAID_FLOORS, PLAYER_ROSTER, isPostGameFloor, postGameEnemyLevelFor } from "./units/roster";
+import { STAGE_DEFS, getStage, BOSS_RAID_FLOORS, PLAYER_ROSTER, isPostGameFloor, postGameEnemyLevelFor, resistProfileForFloor } from "./units/roster";
 import { Stats } from "./core/stats";
 import { loadSession, validateSession, clearSession, setVerifiedAddress, setVerifiedPerks, Session } from "./auth/session";
 import { setUserScope } from "./auth/scope";
@@ -1000,6 +1000,12 @@ function runFloor(party: SquadResult["players"], floorId: number, xpMultiplier: 
   // is ignored for floors 1-50 so the hand-tuned curve there is preserved.
   if (isPostGameFloor(floorId)) {
     opts.enemyLevelOverride = postGameEnemyLevelFor(floorId);
+    // From Floor 100 onward, randomize enemy resist profile per floor: 2 of
+    // {physical, magical, melee, range} at 100% resist, the other 2 at 70%.
+    // Deterministic per floor id — same floor rolls the same resists every
+    // time so leaderboard / replay outcomes stay reproducible.
+    const resists = resistProfileForFloor(floorId);
+    if (resists) opts.enemyResistOverride = resists;
   }
   // Replay scope:
   //   - floor mode: only the floor-50 World Ender battle is recorded

@@ -663,6 +663,48 @@ export function isPostGameFloor(floorId: number): boolean {
   return floorId >= POST_GAME_FIRST_FLOOR && floorId <= POST_GAME_LAST_FLOOR;
 }
 
+/** Floor where resist randomization kicks in. Below this, enemies use their
+ *  template's intrinsic resist field (or none). At-or-above, every enemy on
+ *  the floor inherits the floor's randomized resist profile — see below. */
+export const RESIST_RANDO_FIRST_FLOOR = 100;
+
+/** Compute a deterministic resistance profile for the given floor. From F100
+ *  onward, every floor randomly assigns:
+ *    - 2 of the 4 resist channels (physical / magical / melee / range) → 100% resist (mul = 0)
+ *    - the other 2                                                     → 70% resist (mul = 0.3)
+ *  The selection is seeded by floorId so the same floor always produces the
+ *  same resist profile (fair across replays / leaderboard). Returns null
+ *  when the floor is below the rando threshold so the caller can skip. */
+export function resistProfileForFloor(floorId: number): import("./types").DamageResistance | null {
+  if (floorId < RESIST_RANDO_FIRST_FLOOR) return null;
+  // xorshift-ish hash of the floorId → 32-bit unsigned.
+  let h = (floorId * 2654435761) >>> 0;
+  h ^= h >>> 13;
+  h = (h * 1597334677) >>> 0;
+  h ^= h >>> 16;
+  // Pick 2 of 4 indices to receive 100% resist. The remaining 2 get 70%.
+  // We iterate through the 6 possible 2-of-4 combinations and pick one
+  // deterministically. (C(4,2) = 6.)
+  type Slot = "physical" | "magical" | "melee" | "range";
+  const slots: Slot[] = ["physical", "magical", "melee", "range"];
+  const combos: [Slot, Slot][] = [
+    ["physical", "magical"],
+    ["physical", "melee"],
+    ["physical", "range"],
+    ["magical", "melee"],
+    ["magical", "range"],
+    ["melee",    "range"],
+  ];
+  const picked = combos[h % combos.length];
+  const profile: import("./types").DamageResistance = {};
+  for (const slot of slots) {
+    const isMax = slot === picked[0] || slot === picked[1];
+    // 100% resist → mul 0  (target takes 1 dmg floor); 70% resist → mul 0.3
+    profile[slot] = isMax ? 0 : 0.3;
+  }
+  return profile;
+}
+
 /** Hand-authored name + enemy overrides for floors 51-500 (all current
  *  post-game floors). Outside this range, generatePostGameFloors uses
  *  procedural names. When 501-1000 get added, extend this map by 500 more
