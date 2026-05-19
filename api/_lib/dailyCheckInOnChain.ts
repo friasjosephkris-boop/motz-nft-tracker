@@ -28,8 +28,16 @@ import { privateKeyToAccount } from "viem/accounts";
 const ENABLED = process.env.DAILY_CHECKIN_ENABLED === "1";
 const CONTRACT_ADDR_RAW = process.env.DAILY_CHECKIN_CONTRACT_ADDR ?? "";
 const RELAYER_PK_RAW = process.env.DAILY_CHECKIN_RELAYER_PK ?? "";
-const RPC_URL = process.env.DAILY_CHECKIN_RPC_URL ?? "https://saigon-testnet.roninchain.com/rpc";
 const CHAIN_ID = Number(process.env.DAILY_CHECKIN_CHAIN_ID ?? 2021);
+// RPC URL must match the chain — otherwise viem signs for the "right" chain
+// but queries the "wrong" one (sees 0 balance, no contract, etc.). Default
+// it from CHAIN_ID so a forgetful operator can't half-configure (the trap
+// that caused the 'gas required exceeds allowance (0)' bug on mainnet).
+const DEFAULT_RPC_FOR_CHAIN: Record<number, string> = {
+  2020: "https://api.roninchain.com/rpc",
+  2021: "https://saigon-testnet.roninchain.com/rpc",
+};
+const RPC_URL = process.env.DAILY_CHECKIN_RPC_URL ?? DEFAULT_RPC_FOR_CHAIN[CHAIN_ID] ?? DEFAULT_RPC_FOR_CHAIN[2021];
 
 const saigon = defineChain({
   id: 2021,
