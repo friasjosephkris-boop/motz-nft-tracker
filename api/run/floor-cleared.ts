@@ -573,6 +573,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         return;
       }
       await consumeTxHash(txHash, address, "energy_first_offer", pay.valueWei);
+      // Analytics: count this purchase toward the wallet's lifetime RON-spent
+      // AND the global shop revenue (real RON flows to the treasury via the
+      // same verified tx, so it's revenue just like any other shop_buy).
+      const ronPrice = Number((ITEM_PRICES_WEI["energy_first_offer"] ?? 0n) / 10n ** 18n);
+      void bumpRonSpent(address, ronPrice);
+      void bumpShopRevenue(ronPrice);
       res.status(200).json({ ok: true, energy: grant.energy });
       return;
     } catch (e) {
@@ -582,9 +588,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
   if (op === "first_offer_claim_voucher") {
     try {
-      const { claimWithVouchers } = await import("../_lib/firstEnergyOffer.js");
+      const { claimWithVouchers, FIRST_OFFER_RON_PRICE } = await import("../_lib/firstEnergyOffer.js");
       const r = await claimWithVouchers(address);
       if (!r.ok) { res.status(400).json({ ok: false, reason: r.reason }); return; }
+      // Analytics: lifetime voucher-spent (no shop-revenue bump — vouchers
+      // don't move new RON to the treasury, only consume an existing in-game
+      // balance that was earned earlier).
+      void bumpVouchersSpent(address, FIRST_OFFER_RON_PRICE);
       res.status(200).json({ ok: true, energy: r.energy, deducted: r.deducted });
       return;
     } catch (e) {
@@ -632,6 +642,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const grant = await grantFloor20Bundle(address, "ron");
       if (!grant.ok) { res.status(409).json({ ok: false, reason: grant.reason }); return; }
       await consumeTxHash(txHash, address, "floor20_offer_bundle", pay.valueWei);
+      // Analytics: same as the first-energy-offer path — real RON flows to
+      // treasury, so per-wallet RON-spent + global shop revenue both bump.
+      const ronPrice = Number((ITEM_PRICES_WEI["floor20_offer_bundle"] ?? 0n) / 10n ** 18n);
+      void bumpRonSpent(address, ronPrice);
+      void bumpShopRevenue(ronPrice);
       res.status(200).json({ ok: true, grants: grant.grants });
       return;
     } catch (e) {
@@ -641,9 +656,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
   if (op === "floor20_offer_claim_voucher") {
     try {
-      const { claimFloor20WithVouchers } = await import("../_lib/floor20Offer.js");
+      const { claimFloor20WithVouchers, FLOOR20_OFFER_RON_PRICE } = await import("../_lib/floor20Offer.js");
       const r = await claimFloor20WithVouchers(address);
       if (!r.ok) { res.status(400).json({ ok: false, reason: r.reason }); return; }
+      // Analytics: lifetime voucher-spent only (no shop-revenue bump on
+      // voucher payments — same rationale as the first-energy-offer path).
+      void bumpVouchersSpent(address, FLOOR20_OFFER_RON_PRICE);
       res.status(200).json({ ok: true, grants: r.grants, deducted: r.deducted });
       return;
     } catch (e) {
