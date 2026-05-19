@@ -117,33 +117,35 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
               <input type="checkbox" id="setting-dev-class" ${s.devUnlockClass ? "checked" : ""} />
               <span>Allow class re-pick anytime</span>
             </label>
-            ${!isDevBuild() ? `
-              <div class="admin-row admin-wipe-prod-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
-                <span class="admin-info" style="color:#ff5a6b;">☠ <strong>PRODUCTION WIPE</strong> — irreversibly deletes EVERY wallet's progress, energy, vouchers, leaderboards, shop inventory, run state, and analytics. Three confirmations required.</span>
-                <button class="ghost-btn admin-wipe-prod-btn" id="admin-wipe-prod" type="button">☠ Wipe ALL Production Data</button>
+            <!-- Destructive admin panels: visible on BOTH dev + main since the
+                 same admin wallet controls both and there's no separate dev
+                 admin role. All actions are server-side admin-gated, multi-step
+                 confirmed, and target the *active* environment's Redis only. -->
+            <div class="admin-row admin-wipe-prod-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="admin-info" style="color:#ff5a6b;">☠ <strong>${isDevBuild() ? "DEV " : "PRODUCTION "}WIPE</strong> — irreversibly deletes EVERY wallet's progress, energy, vouchers, leaderboards, shop inventory, run state, and analytics on the <strong>${isDevBuild() ? "dev" : "production"}</strong> environment. Three confirmations required.</span>
+              <button class="ghost-btn admin-wipe-prod-btn" id="admin-wipe-prod" type="button">☠ Wipe ALL ${isDevBuild() ? "Dev" : "Production"} Data</button>
+            </div>
+            <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="admin-info">🎯 <strong>Force-Reset Wallets</strong> — nukes server data for one or more wallets AND forces their browsers to clear cached state on next session check. Use when a full wipe isn't viable. Paste one wallet per line (or comma-separated).</span>
+              <textarea id="admin-force-reset-wallet" placeholder="0x...&#10;0x...&#10;0x..." style="font-family:monospace; padding:6px 8px; min-width:380px; min-height:80px; resize:vertical;"></textarea>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="ghost-btn" id="admin-force-reset-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🎯 Reset These Wallets</button>
+                <button class="ghost-btn" id="admin-force-reset-except-btn" type="button" style="border-color:#ff5a6b;color:#ffb8c0;">🔁 Reset EVERYONE EXCEPT These</button>
               </div>
-              <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
-                <span class="admin-info">🎯 <strong>Force-Reset Wallets</strong> — nukes server data for one or more wallets AND forces their browsers to clear cached state on next session check. Use when a full wipe isn't viable. Paste one wallet per line (or comma-separated).</span>
-                <textarea id="admin-force-reset-wallet" placeholder="0x...&#10;0x...&#10;0x..." style="font-family:monospace; padding:6px 8px; min-width:380px; min-height:80px; resize:vertical;"></textarea>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                  <button class="ghost-btn" id="admin-force-reset-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🎯 Reset These Wallets</button>
-                  <button class="ghost-btn" id="admin-force-reset-except-btn" type="button" style="border-color:#ff5a6b;color:#ffb8c0;">🔁 Reset EVERYONE EXCEPT These</button>
-                </div>
+            </div>
+            <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="admin-info">🎁 <strong>Comp a Wallet (Grant Energy + Close Offers)</strong> — paste a wallet, then add energy directly to their pool and/or mark their one-time offer(s) as consumed so the modal won't reappear. Use when a player paid for the wrong bundle.</span>
+              <input type="text" id="admin-comp-wallet" placeholder="0x..." style="font-family:monospace; padding:4px 8px; min-width:340px;" />
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <input type="number" id="admin-comp-energy-amt" placeholder="35" min="-999" max="999" value="35" style="width:80px; padding:4px 6px;" />
+                <button class="ghost-btn" id="admin-comp-energy-btn" type="button" style="border-color:#9bff9b;color:#c5f0c5;">⚡ Grant Energy</button>
               </div>
-              <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
-                <span class="admin-info">🎁 <strong>Comp a Wallet (Grant Energy + Close Offers)</strong> — paste a wallet, then add energy directly to their pool and/or mark their one-time offer(s) as consumed so the modal won't reappear. Use when a player paid for the wrong bundle.</span>
-                <input type="text" id="admin-comp-wallet" placeholder="0x..." style="font-family:monospace; padding:4px 8px; min-width:340px;" />
-                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-                  <input type="number" id="admin-comp-energy-amt" placeholder="35" min="-999" max="999" value="35" style="width:80px; padding:4px 6px;" />
-                  <button class="ghost-btn" id="admin-comp-energy-btn" type="button" style="border-color:#9bff9b;color:#c5f0c5;">⚡ Grant Energy</button>
-                </div>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                  <button class="ghost-btn" id="admin-close-offer-first-btn" type="button">Close First-Energy</button>
-                  <button class="ghost-btn" id="admin-close-offer-floor20-btn" type="button">Close Floor-20</button>
-                  <button class="ghost-btn" id="admin-close-offer-both-btn" type="button">Close Both Offers</button>
-                </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="ghost-btn" id="admin-close-offer-first-btn" type="button">Close First-Energy</button>
+                <button class="ghost-btn" id="admin-close-offer-floor20-btn" type="button">Close Floor-20</button>
+                <button class="ghost-btn" id="admin-close-offer-both-btn" type="button">Close Both Offers</button>
               </div>
-            ` : ""}
+            </div>
             <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
               <span class="admin-info">⛓ <strong>Test On-Chain Daily Check-In</strong> — fires checkIn(wallet) on the Ronin contract WITHOUT touching the in-game daily lock. Use to verify env-var wiring (contract addr / chain id / relayer pk) without burning a real daily slot or waiting for UTC reset.</span>
               <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
