@@ -90,37 +90,86 @@ export function renderLeaderboard(root: HTMLElement, onBack: () => void, onPlayR
   // Survival board (with first-conquer + world-ender in same payload).
   // Show up to 10 entries; replays available for top 3.
   void fetchTopWithExtras("survival", 10).then(({ entries, firstConquer, worldEnder }) => {
-    fillRows("lb-survival-rows", entries, myAddr, { replayTopN: 3, mode: "survival" });
+    fillRows("lb-survival-rows", entries, myAddr, { mode: "survival" });
     fillFirstConquer("lb-conquer-rows", firstConquer, myAddr);
     fillWorldEnder("lb-fastest-rows", worldEnder, myAddr);
   });
 
   // Boss raid board (independent fetch). Up to 10 entries.
   void fetchTop("boss_raid", 10).then(entries => {
-    fillRows("lb-bossraid-rows", entries, myAddr, { replayTopN: 3, mode: "boss_raid" });
+    fillRows("lb-bossraid-rows", entries, myAddr, { mode: "boss_raid" });
   });
 
-  // Wire replay button clicks (delegated for buttons rendered later by async loaders).
+  // Wire loadout button clicks (delegated for buttons rendered later by async
+  // loaders). Replaces the previous replay-playback flow — players found the
+  // recorded battle less useful than just SEEING the levels + skills + stat
+  // allocation the LB-holder used to reach their placement.
   root.addEventListener("click", async e => {
-    const btn = (e.target as HTMLElement | null)?.closest<HTMLButtonElement>("button.lb-replay-btn");
+    const btn = (e.target as HTMLElement | null)?.closest<HTMLButtonElement>("button.lb-loadout-btn");
     if (!btn || btn.disabled) return;
     const scope = btn.dataset.replayScope;
     const address = btn.dataset.replayAddr;
-    if (!scope || !address || !onPlayReplay) return;
+    const ign = btn.dataset.replayIgn ?? "";
+    const floorStr = btn.dataset.replayFloor;
+    if (!scope || !address) return;
     btn.disabled = true;
     btn.textContent = "Loading…";
     const blob = await fetchReplayBlob<ReplayBlob>(scope, address);
-    if (!blob) {
-      // Older entries (predating the replay save) won't have a blob — gray the
-      // button out in place instead of showing a browser alert.
+    if (!blob || !blob.battles || blob.battles.length === 0) {
+      // Older entries (predating the replay save) won't have a blob — gray
+      // the button out in place instead of showing a browser alert.
       btn.disabled = true;
-      btn.textContent = "No replay";
-      btn.classList.add("lb-replay-empty");
-      btn.title = "This entry was set before replays were recorded.";
+      btn.textContent = "No data";
+      btn.classList.add("lb-loadout-empty");
+      btn.title = "This entry was set before loadouts were recorded.";
       return;
     }
-    onPlayReplay(blob);
+    // The party at battle 0 is what the player STARTED with; the party at the
+    // last battle is what they ENDED with (after carryover hp/mp/cooldowns).
+    // Show the starting party — represents the build they brought into the run.
+    const startParty = blob.battles[0].party;
+    showLoadoutModal({ ign, address, floor: floorStr ? Number(floorStr) : undefined, party: startParty });
+    btn.disabled = false;
+    btn.textContent = "👁 Loadout";
   });
+}
+
+/** Modal: shows the levels + class + stat allocation + equipped skills for
+ *  every unit in a LB placement's starting party. Read-only viewer.
+ *  Dismiss with Esc, click-outside, or the close button. */
+function showLoadoutModal(opts: { ign: string; address: string; floor?: number; party: import("../core/replay").ReplayPartyMember[] }): void {
+  document.querySelectorAll(".lb-loadout-modal").forEach(el => el.remove());
+  const overlay = document.createElement("div");
+  overlay.className = "lb-loadout-modal";
+  const titleSuffix = opts.floor !== undefined ? ` · Floor ${opts.floor}` : "";
+  overlay.innerHTML = `
+    <div class="lb-loadout-card">
+      <div class="lb-loadout-head">
+        <div>
+          <div class="lb-loadout-title">${escapeHtml(opts.ign || "—")}'s Loadout</div>
+          <div class="lb-loadout-sub">${shortAddr(opts.address)}${titleSuffix}</div>
+        </div>
+        <button class="lb-loadout-close" id="lb-loadout-close" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="lb-loadout-body">
+        <div class="lb-conquer-party">
+          ${opts.party.map(m => conquerPartyCardHtml({
+            templateId: m.templateId,
+            classId: m.classId,
+            level: m.level,
+            customStats: m.customStats as unknown as Record<string, number>,
+            equippedSkills: m.equippedSkills,
+          })).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector<HTMLButtonElement>("#lb-loadout-close")?.addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+  const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", onKey); } };
+  document.addEventListener("keydown", onKey);
 }
 
 /** Prize tables per leaderboard. Values in RON. */
@@ -156,14 +205,13 @@ function fillWorldEnder(elId: string, entries: WorldEnderEntry[], myAddr: string
           ${prizeChip(PRIZES_WORLD_ENDER[e.rank])}
         </span>
         <span class="lb-col time">${formatMs(e.ms)}</span>
-        ${replayBtnHtml(e.rank <= 3, "we", e.address)}
+        ${loadoutBtnHtml(e.rank <= 10, "we", e.address, e.ign ?? "—", 50)}
       </div>
     `;
   }).join("");
 }
 
 interface FillOpts {
-  replayTopN: number;
   mode: "survival" | "boss_raid";
   hideFloor?: boolean;
 }
@@ -256,7 +304,10 @@ function conquerPartyCardHtml(m: { templateId: string; classId?: string; level: 
 function rowHtml(e: LbEntry, myAddr: string | null, opts: FillOpts): string {
   const isMe = myAddr !== null && e.address.toLowerCase() === myAddr;
   const name = e.ign ?? "—";
-  const showReplay = e.rank <= opts.replayTopN;
+  // Show the View Loadout button for ALL ranked entries (was top 3 only when
+  // it was a Replay button). Seeing a leader's build is useful at every tier.
+  const showLoadout = e.rank <= 10;
+  const scope = opts.mode === "survival" ? "lb_survival" : "lb_bossraid";
   return `
     <div class="lb-row ${isMe ? "me" : ""}">
       <span class="lb-col rank">${e.rank}</span>
@@ -267,19 +318,21 @@ function rowHtml(e: LbEntry, myAddr: string | null, opts: FillOpts): string {
       </span>
       ${opts.hideFloor ? "" : `<span class="lb-col floor">${e.floor}</span>`}
       <span class="lb-col time">${formatMs(e.ms)}</span>
-      ${replayBtnHtml(showReplay, opts.mode === "survival" ? "lb_survival" : "lb_bossraid", e.address)}
+      ${loadoutBtnHtml(showLoadout, scope, e.address, name, e.floor)}
     </div>
   `;
 }
 
-/** Renders a replay button. Pass scope+address to make it active. Without a
- *  scope (or with replay still pending Phase 2), shows a disabled placeholder. */
-function replayBtnHtml(show: boolean, scope?: string, address?: string): string {
+/** Renders the View Loadout button. Click opens a modal that pulls the
+ *  starting party (levels, class, stats, equipped skills) from the same
+ *  replay blob the old Replay button used to play. */
+function loadoutBtnHtml(show: boolean, scope: string, address: string, ign: string, floor: number): string {
   if (!show) return "";
-  if (scope && address) {
-    return `<button class="lb-replay-btn" type="button" data-replay-scope="${escapeAttr(scope)}" data-replay-addr="${escapeAttr(address)}">▶ Replay</button>`;
-  }
-  return `<button class="lb-replay-btn" type="button" title="Replay coming soon" disabled>▶ Replay</button>`;
+  return `<button class="lb-loadout-btn" type="button"
+    data-replay-scope="${escapeAttr(scope)}"
+    data-replay-addr="${escapeAttr(address)}"
+    data-replay-ign="${escapeAttr(ign)}"
+    data-replay-floor="${floor}">👁 Loadout</button>`;
 }
 
 function escapeAttr(s: string): string { return escapeHtml(s); }

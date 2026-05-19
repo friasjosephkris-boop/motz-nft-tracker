@@ -3740,7 +3740,8 @@ body:has(.battle) {
   font-size: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
-.lb-row:has(.lb-replay-btn) { grid-template-columns: 32px 1fr 60px 80px auto; }
+.lb-row:has(.lb-replay-btn),
+.lb-row:has(.lb-loadout-btn) { grid-template-columns: 32px 1fr 60px 80px auto; }
 .lb-fastest .lb-row {
   grid-template-columns: 32px 1fr 80px auto;
 }
@@ -3784,6 +3785,73 @@ body:has(.battle) {
 .lb-replay-btn:hover:not(:disabled) { background: rgba(244, 211, 94, 0.2); }
 .lb-replay-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .lb-replay-btn.lb-replay-empty { color: var(--muted); border-color: var(--border); background: transparent; font-size: 11px; }
+
+/* View Loadout button — replaces the old Replay button. Same chip styling
+   but in cool teal/blue (replay was gold) so the two don't look identical. */
+.lb-loadout-btn {
+  background: rgba(120, 200, 240, 0.10);
+  color: #9fd6ec;
+  border: 1px solid rgba(120, 200, 240, 0.6);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  font-family: inherit;
+}
+.lb-loadout-btn:hover:not(:disabled) { background: rgba(120, 200, 240, 0.22); }
+.lb-loadout-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.lb-loadout-btn.lb-loadout-empty { color: var(--muted); border-color: var(--border); background: transparent; font-size: 11px; }
+
+/* Loadout viewer modal */
+.lb-loadout-modal {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.lb-loadout-card {
+  background: var(--motz-bg-panel, #14171e);
+  border: 1px solid rgba(255, 215, 100, 0.3);
+  border-radius: 10px;
+  max-width: 880px;
+  width: 100%;
+  max-height: 86vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+.lb-loadout-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.lb-loadout-title {
+  font-family: var(--motz-font-display);
+  font-size: 18px;
+  color: var(--gold-bright);
+}
+.lb-loadout-sub {
+  font-family: var(--motz-font-mono);
+  font-size: 11px;
+  color: var(--motz-text-muted);
+  margin-top: 2px;
+}
+.lb-loadout-close {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+.lb-loadout-close:hover { background: rgba(255, 255, 255, 0.08); }
+.lb-loadout-body { padding: 16px; overflow-y: auto; }
 @media (max-width: 1100px) {
   .lb-grid { grid-template-columns: 1fr; }
 }
