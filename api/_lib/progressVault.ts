@@ -21,14 +21,21 @@ import { getJson, setJson, getNumber } from "./redis.js";
 // Per-template levels of allocatable points: +4 per level after Lv 1.
 const POINTS_PER_LEVEL = 4;
 // Hard upper bound. Mirrors src/core/levels.ts MAX_LEVEL.
-const MAX_LEVEL = 30;
+const MAX_LEVEL = 99;
 // Per-level XP requirements. Mirrors src/core/levels.ts XP_TABLE. Server
 // re-validates against this so a tampered client can't claim "I have 1000 XP
-// at Level 30" — Level 30 always has xp = 0 (capped).
+// at MAX_LEVEL" — MAX_LEVEL always has xp = 0 (capped).
 export const XP_TABLE = [
-  16, 31, 54, 85, 128, 182, 250, 332, 432, 549,
-  686, 843, 1024, 1228, 1458, 1714, 2000, 2315, 2662, 3041,
-  3456, 3906, 4394, 4920, 5488, 6097, 6750, 7447, 8192,
+  10, 22, 42, 72, 114, 170, 242, 332, 442, 574,
+  704, 862, 1038, 1220, 1386, 1566, 1760, 1976, 2196, 2438,
+  2698, 2976, 3274, 3592, 3932, 4294, 4678, 5086, 5518, 5976,
+  6460, 6972, 7512, 8082, 8682, 9314, 9978, 10676, 11042, 11744,
+  12482, 13256, 14068, 14918, 15808, 16738, 17710, 18724, 19782, 20884,
+  22032, 23226, 24468, 25758, 27098, 28488, 29930, 31424, 32972, 34576,
+  36236, 37954, 39732, 41756, 43694, 45692, 47752, 49874, 52060, 54310,
+  56626, 59008, 61458, 63976, 66564, 69222, 71952, 74754, 77630, 80580,
+  83606, 86708, 89888, 93148, 96488, 99910, 103414, 108708, 112714, 116810,
+  120996, 143626, 196536, 303428, 502746, 863944, 1498426, 3156518,
 ];
 
 /** Sum of all XP a unit has earned over its lifetime: every full level it

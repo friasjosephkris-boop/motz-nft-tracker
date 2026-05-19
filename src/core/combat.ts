@@ -270,7 +270,14 @@ export function makeCombatant(t: UnitTemplate, side: Side, position: Position, o
     level,
     xp,
     availablePoints,
-    xpReward: t.xpReward ?? 0,
+    // Enemies use xpReward as authored on the template. When placeEnemies
+    // passes an enemy with a level OVERRIDE that's higher than the template's
+    // intrinsic level (post-game floors 51+), we scale xpReward proportionally
+    // so grinding to Lv70 is feasible — otherwise a Lv5 wraith placed at Lv50
+    // would still drop 5-level XP and the curve would be unwinnable.
+    xpReward: side === "enemy" && override && t.level && override.level > t.level
+      ? Math.round((t.xpReward ?? 0) * (override.level / t.level))
+      : (t.xpReward ?? 0),
     effects: [],
     resist: t.resist,
     atkMultiplier: t.atkMultiplier,
@@ -282,10 +289,22 @@ export function makeCombatant(t: UnitTemplate, side: Side, position: Position, o
   };
 }
 
-function placeEnemies(templates: UnitTemplate[], rng: Rng): Combatant[] {
+function placeEnemies(templates: UnitTemplate[], rng: Rng, enemyLevelOverride?: number): Combatant[] {
   // Up to 9 enemies. For solo bosses, just place at center.
+  // When enemyLevelOverride is provided (post-game floors 51+), we synthesize
+  // a minimal PartyOverride so makeCombatant uses the new level for stat
+  // scaling. customStats stays zero — enemies never get player-style stat
+  // allocation.
+  const makeOverride = (t: UnitTemplate): PartyOverride | undefined => {
+    if (enemyLevelOverride === undefined) return undefined;
+    return {
+      level: enemyLevelOverride,
+      customStats: { ...ZERO_STATS },
+      classId: t.classId,
+    };
+  };
   if (templates.length === 1) {
-    return [makeCombatant(templates[0], "enemy", { row: 1, col: 1 })];
+    return [makeCombatant(templates[0], "enemy", { row: 1, col: 1 }, makeOverride(templates[0]))];
   }
   const slots: Position[] = [];
   for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++) slots.push({ row, col });
@@ -293,7 +312,7 @@ function placeEnemies(templates: UnitTemplate[], rng: Rng): Combatant[] {
     const j = Math.floor(rng.next() * (i + 1));
     [slots[i], slots[j]] = [slots[j], slots[i]];
   }
-  return templates.slice(0, 9).map((t, i) => makeCombatant(t, "enemy", slots[i]));
+  return templates.slice(0, 9).map((t, i) => makeCombatant(t, "enemy", slots[i], makeOverride(t)));
 }
 
 export interface BattleOptions {
@@ -347,6 +366,18 @@ export interface BattleOptions {
   /** Shop buff "Last Stand": when only one player ally is alive, that unit's
    *  outgoing damage is multiplied by this (e.g. 2.0 doubles damage). */
   lastStandDamageMul?: number;
+  /** Post-game floor scaling (Floor 51+): override every enemy template's
+   *  level to this value so stats scale alongside the player party. The
+   *  template's intrinsic `level` field is ignored. Solo-boss templates also
+   *  honor this override — their stats grow alongside their mob counterparts. */
+  enemyLevelOverride?: number;
+  /** Post-game resist randomization (Floor 100+): replace every enemy's
+   *  intrinsic resist field with this profile. Two of {physical, magical,
+   *  melee, range} are usually 0 (100% resist → 1 dmg floor); the others
+   *  are 0.3 (70% resist). main.ts computes the profile deterministically
+   *  from the floor id via resistProfileForFloor() so the same floor always
+   *  rolls the same resists. */
+  enemyResistOverride?: import("../units/types").DamageResistance;
 }
 
 export function startBattle(
@@ -392,7 +423,17 @@ export function startBattle(
     }
     return c;
   });
-  const enemyCombatants = placeEnemies(enemies, rng);
+  const enemyCombatants = placeEnemies(enemies, rng, opts.enemyLevelOverride);
+  // Post-game resist randomization: stamp every enemy's resist field with
+  // the floor's profile so all mobs on a floor share the same resist quirks.
+  // Boss templates that ship with an intrinsic resist (e.g. THE_UNTOUCHED)
+  // get OVERWRITTEN here — the floor-level resist takes precedence so the
+  // post-game floors feel mechanically distinct from their F1-50 cousins.
+  if (opts.enemyResistOverride) {
+    for (const c of enemyCombatants) {
+      c.resist = { ...opts.enemyResistOverride };
+    }
+  }
 
   // Shop buff: Battle Cry — fill all alive player gauges. Applied AFTER
   // carryover so it overrides survival/boss-raid gauge inheritance.

@@ -255,7 +255,7 @@ export async function setIgnIfAllowed(address: string, ign: string): Promise<Ign
 // Real fast clears are allowed; pure spam (e.g. 50 floor pings in 1s) is rejected.
 export const MIN_AVG_FLOOR_MS = Number(process.env.LB_MIN_AVG_FLOOR_MS ?? 2000);
 // Cap submitted floor so a forged client can't claim absurd numbers.
-export const MAX_FLOOR = Number(process.env.LB_MAX_FLOOR ?? 50);
+export const MAX_FLOOR = Number(process.env.LB_MAX_FLOOR ?? 500);
 // Per-wallet rate-limit on /run/start.
 export const MAX_STARTS_PER_HOUR = Number(process.env.LB_MAX_STARTS_PER_HOUR ?? 30);
 
