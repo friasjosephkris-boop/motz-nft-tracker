@@ -143,6 +143,27 @@ export async function adminGrantEnergyToWallet(wallet: string, delta: number): P
   }
 }
 
+/** Admin: smoke-test the on-chain daily check-in. Fires `checkIn(wallet)`
+ *  on the Daily Check-In contract WITHOUT touching the in-game daily lock
+ *  or granting energy — purely to verify env-var wiring (contract addr /
+ *  chain id / relayer pk) end-to-end. */
+export async function adminTestOnChainCheckIn(wallet: string): Promise<{ ok: boolean; enabled?: boolean; txHash?: string; reason?: string; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_test_onchain_checkin", wallet }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; enabled?: boolean; txHash?: string; reason?: string; error?: string }));
+    if (!r.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: !!data.ok, enabled: data.enabled, txHash: data.txHash, reason: data.reason };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "network" };
+  }
+}
+
 /** Admin: close one-time offers on a target wallet by marking them as
  *  consumed. Use after a comp grant so the offer modal doesn't reappear. */
 export async function adminConsumeOneTimeOffers(wallet: string, offers: ("first_energy" | "floor20" | "both")[]): Promise<{ ok: boolean; closed?: string[]; error?: string }> {

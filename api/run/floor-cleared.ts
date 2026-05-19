@@ -586,6 +586,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  if (op === "admin_test_onchain_checkin") {
+    // Admin-only smoke test: fires `checkIn(target)` on the Daily Check-In
+    // contract WITHOUT touching the in-game daily lock or granting energy.
+    // Use this to verify the env-var wiring (contract addr / chain id /
+    // relayer pk / RPC) end-to-end without having to wait for UTC reset or
+    // burn a real daily slot. Returns the tx hash on success, the error
+    // string on failure — same shape as the in-line dailyCheckIn path.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
+      ? (req.body as { wallet: string }).wallet.trim() : "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+      res.status(400).json({ error: "wallet must be a 0x-prefixed 40-hex address" }); return;
+    }
+    try {
+      const { callOnChainCheckIn, isOnChainCheckInEnabled } = await import("../_lib/dailyCheckInOnChain.js");
+      if (!isOnChainCheckInEnabled()) {
+        res.status(200).json({ ok: false, enabled: false, reason: "DAILY_CHECKIN_* env vars not configured on this environment" });
+        return;
+      }
+      const { getAddress } = await import("viem");
+      const r = await callOnChainCheckIn(getAddress(target));
+      res.status(200).json({ ok: r.ok, enabled: true, txHash: r.txHash, reason: r.reason });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "admin_grant_energy_to") {
     // Variant of admin_grant_energy that targets a SPECIFIC wallet rather
     // than the admin's own. Use for comp grants (player paid for a bundle

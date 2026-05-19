@@ -3,7 +3,7 @@ import { addEnergy, getEnergy, ENERGY_MAX, msUntilNextRefill } from "../core/ene
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -144,6 +144,14 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
                 </div>
               </div>
             ` : ""}
+            <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="admin-info">⛓ <strong>Test On-Chain Daily Check-In</strong> — fires checkIn(wallet) on the Ronin contract WITHOUT touching the in-game daily lock. Use to verify env-var wiring (contract addr / chain id / relayer pk) without burning a real daily slot or waiting for UTC reset.</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <input type="text" id="admin-onchain-checkin-wallet" placeholder="0x..." style="font-family:monospace; padding:4px 8px; min-width:340px;" />
+                <button class="ghost-btn" id="admin-onchain-checkin-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;">⛓ Fire checkIn()</button>
+              </div>
+              <span class="setting-hint">Note: the contract rejects double-checkin in the same period — testing the same wallet twice in 24h will revert with "already checked in this period".</span>
+            </div>
             <div class="admin-row" style="margin-top: 8px; flex-direction: column; align-items: flex-start; gap: 6px;">
               <span class="admin-info" id="admin-season-status">Season state: loading…</span>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -423,6 +431,44 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       title: "Energy Granted",
       message: `Granted <strong>${delta >= 0 ? "+" : ""}${delta}</strong> energy to <strong style="font-family:monospace;">${wallet}</strong>.<br>New balance: <strong>${r.amount}</strong>.`,
     });
+  });
+
+  root.querySelector<HTMLButtonElement>("#admin-onchain-checkin-btn")?.addEventListener("click", async () => {
+    const input = root.querySelector<HTMLInputElement>("#admin-onchain-checkin-wallet");
+    const wallet = (input?.value ?? "").trim();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
+      await alertModal({ kind: "warning", title: "Invalid Wallet", message: "Paste a 0x-prefixed 40-hex address first." });
+      return;
+    }
+    const btn = root.querySelector<HTMLButtonElement>("#admin-onchain-checkin-btn");
+    if (btn) { btn.disabled = true; btn.textContent = "⛓ Firing… (~5s)"; }
+    try {
+      const r = await adminTestOnChainCheckIn(wallet);
+      if (r.error) {
+        await alertModal({ kind: "error", title: "Request Failed", message: `Server: ${r.error}` });
+        return;
+      }
+      if (r.enabled === false) {
+        await alertModal({
+          kind: "warning",
+          title: "On-Chain Not Configured",
+          message: "DAILY_CHECKIN_* env vars are missing on this environment. Set DAILY_CHECKIN_ENABLED, DAILY_CHECKIN_CONTRACT_ADDR, DAILY_CHECKIN_CHAIN_ID, DAILY_CHECKIN_RELAYER_PK in Vercel and redeploy.",
+        });
+        return;
+      }
+      if (!r.ok) {
+        await alertModal({ kind: "error", title: "On-Chain Tx Failed", message: `Reason: ${r.reason ?? "unknown"}${r.txHash ? `<br>txHash: <span style="font-family:monospace;">${r.txHash}</span>` : ""}` });
+        return;
+      }
+      const explorerUrl = r.txHash ? `https://app.roninchain.com/tx/${r.txHash}` : null;
+      await alertModal({
+        kind: "success",
+        title: "On-Chain checkIn() Succeeded",
+        message: `Fired <code>checkIn(${wallet})</code> on the Ronin contract.<br>txHash: <span style="font-family:monospace;">${r.txHash ?? "(missing)"}</span>${explorerUrl ? `<br><a href="${explorerUrl}" target="_blank" rel="noopener">View on Ronin Explorer ↗</a>` : ""}`,
+      });
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = "⛓ Fire checkIn()"; }
+    }
   });
 
   async function closeOffersFor(offers: ("first_energy" | "floor20" | "both")[]): Promise<void> {
