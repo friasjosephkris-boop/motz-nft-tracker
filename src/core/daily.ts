@@ -12,7 +12,11 @@ export interface DailyStatus {
 }
 export interface DailyClaimResult {
   ok: boolean;
-  reason?: "already_claimed";
+  reason?: "already_claimed" | "onchain_failed";
+  /** Detail string when reason === "onchain_failed" (RPC error, revert reason, etc.). */
+  onchainError?: string;
+  /** Transaction hash of the on-chain checkIn when the integration succeeded. */
+  txHash?: string;
   streak: number;
   reward: DailyReward;
   energy: number;
