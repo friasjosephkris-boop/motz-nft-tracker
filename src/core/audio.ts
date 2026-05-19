@@ -70,6 +70,74 @@ function chord(tones: Tone[]): void {
   for (const t of tones) blip(t);
 }
 
+// ---- Noise + filter helpers ----
+// Pure-oscillator chords sound "bubbly" because they're tonal blips. Real
+// elemental SFX need NOISE (random samples) shaped by a filter envelope:
+// crackling fire, hissing water, sharp lightning, airy wind. These two
+// helpers give us a noise generator and a one-shot biquad-filtered burst.
+
+let noiseBuffer: AudioBuffer | null = null;
+function getNoiseBuffer(a: AudioContext): AudioBuffer {
+  if (noiseBuffer && noiseBuffer.sampleRate === a.sampleRate) return noiseBuffer;
+  // 1 second of white noise — plenty for short bursts, looped if longer.
+  const buf = a.createBuffer(1, a.sampleRate, a.sampleRate);
+  const ch = buf.getChannelData(0);
+  for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+  noiseBuffer = buf;
+  return buf;
+}
+
+interface NoiseBurst {
+  /** Total duration in ms. */
+  durMs: number;
+  /** Peak gain (pre-volume-slider). 0..1 range, typical 0.05–0.20. */
+  gain?: number;
+  /** Filter type. "lowpass" = thump/rumble, "highpass" = hiss/sizzle,
+   *  "bandpass" = focused tone, "notch" = airy. */
+  filterType?: BiquadFilterType;
+  /** Filter cutoff start (Hz). */
+  freqStart: number;
+  /** Filter cutoff end (Hz) — linearly ramped over the duration. */
+  freqEnd?: number;
+  /** Filter Q — higher = more resonant/focused. Default 1. */
+  q?: number;
+  /** Gain envelope shape. "instant" = full peak immediately (sharp attack
+   *  for impacts/lightning), "swell" = ramps in over 30% of dur (whoosh).
+   *  Default "instant". */
+  attack?: "instant" | "swell";
+}
+
+function noise(b: NoiseBurst): void {
+  if (!sfxAllowed()) return;
+  const a = ac();
+  if (!a) return;
+  const dur = b.durMs / 1000;
+  const src = a.createBufferSource();
+  src.buffer = getNoiseBuffer(a);
+  src.loop = true;
+  const filter = a.createBiquadFilter();
+  filter.type = b.filterType ?? "lowpass";
+  filter.Q.setValueAtTime(b.q ?? 1, a.currentTime);
+  filter.frequency.setValueAtTime(b.freqStart, a.currentTime);
+  if (b.freqEnd !== undefined) {
+    filter.frequency.linearRampToValueAtTime(b.freqEnd, a.currentTime + dur);
+  }
+  const g = a.createGain();
+  const peak = (b.gain ?? 0.08) * readSfxVolume();
+  if (b.attack === "swell") {
+    g.gain.setValueAtTime(0, a.currentTime);
+    g.gain.linearRampToValueAtTime(peak, a.currentTime + dur * 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+  } else {
+    g.gain.setValueAtTime(0, a.currentTime);
+    g.gain.linearRampToValueAtTime(peak, a.currentTime + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+  }
+  src.connect(filter).connect(g).connect(a.destination);
+  src.start();
+  src.stop(a.currentTime + dur + 0.02);
+}
+
 // ---- File-based samples (small set) ----
 const SAMPLE_SRC: Record<string, string> = {
   crit: "/sfx/crit.wav",
@@ -139,67 +207,81 @@ export const sfx = {
   idle: () => blip({ freq: 440, type: "sine", durMs: 50, gain: 0.04 }),
 
   // ---- Themed skill-cast SFX ----
-  // Each one is a short synth chord designed to read as the theme without
-  // requiring a sound file. Routed by playSkillCastSfx() below based on
-  // keywords in the skill name.
-  spellFire: () => chord([
-    { freq: 220, endFreq: 110, type: "sawtooth", durMs: 220, gain: 0.10 },
-    { freq: 880, endFreq: 440, type: "triangle", durMs: 180, gain: 0.06 },
-  ]),
-  spellIce: () => chord([
-    { freq: 1760, endFreq: 1320, type: "sine", durMs: 220, gain: 0.06 },
-    { freq: 2200, endFreq: 1760, type: "sine", durMs: 200, gain: 0.04 },
-    { freq: 660, type: "triangle", durMs: 160, gain: 0.05 },
-  ]),
-  spellWater: () => chord([
-    { freq: 440, endFreq: 220, type: "sine", durMs: 280, gain: 0.08 },
-    { freq: 660, endFreq: 330, type: "sine", durMs: 280, gain: 0.05 },
-  ]),
-  spellLightning: () => chord([
-    { freq: 2400, type: "square", durMs: 40, gain: 0.10 },
-    { freq: 1200, endFreq: 220, type: "sawtooth", durMs: 200, gain: 0.09 },
-  ]),
+  // Built from filtered noise + targeted tones so each theme has natural
+  // texture (crackle, splash, hiss, zap) instead of pure synth blips.
+
+  // Fire: noise whoosh, lowpass sweeping down — sounds like a flame burst.
+  spellFire: () => {
+    noise({ durMs: 280, freqStart: 2400, freqEnd: 400, filterType: "lowpass", q: 1.2, gain: 0.14, attack: "swell" });
+    blip({ freq: 110, endFreq: 55, type: "sawtooth", durMs: 200, gain: 0.05 });
+  },
+  // Ice: bandpass-filtered noise (cold hiss) + bell-like high tone shimmer.
+  spellIce: () => {
+    noise({ durMs: 320, freqStart: 8000, freqEnd: 4000, filterType: "highpass", q: 0.5, gain: 0.08 });
+    blip({ freq: 2200, type: "sine", durMs: 280, gain: 0.06 });
+    blip({ freq: 3300, type: "sine", durMs: 220, gain: 0.04 });
+  },
+  // Water: lowpass noise gurgle + descending tone (splash).
+  spellWater: () => {
+    noise({ durMs: 360, freqStart: 1800, freqEnd: 300, filterType: "lowpass", q: 2, gain: 0.12, attack: "swell" });
+    blip({ freq: 660, endFreq: 220, type: "sine", durMs: 280, gain: 0.04 });
+  },
+  // Lightning: instant noise crack + sharp transient + decaying buzz.
+  spellLightning: () => {
+    noise({ durMs: 60, freqStart: 6000, filterType: "highpass", q: 1, gain: 0.18 });
+    blip({ freq: 2400, type: "square", durMs: 30, gain: 0.10 });
+    blip({ freq: 1200, endFreq: 110, type: "sawtooth", durMs: 220, gain: 0.06 });
+  },
+  // Holy: layered choir-like rising sines (no noise — clean and ethereal).
   spellHoly: () => chord([
-    { freq: 880, endFreq: 1760, type: "sine", durMs: 320, gain: 0.07 },
-    { freq: 1320, endFreq: 2640, type: "sine", durMs: 320, gain: 0.05 },
-    { freq: 660, endFreq: 1320, type: "triangle", durMs: 280, gain: 0.04 },
+    { freq: 523, endFreq: 1047, type: "sine", durMs: 420, gain: 0.07 },   // C5 → C6
+    { freq: 659, endFreq: 1319, type: "sine", durMs: 420, gain: 0.05 },   // E5 → E6
+    { freq: 784, endFreq: 1568, type: "sine", durMs: 420, gain: 0.04 },   // G5 → G6
   ]),
-  spellDark: () => chord([
-    { freq: 110, endFreq: 55, type: "sawtooth", durMs: 360, gain: 0.10 },
-    { freq: 220, endFreq: 110, type: "triangle", durMs: 320, gain: 0.06 },
-  ]),
-  spellWind: () => chord([
-    { freq: 1320, endFreq: 2200, type: "triangle", durMs: 220, gain: 0.06 },
-    { freq: 1760, endFreq: 2640, type: "triangle", durMs: 200, gain: 0.04 },
-  ]),
-  spellSlash: () => chord([
-    { freq: 1760, endFreq: 880, type: "square", durMs: 90, gain: 0.10 },
-    { freq: 880, endFreq: 440, type: "sawtooth", durMs: 60, gain: 0.06 },
-  ]),
-  spellImpact: () => chord([
-    { freq: 165, endFreq: 55, type: "sawtooth", durMs: 240, gain: 0.12 },
-    { freq: 330, endFreq: 165, type: "square", durMs: 120, gain: 0.06 },
-  ]),
-  spellArrow: () => chord([
-    { freq: 1320, endFreq: 2640, type: "triangle", durMs: 80, gain: 0.07 },
-    { freq: 660, endFreq: 1320, type: "sine", durMs: 70, gain: 0.04 },
-  ]),
-  spellShadow: () => chord([
-    { freq: 165, endFreq: 110, type: "triangle", durMs: 280, gain: 0.07 },
-    { freq: 330, endFreq: 220, type: "sine", durMs: 320, gain: 0.05 },
-  ]),
+  // Shadow: lowpass rumble + dissonant low tone.
+  spellDark: () => {
+    noise({ durMs: 420, freqStart: 200, freqEnd: 80, filterType: "lowpass", q: 3, gain: 0.13, attack: "swell" });
+    blip({ freq: 73, type: "sawtooth", durMs: 380, gain: 0.06 });   // very low D
+    blip({ freq: 98, type: "triangle", durMs: 320, gain: 0.04 });   // G slightly above (dissonant)
+  },
+  // Wind: bandpass noise sweep upward — airy and moving.
+  spellWind: () => {
+    noise({ durMs: 320, freqStart: 800, freqEnd: 3200, filterType: "bandpass", q: 2, gain: 0.10, attack: "swell" });
+  },
+  // Slash: very short noise transient + descending blade tone.
+  spellSlash: () => {
+    noise({ durMs: 80, freqStart: 4000, freqEnd: 1500, filterType: "bandpass", q: 3, gain: 0.14 });
+    blip({ freq: 1760, endFreq: 440, type: "sawtooth", durMs: 90, gain: 0.07 });
+  },
+  // Impact: sub-bass thump + lowpass noise crunch (kick-drum-ish).
+  spellImpact: () => {
+    blip({ freq: 90, endFreq: 30, type: "sine", durMs: 220, gain: 0.18 });
+    noise({ durMs: 120, freqStart: 800, freqEnd: 200, filterType: "lowpass", q: 1, gain: 0.10 });
+  },
+  // Arrow: short noise whistle ascending + tight tone.
+  spellArrow: () => {
+    noise({ durMs: 110, freqStart: 1200, freqEnd: 4000, filterType: "bandpass", q: 4, gain: 0.10 });
+    blip({ freq: 1320, endFreq: 2640, type: "triangle", durMs: 90, gain: 0.05 });
+  },
+  // Shadow magic: same as spellDark (alias kept in case we want differentiation later).
+  spellShadow: () => sfx.spellDark(),
+  // Heal: chime triad — major bell-like ring (no noise, all cleanly tonal).
   spellHeal: () => chord([
-    { freq: 880, endFreq: 1760, type: "sine", durMs: 280, gain: 0.07 },
-    { freq: 1320, endFreq: 1980, type: "sine", durMs: 280, gain: 0.05 },
+    { freq: 880, type: "sine", durMs: 360, gain: 0.07 },         // A5
+    { freq: 1109, type: "sine", durMs: 340, gain: 0.05 },        // C#6
+    { freq: 1319, type: "sine", durMs: 320, gain: 0.04 },        // E6
   ]),
+  // Buff: rising triangle arpeggio — clean and uplifting.
   spellBuff: () => chord([
-    { freq: 660, endFreq: 990, type: "triangle", durMs: 240, gain: 0.06 },
-    { freq: 990, endFreq: 1320, type: "sine", durMs: 240, gain: 0.04 },
+    { freq: 523, type: "triangle", durMs: 180, gain: 0.06 },     // C5
+    { freq: 659, type: "triangle", durMs: 220, gain: 0.05 },     // E5
+    { freq: 784, type: "triangle", durMs: 280, gain: 0.04 },     // G5
   ]),
-  spellSummon: () => chord([
-    { freq: 220, endFreq: 880, type: "square", durMs: 280, gain: 0.07 },
-    { freq: 440, type: "triangle", durMs: 240, gain: 0.05 },
-  ]),
+  // Summon: deep build-up with rising harmonic.
+  spellSummon: () => {
+    noise({ durMs: 420, freqStart: 100, freqEnd: 600, filterType: "lowpass", q: 2, gain: 0.10, attack: "swell" });
+    blip({ freq: 110, endFreq: 440, type: "square", durMs: 360, gain: 0.06 });
+  },
   spellGeneric: () => chord([
     { freq: 660, endFreq: 880, type: "triangle", durMs: 140, gain: 0.06 },
   ]),
