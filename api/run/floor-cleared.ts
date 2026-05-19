@@ -4,7 +4,7 @@ import {
   bumpXpCap, XP_CAP_PER_FLOOR, submitWorldEnderClear,
   bumpFloorRetry, readFloorRetries, FLOOR_RETRIES_PER_DAY,
   adminClearAllLeaderboards, adminClearLeaderboard, AdminResetScope,
-  recordFloorModeClear,
+  recordFloorModeClear, getMaxFloorCleared,
   saveReplayBlob, loadReplayBlob,
   adminWipeDevData, adminWipeAllData,
   readAttempts, bumpAttempts, attemptsCap,
@@ -254,8 +254,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   //                 localStorage and unwind any tampering.
   if (op === "progress_get") {
     try {
-      const blob = await readServerProgress(address);
-      res.status(200).json({ ok: true, canonical: blob });
+      // Also return the canonical maxFloor so the client can reconcile its
+      // localStorage stage-unlock cache. Without this, a post-wipe player
+      // still sees every campaign stage unlocked because the unlock state
+      // lives in localStorage and the wipe only nukes the server side.
+      const [blob, maxFloor] = await Promise.all([
+        readServerProgress(address),
+        getMaxFloorCleared(address).catch(() => 0),
+      ]);
+      res.status(200).json({ ok: true, canonical: blob, maxFloor });
       return;
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : "server error" });

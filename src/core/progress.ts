@@ -260,6 +260,10 @@ import { loadSession } from "../auth/session";
 interface ProgressSyncResponse {
   ok: boolean;
   canonical: { units: Record<string, UnitProgress> };
+  /** Optional on progress_get: server-canonical highest stage cleared. The
+   *  client uses this to reconcile localStorage stage-unlock state after a
+   *  wipe. Older server builds omit this field. */
+  maxFloor?: number;
   reason?: string;
 }
 
@@ -284,6 +288,15 @@ export async function pullCanonicalProgress(): Promise<{ ok: boolean; reason?: s
       // players' stale localStorage would survive a server wipe forever.
       // The server is authoritative; if it says empty, we go empty.
       saveAll(data.canonical.units);
+    }
+    // Reconcile stage-unlock cache. The unlock list is keyed off the max
+    // stage cleared, which lives in localStorage. Post-wipe the server says
+    // 0 but localStorage still shows e.g. 50, so every stage stays unlocked
+    // until we explicitly overwrite. typeof check keeps us compatible with
+    // older server builds that don't return maxFloor.
+    if (typeof data.maxFloor === "number") {
+      const { setMaxClearedFromServer } = await import("./clears");
+      setMaxClearedFromServer(data.maxFloor);
     }
     return { ok: true };
   } catch { return null; }
