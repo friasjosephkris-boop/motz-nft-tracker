@@ -2,7 +2,7 @@ import { PLAYER_ROSTER, unitBaseAtLevel } from "../units/roster";
 import { UnitTemplate } from "../units/types";
 import { Stats, ZERO_STATS, sumStats, deriveStats, STAT_KEYS, StatKey } from "../core/stats";
 import { classBaseAtLevel, getClass, CLASSES } from "../units/classes";
-import { loadSettings } from "./settings";
+import { topBarHtml, loadSettings } from "./settings";
 import { hexStatSvg, hexLegendHtml } from "./hexStat";
 import { getProgress, setProgress, UnitProgress, MAX_EQUIPPED_SKILLS, autoEquipNewlyUnlocked, rebuildLoadoutToStrongest } from "../core/progress";
 import { xpToNext, MAX_LEVEL } from "../core/levels";
@@ -50,19 +50,6 @@ export interface RenderUnitsScreenOpts {
   /** Optional banner shown above the roster grid — used by forced flows to
    *  tell the player exactly what they need to do. */
   topBanner?: string;
-}
-
-/** Units-screen header. Replaces the plain text top-bar with the "UNITS"
- *  title-banner artwork (public/for unit box.png) — the art already contains
- *  the word "UNITS", so no text is rendered. The Back button is overlaid in
- *  the top-left corner; it keeps id="back-btn" so the existing click wiring
- *  in renderUnitsScreen still finds it. */
-function unitsBannerHtml(backVisible: boolean): string {
-  return `
-    <div class="units-banner">
-      ${backVisible ? `<button class="back-btn units-banner-back" id="back-btn" type="button">← Back</button>` : ""}
-    </div>
-  `;
 }
 
 export function renderUnitsScreen(root: HTMLElement, onBack: () => void, opts: RenderUnitsScreenOpts = {}): void {
@@ -126,7 +113,7 @@ export function renderUnitsScreen(root: HTMLElement, onBack: () => void, opts: R
     root.innerHTML = `
       <div class="screen-frame units-screen ${forceClasses}">
         <div class="units-sticky-header">
-          ${unitsBannerHtml(backVisible)}
+          ${topBarHtml("Units", backVisible)}
           ${bannerHtml}
           ${hexLegendHtml()}
         </div>
