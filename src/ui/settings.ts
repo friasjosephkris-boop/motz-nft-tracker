@@ -7,6 +7,7 @@ import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, ad
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
+import { showPrivacyModal } from "./privacy";
 import { clearSession } from "../auth/session";
 import { getSfxVolume, setSfxVolume, sfx } from "../core/audio";
 import { getBgmVolume, setBgmVolume } from "../core/bgm";
@@ -105,6 +106,17 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
           </div>
         </div>
 
+        <div class="setting-row">
+          <span class="setting-label">Privacy &amp; Data</span>
+          <div class="wallet-actions">
+            <button class="ghost-btn" id="setting-privacy" type="button">View Privacy Notice</button>
+          </div>
+          <span class="setting-hint">
+            What the game stores and why. Gauntlet Tower uses <strong>no cookies</strong>
+            and <strong>no third-party tracking</strong>.
+          </span>
+        </div>
+
         ${isAdmin() ? `
           <div class="setting-row">
             <span class="setting-label">Admin</span>
@@ -173,6 +185,10 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
   `;
 
   root.querySelector("#back-btn")?.addEventListener("click", onClose);
+
+  root.querySelector<HTMLButtonElement>("#setting-privacy")?.addEventListener("click", () => {
+    showPrivacyModal();
+  });
 
   // Volume sliders — apply live (no need to hit Save) so the user hears the
   // change immediately. Persistence is in their own localStorage keys
