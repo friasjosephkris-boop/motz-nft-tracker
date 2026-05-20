@@ -31,6 +31,19 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
           <line x1="6" y1="13" x2="26" y2="13" stroke="#3a200d" stroke-width="0.8" opacity="0.55"/>
         </svg>
       </button>
+      <button class="gear-btn referral-btn" id="open-referral" type="button" title="Refer a Friend" aria-label="Refer a Friend">
+        <svg class="referral-icon-svg" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+          <!-- Two people hugging — left figure (amber), right figure (gold) -->
+          <circle cx="11.5" cy="9" r="4.4" fill="#e98a3c"/>
+          <path d="M3 27 Q3.5 15.5 12 15.5 Q16.5 15.5 17 21 L17 27 Z" fill="#e98a3c"/>
+          <circle cx="20.5" cy="9" r="4.4" fill="#f4d35e"/>
+          <path d="M29 27 Q28.5 15.5 20 15.5 Q15.5 15.5 15 21 L15 27 Z" fill="#f4d35e"/>
+          <!-- Embracing arms — each wraps over the other's shoulder -->
+          <path d="M7.5 16 Q16 12.5 24.5 16.5" stroke="#f4d35e" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+          <path d="M7.5 19.5 Q16 24 24.5 19" stroke="#e98a3c" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        </svg>
+        <span class="home-tile-badge" id="referral-badge" hidden></span>
+      </button>
       <div class="energy-pill" title="Energy">
         <span class="energy-icon">⚡</span>
         <span>${energy} / ${ENERGY_MAX}</span>
@@ -55,10 +68,6 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
         <button class="home-tile" data-action="leaderboard" type="button">
           <div class="tile-title">Leaderboard</div>
         </button>
-        <button class="home-tile" data-action="referral" type="button">
-          <div class="tile-title">Refer a Friend</div>
-          <span class="home-tile-badge" id="referral-badge" hidden></span>
-        </button>
       </div>
     </div>
   `;
@@ -67,6 +76,7 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
   root.querySelector("#open-tutorial")?.addEventListener("click", () => onAction("tutorial"));
   root.querySelector("#open-codex")?.addEventListener("click", () => onAction("codex"));
   root.querySelector("#open-inventory")?.addEventListener("click", () => onAction("inventory"));
+  root.querySelector("#open-referral")?.addEventListener("click", () => onAction("referral"));
   // Run-start gate: if season is halted, the "Ascend!" tile shows an alert
   // explaining the pause instead of navigating into the tower. The actual
   // server enforcement still runs — this is just a faster UX path so the

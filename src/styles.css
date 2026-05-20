@@ -3888,13 +3888,16 @@ body:has(.battle) {
   gap: 8px;
 }
 
-/* "Created by MoTZ" credit box — sits directly above the wallet pill and
-   links to the MoTZ Discord. Styled to match the wallet card. */
+/* "Created by" + MoTZ wordmark credit box — sits directly above the wallet
+   pill and links to the MoTZ Discord. Styled to match the wallet card. The
+   wordmark is white-on-pink art built for dark surfaces, so it reads cleanly
+   on the box's near-black background. */
 .motz-credit {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 9px;
-  padding: 7px 12px 7px 9px;
+  gap: 3px;
+  padding: 8px 18px 9px;
   border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 50%),
@@ -3910,26 +3913,23 @@ body:has(.battle) {
   border-color: rgba(244, 211, 94, 0.6);
   transform: translateY(-1px);
 }
-.motz-credit-logo {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  object-fit: contain;
-  flex-shrink: 0;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-}
-.motz-credit-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
 .motz-credit-by {
   font-family: "Cinzel", "Times New Roman", serif;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  color: var(--gold-bright);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--motz-text-muted);
   text-transform: uppercase;
+}
+.motz-credit-logo {
+  height: 26px;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
 }
 .motz-credit-link {
   font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text);
   letter-spacing: 0.04em;
 }
@@ -5533,6 +5533,16 @@ body:has(.battle) {
 /* ---------- Codex (Game Info) ---------- */
 .codex-btn { right: 128px; }  /* sits left of the ? tutorial button, equal 12px gap */
 .inventory-btn { right: 192px; }  /* sits left of the codex button, same 12px spacing */
+.referral-btn { right: 256px; }  /* sits left of the inventory button, same 12px spacing */
+/* The hug icon shouldn't rotate on press like the gear does — scale instead. */
+.referral-btn:active { transform: scale(0.95); }
+.referral-btn .referral-icon-svg {
+  width: 30px;
+  height: 30px;
+  display: block;
+  margin: auto;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55));
+}
 .inventory-btn .inv-icon-svg {
   width: 30px;
   height: 30px;
