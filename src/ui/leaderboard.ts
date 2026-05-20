@@ -280,8 +280,10 @@ interface FillOpts {
 function fillRows(elId: string, entries: LbEntry[], myAddr: string | null, opts: FillOpts): void {
   const el = document.getElementById(elId);
   if (!el) return;
-  // Pad to 10 rows so empty slots still display rank + RON reward (top 5).
-  const SLOT_COUNT = 10;
+  // Show top 7 only. With the stacked 2-line row layout, 7 rows fit the
+  // 4-across board height without a scrollbar; ranks 6-7 render as empty
+  // slots (no prize — prizes stop at rank 5).
+  const SLOT_COUNT = 7;
   const display: (LbEntry | null)[] = [];
   for (let i = 0; i < SLOT_COUNT; i++) {
     display.push(entries[i] ?? null);
