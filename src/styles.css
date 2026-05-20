@@ -1756,6 +1756,11 @@ body:has(.battle) {
   box-shadow: 0 0 10px rgba(255, 80, 80, 0.6);
   animation: home-badge-pulse 1.8s ease-in-out infinite;
 }
+/* The badge is toggled via the `hidden` attribute (see home.ts). The rule
+   above sets display:flex unconditionally, and author CSS beats the UA
+   [hidden]{display:none} — so without this the badge showed permanently
+   (an empty red dot) even with nothing to claim. */
+.home-tile-badge[hidden] { display: none; }
 @keyframes home-badge-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.12); }
