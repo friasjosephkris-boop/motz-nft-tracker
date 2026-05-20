@@ -1780,6 +1780,68 @@ body:has(.battle) {
 }
 .tile-sub { font-size: 11px; opacity: 0.7; letter-spacing: 0.08em; }
 
+/* Home tiles — MoTZ treatment for Shop + Leaderboard (per design drafts). */
+
+/* Leaderboard tile: trophy mark + red→purple gradient wordmark. */
+.tile-leaderboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.tile-lb-trophy {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  color: var(--motz-red);
+  filter: drop-shadow(0 0 8px rgba(255, 42, 85, 0.45));
+}
+.tile-leaderboard .tile-title {
+  margin-bottom: 0;
+  font-family: var(--motz-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--motz-grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Shop tile: illustrated apothecary scene + gold-glow wordmark. The SVG
+   scene and scrim absolutely fill the tile; the wordmark sits above. */
+.tile-shop {
+  position: relative;
+  overflow: hidden;
+}
+.tile-shop-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.tile-shop-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 52% 92% at 50% 50%, rgba(15, 5, 24, 0.86), rgba(15, 5, 24, 0.10) 78%),
+    linear-gradient(180deg, rgba(15, 5, 24, 0.40), rgba(15, 5, 24, 0.55));
+}
+.tile-shop .tile-title {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 0;
+  font-family: var(--motz-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--motz-gold);
+  text-shadow:
+    0 0 20px rgba(251, 191, 36, 0.6),
+    0 0 44px rgba(251, 191, 36, 0.3),
+    0 2px 0 rgba(120, 60, 0, 0.55);
+}
+
 /* ---------- Top bar ---------- */
 .screen-frame { display: flex; flex-direction: column; gap: 18px; }
 .top-bar {
