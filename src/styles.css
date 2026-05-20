@@ -5757,6 +5757,61 @@ body:has(.battle) {
 
 /* ===================== Shop screen (MoTZ design) ===================== */
 .shop-screen { padding: 16px; max-width: 1100px; margin: 0 auto; }
+
+/* Shop header — MoTZ illustrated banner (Apothecary scene). Full-width SVG
+   shop interior + gold-glow SHOP wordmark; the scrim carries the text. */
+.shop-banner {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 10px 34px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.shop-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.shop-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 46% 80% at 50% 52%, rgba(15,5,24,0.82), rgba(15,5,24,0) 75%),
+    linear-gradient(180deg, rgba(15,5,24,0.35), rgba(15,5,24,0.10) 35%, rgba(15,5,24,0.55));
+}
+.shop-wordmark {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--motz-font-display);
+  font-weight: 700;
+  font-size: 52px;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--motz-gold);
+  text-shadow:
+    0 0 24px rgba(251,191,36,0.6),
+    0 0 50px rgba(251,191,36,0.3),
+    0 2px 0 rgba(120,60,0,0.5);
+  pointer-events: none;
+}
+.shop-back-btn {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+}
 .shop-header { text-align: center; margin: 18px 0 22px; }
 .shop-title {
   font-family: "Cinzel", "Times New Roman", serif;
