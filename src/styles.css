@@ -1720,7 +1720,7 @@ body:has(.battle) {
 }
 /* Per-unit hover aura — a colored glow that hugs the silhouette shape.
    drop-shadow follows the PNG's alpha outline (unlike a boxy box-shadow). */
-.home-decor-silhouette[data-unit="aspen"]:hover   { filter: drop-shadow(0 0 2px rgba(0, 0, 0, 1)) drop-shadow(0 0 5px rgba(0, 0, 0, 1)) drop-shadow(0 0 11px rgba(0, 0, 0, 0.92)); }
+.home-decor-silhouette[data-unit="aspen"]:hover   { filter: drop-shadow(0 0 6px rgba(190, 190, 196, 0.95)) drop-shadow(0 0 18px rgba(190, 190, 196, 0.65)); }
 .home-decor-silhouette[data-unit="ego"]:hover     { filter: drop-shadow(0 0 6px rgba(255, 42, 85, 0.95))   drop-shadow(0 0 18px rgba(255, 42, 85, 0.70)); }
 .home-decor-silhouette[data-unit="gruyere"]:hover { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.95))  drop-shadow(0 0 18px rgba(168, 85, 247, 0.70)); }
 .home-decor-silhouette[data-unit="hera"]:hover    { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 18px rgba(255, 255, 255, 0.70)); }
