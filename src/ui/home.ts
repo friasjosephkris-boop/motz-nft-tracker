@@ -161,6 +161,7 @@ function mountHomeDecor(root: HTMLElement): void {
   DECOR_SILHOUETTES.forEach((name, i) => {
     const img = document.createElement("img");
     img.className = "home-decor-silhouette";
+    img.dataset.unit = name; // drives the per-unit hover aura colour in CSS
     img.src = `/units/${name}-silhouette.png`;
     img.alt = "";
     img.draggable = false;
