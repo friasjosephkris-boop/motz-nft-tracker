@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop Box — MoTZ Background Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --motz-red:        #FF2A55;
+    --motz-red-deep:   #D91A45;
+    --winner-gold:     #FBBF24;
+    --winner-gold-deep:#F59E0B;
+    --electric-purple: #7000FF;
+    --void-black:      #0F0518;
+    --text-primary: #F5F5F4;
+    --text-muted:   #A8A29E;
+    --text-dim:     #78716C;
+    --font-display: 'Fredoka', system-ui, sans-serif;
+    --font-body:    'Inter', system-ui, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+    --ease-out: cubic-bezier(.2,.7,.2,1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    background:
+      radial-gradient(ellipse 720px 460px at 16% 8%,  rgba(255,42,85,0.16),  transparent 60%),
+      radial-gradient(ellipse 760px 520px at 88% 92%, rgba(112,0,255,0.14),  transparent 60%),
+      linear-gradient(180deg, #0a0314 0%, var(--void-black) 55%, #050108 100%);
+    background-attachment: fixed;
+    padding: 64px 32px 96px;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .page { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; }
+  .doc-head { text-align: center; margin-bottom: 14px; }
+  .doc-kicker {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-dim);
+  }
+  .doc-title { font-family: var(--font-display); font-weight: 600; font-size: 24px; margin: 8px 0 4px; }
+  .doc-note  { color: var(--text-muted); font-size: 14px; }
+
+  .variant { margin-top: 56px; }
+  .variant-label {
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-dim);
+    margin-bottom: 22px;
+  }
+  .variant-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.10), transparent); }
+  .variant-label .tag {
+    color: var(--winner-gold); font-family: var(--font-display);
+    letter-spacing: 0; text-transform: none; font-size: 13px;
+  }
+  .caption { color: var(--text-dim); font-size: 13px; margin-top: 16px; text-align: center; }
+  .caption b { color: var(--text-muted); font-weight: 600; }
+
+  /* ── Shared banner shell ───────────────────────────────────── */
+  .shop-banner {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 10px 34px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: transform .24s var(--ease-out), box-shadow .24s var(--ease-out), border-color .24s var(--ease-out);
+  }
+  .shop-banner svg.scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  /* legibility scrim — darkest in the centre behind the wordmark */
+  .shop-banner .scrim {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 46% 80% at 50% 52%, rgba(15,5,24,0.82), rgba(15,5,24,0.0) 75%),
+      linear-gradient(180deg, rgba(15,5,24,0.35), rgba(15,5,24,0.10) 35%, rgba(15,5,24,0.55));
+  }
+  .shop-banner .plate {
+    position: absolute; inset: 0; z-index: 2;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* hover: gentle lift + warm glow */
+  .shop-banner:hover {
+    transform: translateY(-3px);
+    border-color: rgba(251,191,36,0.40);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.55), 0 0 34px rgba(251,191,36,0.16), inset 0 1px 0 rgba(255,255,255,0.07);
+  }
+
+  /* ── Wordmark treatments ───────────────────────────────────── */
+  .wm {
+    margin: 0;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 52px; line-height: 1; letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  /* A · red→purple gradient on a glass plate */
+  .wm-gradient {
+    background: linear-gradient(135deg, #FF2A55 0%, #7000FF 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .glass-plate {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 16px 48px; border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 8px 26px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  /* B · gold glow, no plate */
+  .wm-gold {
+    color: var(--winner-gold);
+    text-shadow: 0 0 24px rgba(251,191,36,0.6), 0 0 50px rgba(251,191,36,0.3), 0 2px 0 rgba(120,60,0,0.5);
+  }
+  /* C · gold on a wood-tinted gold-stroke plate */
+  .wood-plate {
+    display: inline-flex; align-items: center; gap: 14px;
+    padding: 14px 46px; border-radius: 14px;
+    background: linear-gradient(180deg, rgba(60,32,12,0.78), rgba(28,14,6,0.82));
+    border: 2px solid rgba(251,191,36,0.55);
+    box-shadow: 0 8px 26px rgba(0,0,0,0.5), 0 0 22px rgba(251,191,36,0.18), inset 0 1px 0 rgba(255,255,255,0.10);
+  }
+  .wm-gold-flat {
+    color: var(--winner-gold);
+    text-shadow: 0 0 18px rgba(251,191,36,0.45), 0 2px 0 rgba(0,0,0,0.5);
+  }
+  .coin-ico { width: 30px; height: 30px; flex-shrink: 0; filter: drop-shadow(0 0 8px rgba(251,191,36,0.5)); }
+
+  .tokens {
+    margin-top: 64px; padding-top: 28px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex; flex-wrap: wrap; gap: 10px 18px; justify-content: center;
+  }
+  .tok { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+  .sw { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="doc-head">
+    <div class="doc-kicker">MoTZ Design System · Draft</div>
+    <div class="doc-title">Shop Box — Physical-Shop Background Options</div>
+    <div class="doc-note">Three illustrated shop scenes behind the SHOP wordmark. All vector (SVG) — no image assets. Pick a scene + a wordmark treatment.</div>
+  </div>
+
+  <!-- ============================================================
+       OPTION 1 — MERCHANT STOREFRONT (exterior)
+       ============================================================ -->
+  <section class="variant">
+    <div class="variant-label">Option 1 <span class="tag">Merchant Storefront — exterior, striped awning</span></div>
+    <div class="shop-banner">
+      <svg class="scene" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <radialGradient id="s1-win" cx="50%" cy="42%" r="65%">
+            <stop offset="0%" stop-color="#FFE9A8"/>
+            <stop offset="55%" stop-color="#F0A93C"/>
+            <stop offset="100%" stop-color="#6E3A12"/>
+          </radialGradient>
+          <radialGradient id="s1-lant" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFE9A8"/>
+            <stop offset="100%" stop-color="#C9761B"/>
+          </radialGradient>
+          <pattern id="s1-stripe" width="56" height="48" patternUnits="userSpaceOnUse">
+            <rect width="28" height="48" fill="#FF2A55"/>
+            <rect x="28" width="28" height="48" fill="#F4E6C8"/>
+          </pattern>
+          <linearGradient id="s1-sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a0c2e"/>
+            <stop offset="100%" stop-color="#0d0618"/>
+          </linearGradient>
+        </defs>
+        <rect width="960" height="200" fill="url(#s1-sky)"/>
+        <!-- moon + stars -->
+        <circle cx="850" cy="40" r="20" fill="#3a2a55"/>
+        <circle cx="843" cy="34" r="20" fill="#1a0c2e"/>
+        <g fill="#6b5a8a"><circle cx="120" cy="34" r="1.6"/><circle cx="240" cy="22" r="1.3"/><circle cx="520" cy="28" r="1.5"/><circle cx="690" cy="44" r="1.2"/><circle cx="60" cy="60" r="1.3"/><circle cx="930" cy="92" r="1.4"/></g>
+        <!-- ground -->
+        <rect x="0" y="168" width="960" height="32" fill="#0a0414"/>
+        <rect x="0" y="168" width="960" height="3" fill="#2a1a40"/>
+        <!-- building facade -->
+        <rect x="64" y="58" width="832" height="112" fill="#241634"/>
+        <g stroke="rgba(255,255,255,0.05)" stroke-width="2">
+          <line x1="64" y1="92" x2="896" y2="92"/><line x1="64" y1="126" x2="896" y2="126"/>
+          <line x1="220" y1="58" x2="220" y2="92"/><line x1="430" y1="92" x2="430" y2="126"/><line x1="640" y1="58" x2="640" y2="92"/>
+        </g>
+        <!-- roof -->
+        <polygon points="40,62 480,18 920,62" fill="#39214f"/>
+        <polygon points="40,62 480,18 920,62 920,70 480,28 40,70" fill="#1f1230"/>
+        <!-- eave string-lights -->
+        <g><circle cx="160" cy="56" r="3.4" fill="#FBBF24"/><circle cx="300" cy="42" r="3.4" fill="#FF6B8A"/><circle cx="440" cy="29" r="3.4" fill="#FBBF24"/><circle cx="560" cy="33" r="3.4" fill="#9A6BFF"/><circle cx="700" cy="46" r="3.4" fill="#FBBF24"/><circle cx="820" cy="58" r="3.4" fill="#FF6B8A"/></g>
+        <!-- left arched window -->
+        <g>
+          <rect x="120" y="100" width="116" height="62" fill="url(#s1-win)"/>
+          <path d="M120 100 a58 40 0 0 1 116 0 Z" fill="url(#s1-win)"/>
+          <rect x="116" y="158" width="124" height="8" fill="#3a2412"/>
+          <g fill="#2a1708"><rect x="138" y="120" width="14" height="42" rx="3"/><rect x="160" y="132" width="16" height="30" rx="3"/><rect x="186" y="116" width="12" height="46" rx="3"/><circle cx="212" cy="146" r="9"/></g>
+          <g stroke="#4a2e14" stroke-width="3"><line x1="178" y1="78" x2="178" y2="160"/><line x1="122" y1="120" x2="234" y2="120"/></g>
+        </g>
+        <!-- right arched window -->
+        <g>
+          <rect x="724" y="100" width="116" height="62" fill="url(#s1-win)"/>
+          <path d="M724 100 a58 40 0 0 1 116 0 Z" fill="url(#s1-win)"/>
+          <rect x="720" y="158" width="124" height="8" fill="#3a2412"/>
+          <g fill="#2a1708"><rect x="742" y="124" width="13" height="38" rx="3"/><circle cx="772" cy="140" r="10"/><rect x="792" y="118" width="14" height="44" rx="3"/><rect x="814" y="130" width="12" height="32" rx="3"/></g>
+          <g stroke="#4a2e14" stroke-width="3"><line x1="782" y1="78" x2="782" y2="160"/><line x1="726" y1="120" x2="838" y2="120"/></g>
+        </g>
+        <!-- striped awning over each window -->
+        <g>
+          <rect x="108" y="86" width="140" height="22" fill="url(#s1-stripe)"/>
+          <path d="M108 108 q11.6 18 23.3 0 q11.6 18 23.3 0 q11.6 18 23.3 0 q11.6 18 23.3 0 q11.6 18 23.3 0 q11.6 18 23.3 0 L248 108 Z" fill="url(#s1-stripe)"/>
+          <rect x="712" y="86" width="140" height="22" fill="url(#s1-stripe)"/>
+          <path d="M712 108 q11.6 18 23.3 0 q11.6 18 23.3 0 q11.6 18 23.3 0 q11.6 18 23.3 0 q11.6 18 23.3 0 q11.6 18 23.3 0 L852 108 Z" fill="url(#s1-stripe)"/>
+        </g>
+        <!-- central door -->
+        <g>
+          <rect x="436" y="104" width="88" height="64" fill="#3a2412"/>
+          <path d="M436 104 a44 30 0 0 1 88 0 Z" fill="#3a2412"/>
+          <rect x="444" y="112" width="34" height="56" fill="#4d3018"/>
+          <rect x="482" y="112" width="34" height="56" fill="#43290f"/>
+          <circle cx="474" cy="140" r="4" fill="#FBBF24"/><circle cx="486" cy="140" r="4" fill="#FBBF24"/>
+        </g>
+        <!-- hanging shop sign -->
+        <g>
+          <rect x="300" y="74" width="6" height="20" fill="#5a4a2a"/>
+          <rect x="300" y="74" width="40" height="6" fill="#5a4a2a"/>
+          <line x1="312" y1="80" x2="312" y2="92" stroke="#7a6a3a" stroke-width="2"/><line x1="332" y1="80" x2="332" y2="92" stroke="#7a6a3a" stroke-width="2"/>
+          <rect x="298" y="92" width="48" height="30" rx="4" fill="#1d1230" stroke="#FBBF24" stroke-width="2"/>
+          <circle cx="322" cy="107" r="9" fill="none" stroke="#FBBF24" stroke-width="2.4"/>
+          <text x="322" y="112" font-family="Fredoka, sans-serif" font-size="12" font-weight="700" fill="#FBBF24" text-anchor="middle">Z</text>
+        </g>
+        <!-- hanging lantern -->
+        <g>
+          <line x1="636" y1="74" x2="636" y2="92" stroke="#5a4a2a" stroke-width="2"/>
+          <circle cx="636" cy="104" r="13" fill="url(#s1-lant)"/>
+          <rect x="630" y="91" width="12" height="5" rx="2" fill="#5a4a2a"/>
+          <rect x="631" y="116" width="10" height="5" rx="2" fill="#5a4a2a"/>
+        </g>
+        <!-- barrels + crates at base -->
+        <g>
+          <rect x="92" y="138" width="40" height="30" rx="9" fill="#4a2f15"/>
+          <rect x="92" y="146" width="40" height="3" fill="#2a1708"/><rect x="92" y="156" width="40" height="3" fill="#2a1708"/>
+          <rect x="852" y="142" width="30" height="26" fill="#4a2f15" stroke="#2a1708" stroke-width="2"/>
+          <path d="M852 142 L882 168 M882 142 L852 168" stroke="#2a1708" stroke-width="2"/>
+          <g fill="#FBBF24"><circle cx="828" cy="162" r="6"/><circle cx="838" cy="164" r="6"/><circle cx="833" cy="154" r="6"/></g>
+        </g>
+      </svg>
+      <div class="scrim"></div>
+      <div class="plate">
+        <div class="glass-plate">
+          <svg class="coin-ico" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#FBBF24" stroke="#B8860B" stroke-width="1.5"/><path d="M12 6.5v11M9 9.5h4.5a2 2 0 0 1 0 4H9m0 0h4.5" stroke="#7a4a00" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="wm wm-gradient">Shop</span>
+        </div>
+      </div>
+    </div>
+    <div class="caption">Night-time shopfront: striped red/cream awnings, glowing windows of wares, hanging MoTZ sign + lantern. Wordmark on a <b>glass plate, red→purple gradient</b> (matches the Leaderboard box).</div>
+  </section>
+
+  <!-- ============================================================
+       OPTION 2 — APOTHECARY / POTION SHOP (interior)
+       ============================================================ -->
+  <section class="variant">
+    <div class="variant-label">Option 2 <span class="tag">Apothecary Interior — shelves of glowing wares</span></div>
+    <div class="shop-banner">
+      <svg class="scene" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="s2-wall" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2a1a3e"/>
+            <stop offset="100%" stop-color="#150a24"/>
+          </linearGradient>
+          <radialGradient id="s2-lamp" cx="50%" cy="35%" r="65%">
+            <stop offset="0%" stop-color="#FFE7B0"/>
+            <stop offset="100%" stop-color="#7a4a12"/>
+          </radialGradient>
+        </defs>
+        <rect width="960" height="200" fill="url(#s2-wall)"/>
+        <!-- floorboards -->
+        <rect x="0" y="170" width="960" height="30" fill="#1c1024"/>
+        <g stroke="rgba(0,0,0,0.4)" stroke-width="2"><line x1="120" y1="170" x2="120" y2="200"/><line x1="320" y1="170" x2="320" y2="200"/><line x1="520" y1="170" x2="520" y2="200"/><line x1="720" y1="170" x2="720" y2="200"/><line x1="880" y1="170" x2="880" y2="200"/></g>
+        <!-- round window upper-left with moon -->
+        <circle cx="78" cy="46" r="30" fill="#1a2540"/>
+        <circle cx="88" cy="38" r="13" fill="#cdbce8"/>
+        <circle cx="78" cy="46" r="30" fill="none" stroke="#4a2e14" stroke-width="4"/>
+        <line x1="48" y1="46" x2="108" y2="46" stroke="#4a2e14" stroke-width="3"/>
+        <line x1="78" y1="16" x2="78" y2="76" stroke="#4a2e14" stroke-width="3"/>
+        <!-- hanging pendant lamps -->
+        <g>
+          <line x1="300" y1="0" x2="300" y2="22" stroke="#5a4a2a" stroke-width="2"/>
+          <path d="M286 22 h28 l-6 14 h-16 Z" fill="#3a2a18"/>
+          <circle cx="300" cy="40" r="10" fill="url(#s2-lamp)"/>
+          <line x1="660" y1="0" x2="660" y2="30" stroke="#5a4a2a" stroke-width="2"/>
+          <path d="M646 30 h28 l-6 14 h-16 Z" fill="#3a2a18"/>
+          <circle cx="660" cy="48" r="10" fill="url(#s2-lamp)"/>
+        </g>
+        <!-- shelf helper: 3 wooden shelves -->
+        <g fill="#4a2f15">
+          <rect x="120" y="74" width="720" height="9"/>
+          <rect x="120" y="118" width="720" height="9"/>
+          <rect x="120" y="162" width="720" height="9"/>
+        </g>
+        <g fill="#2a1708">
+          <rect x="120" y="83" width="720" height="3"/><rect x="120" y="127" width="720" height="3"/><rect x="120" y="171" width="720" height="3"/>
+        </g>
+        <!-- bottles, shelf 1 (y baseline 74) -->
+        <g>
+          <rect x="150" y="50" width="16" height="24" rx="3" fill="#FF2A55"/><rect x="153" y="44" width="10" height="8" fill="#7a4a12"/>
+          <path d="M182 74 v-14 a10 10 0 0 1 20 0 v14 Z" fill="#9A6BFF"/><rect x="189" y="42" width="6" height="8" fill="#7a4a12"/>
+          <rect x="222" y="54" width="14" height="20" rx="7" fill="#2FD27A"/><rect x="225" y="48" width="8" height="7" fill="#7a4a12"/>
+          <path d="M260 74 v-18 l8 -8 8 8 v18 Z" fill="#FBBF24"/><rect x="264" y="44" width="8" height="6" fill="#7a4a12"/>
+          <rect x="300" y="46" width="18" height="28" rx="3" fill="#4DA3FF"/><rect x="304" y="40" width="10" height="7" fill="#7a4a12"/>
+          <circle cx="350" cy="64" r="11" fill="#FF6B8A"/><rect x="345" y="48" width="10" height="9" fill="#7a4a12"/>
+          <rect x="392" y="52" width="15" height="22" rx="3" fill="#9A6BFF"/><rect x="395" y="46" width="9" height="7" fill="#7a4a12"/>
+        </g>
+        <!-- bottles, shelf 2 (y baseline 118) -->
+        <g>
+          <path d="M150 118 v-16 a9 9 0 0 1 18 0 v16 Z" fill="#FBBF24"/><rect x="155" y="92" width="8" height="7" fill="#7a4a12"/>
+          <rect x="186" y="92" width="16" height="26" rx="3" fill="#2FD27A"/><rect x="190" y="86" width="9" height="7" fill="#7a4a12"/>
+          <circle cx="232" cy="106" r="12" fill="#FF2A55"/><rect x="227" y="88" width="10" height="9" fill="#7a4a12"/>
+          <rect x="270" y="96" width="14" height="22" rx="7" fill="#4DA3FF"/><rect x="273" y="90" width="8" height="7" fill="#7a4a12"/>
+          <path d="M306 118 v-14 a10 10 0 0 1 20 0 v14 Z" fill="#FF6B8A"/><rect x="312" y="86" width="7" height="8" fill="#7a4a12"/>
+          <rect x="346" y="90" width="17" height="28" rx="3" fill="#9A6BFF"/><rect x="350" y="84" width="10" height="7" fill="#7a4a12"/>
+          <rect x="384" y="98" width="14" height="20" rx="6" fill="#FBBF24"/><rect x="387" y="92" width="8" height="7" fill="#7a4a12"/>
+        </g>
+        <!-- bottles, right cluster shelves (mirrored fill, x 560-820) -->
+        <g>
+          <rect x="566" y="50" width="16" height="24" rx="3" fill="#4DA3FF"/><rect x="569" y="44" width="10" height="8" fill="#7a4a12"/>
+          <circle cx="616" cy="62" r="11" fill="#FBBF24"/><rect x="611" y="46" width="10" height="9" fill="#7a4a12"/>
+          <path d="M654 74 v-16 a9 9 0 0 1 18 0 v16 Z" fill="#FF2A55"/><rect x="659" y="48" width="8" height="7" fill="#7a4a12"/>
+          <rect x="696" y="52" width="15" height="22" rx="3" fill="#2FD27A"/><rect x="699" y="46" width="9" height="7" fill="#7a4a12"/>
+          <rect x="738" y="48" width="17" height="26" rx="3" fill="#9A6BFF"/><rect x="742" y="42" width="10" height="7" fill="#7a4a12"/>
+          <circle cx="792" cy="62" r="12" fill="#FF6B8A"/><rect x="787" y="44" width="10" height="9" fill="#7a4a12"/>
+          <rect x="566" y="94" width="16" height="24" rx="3" fill="#FF6B8A"/><rect x="569" y="88" width="10" height="7" fill="#7a4a12"/>
+          <path d="M604 118 v-16 a9 9 0 0 1 18 0 v16 Z" fill="#2FD27A"/><rect x="609" y="92" width="8" height="7" fill="#7a4a12"/>
+          <circle cx="654" cy="106" r="12" fill="#9A6BFF"/><rect x="649" y="88" width="10" height="9" fill="#7a4a12"/>
+          <rect x="690" y="96" width="14" height="22" rx="7" fill="#FBBF24"/><rect x="693" y="90" width="8" height="7" fill="#7a4a12"/>
+          <rect x="728" y="92" width="17" height="26" rx="3" fill="#FF2A55"/><rect x="732" y="86" width="10" height="7" fill="#7a4a12"/>
+          <path d="M772 118 v-14 a10 10 0 0 1 20 0 v14 Z" fill="#4DA3FF"/><rect x="778" y="86" width="7" height="8" fill="#7a4a12"/>
+        </g>
+        <!-- counter / scale at base -->
+        <g>
+          <rect x="120" y="138" width="720" height="24" fill="#3a2412"/>
+          <rect x="120" y="138" width="720" height="4" fill="#5a3a1c"/>
+        </g>
+      </svg>
+      <div class="scrim"></div>
+      <div class="plate">
+        <span class="wm wm-gold">Shop</span>
+      </div>
+    </div>
+    <div class="caption">Cozy apothecary: wooden shelves stocked with glowing potion bottles in every brand colour, pendant lamps, a moonlit round window. Wordmark is <b>gold-glow Fredoka, no plate</b> — the scrim alone carries it.</div>
+  </section>
+
+  <!-- ============================================================
+       OPTION 3 — NIGHT MARKET STALL
+       ============================================================ -->
+  <section class="variant">
+    <div class="variant-label">Option 3 <span class="tag">Night Market Stall — canopy, lanterns, treasure</span></div>
+    <div class="shop-banner">
+      <svg class="scene" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <defs>
+          <linearGradient id="s3-sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#1a0c2e"/>
+            <stop offset="100%" stop-color="#0c0618"/>
+          </linearGradient>
+          <radialGradient id="s3-lant" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#FFE9A8"/>
+            <stop offset="100%" stop-color="#E0681C"/>
+          </radialGradient>
+          <radialGradient id="s3-chest" cx="50%" cy="20%" r="90%">
+            <stop offset="0%" stop-color="#FFF1B8"/>
+            <stop offset="60%" stop-color="#FBBF24"/>
+            <stop offset="100%" stop-color="#B5780C"/>
+          </radialGradient>
+          <pattern id="s3-canopy" width="60" height="60" patternUnits="userSpaceOnUse">
+            <rect width="30" height="60" fill="#7000FF"/>
+            <rect x="30" width="30" height="60" fill="#F4E6C8"/>
+          </pattern>
+        </defs>
+        <rect width="960" height="200" fill="url(#s3-sky)"/>
+        <g fill="#6b5a8a"><circle cx="90" cy="30" r="1.5"/><circle cx="210" cy="20" r="1.3"/><circle cx="380" cy="26" r="1.4"/><circle cx="600" cy="18" r="1.5"/><circle cx="760" cy="32" r="1.3"/><circle cx="900" cy="24" r="1.4"/></g>
+        <!-- ground -->
+        <rect x="0" y="172" width="960" height="28" fill="#0a0414"/>
+        <!-- string of paper lanterns -->
+        <path d="M20 26 Q480 70 940 26" fill="none" stroke="#3a2a55" stroke-width="2"/>
+        <g>
+          <circle cx="150" cy="49" r="11" fill="url(#s3-lant)"/>
+          <circle cx="330" cy="60" r="11" fill="url(#s3-lant)"/>
+          <circle cx="630" cy="60" r="11" fill="url(#s3-lant)"/>
+          <circle cx="810" cy="49" r="11" fill="url(#s3-lant)"/>
+        </g>
+        <!-- stall poles -->
+        <rect x="120" y="70" width="10" height="104" fill="#4a2f15"/>
+        <rect x="830" y="70" width="10" height="104" fill="#4a2f15"/>
+        <!-- canopy (sagging striped roof) -->
+        <path d="M96 78 Q480 44 864 78 L864 96 Q480 62 96 96 Z" fill="url(#s3-canopy)"/>
+        <!-- canopy valance -->
+        <path d="M96 96 q16 22 32 0 q16 22 32 0 q16 22 32 0 q16 22 32 0 q16 22 32 0 q16 22 32 0 q16 22 32 0 q16 22 32 0 q16 22 32 0 q16 22 32 0 q16 22 32 0 q16 22 32 0 L864 96 Q480 62 96 96 Z" fill="url(#s3-canopy)" opacity="0.92"/>
+        <!-- pennant bunting under canopy -->
+        <g>
+          <path d="M150 104 l12 0 -6 12 Z" fill="#FF2A55"/>
+          <path d="M186 102 l12 0 -6 12 Z" fill="#FBBF24"/>
+          <path d="M222 101 l12 0 -6 12 Z" fill="#7000FF"/>
+        </g>
+        <!-- counter table -->
+        <rect x="150" y="132" width="660" height="20" fill="#5a3a1c"/>
+        <rect x="150" y="132" width="660" height="4" fill="#7a5028"/>
+        <rect x="172" y="152" width="12" height="22" fill="#3a2412"/>
+        <rect x="776" y="152" width="12" height="22" fill="#3a2412"/>
+        <!-- treasure chest, open, on counter -->
+        <g>
+          <rect x="430" y="108" width="100" height="24" rx="4" fill="#3a2412"/>
+          <path d="M430 110 q50 -34 100 0 Z" fill="#4a2f15"/>
+          <rect x="430" y="124" width="100" height="8" fill="#FBBF24"/>
+          <rect x="472" y="116" width="16" height="16" fill="#7a5028"/>
+          <ellipse cx="480" cy="110" rx="46" ry="9" fill="url(#s3-chest)"/>
+          <g fill="#FBBF24"><circle cx="456" cy="104" r="5"/><circle cx="468" cy="100" r="5"/><circle cx="492" cy="101" r="5"/><circle cx="504" cy="105" r="5"/><circle cx="480" cy="98" r="5"/></g>
+        </g>
+        <!-- coin stacks -->
+        <g fill="#FBBF24" stroke="#B5780C" stroke-width="1">
+          <ellipse cx="250" cy="128" rx="15" ry="5"/><ellipse cx="250" cy="122" rx="15" ry="5"/><ellipse cx="250" cy="116" rx="15" ry="5"/>
+          <ellipse cx="690" cy="128" rx="13" ry="4.5"/><ellipse cx="690" cy="123" rx="13" ry="4.5"/>
+        </g>
+        <!-- potion on counter -->
+        <path d="M300 132 v-16 a10 10 0 0 1 20 0 v16 Z" fill="#FF2A55"/><rect x="306" y="104" width="8" height="9" fill="#7a4a12"/>
+        <!-- crates beside stall -->
+        <g>
+          <rect x="76" y="138" width="38" height="36" fill="#4a2f15" stroke="#2a1708" stroke-width="2"/>
+          <path d="M76 138 L114 174 M114 138 L76 174" stroke="#2a1708" stroke-width="2"/>
+          <rect x="846" y="144" width="34" height="30" fill="#4a2f15" stroke="#2a1708" stroke-width="2"/>
+          <path d="M846 144 L880 174 M880 144 L846 174" stroke="#2a1708" stroke-width="2"/>
+          <!-- barrel -->
+          <rect x="720" y="138" width="40" height="36" rx="10" fill="#4a2f15"/>
+          <rect x="720" y="148" width="40" height="3" fill="#2a1708"/><rect x="720" y="162" width="40" height="3" fill="#2a1708"/>
+        </g>
+      </svg>
+      <div class="scrim"></div>
+      <div class="plate">
+        <div class="wood-plate">
+          <svg class="coin-ico" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#FBBF24" stroke="#B8860B" stroke-width="1.5"/><path d="M12 6.5v11M9 9.5h4.5a2 2 0 0 1 0 4H9m0 0h4.5" stroke="#7a4a00" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="wm wm-gold-flat">Shop</span>
+        </div>
+      </div>
+    </div>
+    <div class="caption">Festival night-market stall: purple/cream canopy with valance + bunting, strung paper lanterns, an open treasure chest spilling gold, coin stacks and crates. Wordmark on a <b>wood-tone, gold-stroke plate</b>.</div>
+  </section>
+
+  <div class="tokens">
+    <span class="tok"><span class="sw" style="background:#FF2A55"></span> MoTZ Red</span>
+    <span class="tok"><span class="sw" style="background:#FBBF24"></span> Winner Gold</span>
+    <span class="tok"><span class="sw" style="background:#7000FF"></span> Electric Purple</span>
+    <span class="tok"><span class="sw" style="background:#0F0518"></span> Void Black</span>
+    <span class="tok">All scenes 100% SVG · no image files · scales crisply</span>
+  </div>
+
+</div>
+</body>
+</html>
