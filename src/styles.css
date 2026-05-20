@@ -1765,18 +1765,27 @@ body:has(.battle) {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.12); }
 }
+/* Hover aura — purple glow for Units / Shop / Leaderboard. The primary
+   (Ascend) tile overrides this with a gold aura below. */
 .home-tile:hover {
   background: rgba(30, 40, 80, 0.45);
-  border-color: var(--border-strong);
-  box-shadow: 0 0 18px rgba(212, 169, 62, 0.10);
+  border-color: rgba(168, 85, 247, 0.80);
+  box-shadow:
+    0 0 18px 3px rgba(168, 85, 247, 0.55),
+    0 0 44px 12px rgba(112, 0, 255, 0.35);
 }
 .home-tile:active { transform: translateY(1px); }
 .home-tile.primary {
   border-color: var(--gold-bright);
   background: linear-gradient(180deg, rgba(42, 34, 0, 0.55), rgba(26, 21, 0, 0.55));
 }
+/* Ascend tile — gold hover aura. */
 .home-tile.primary:hover {
   background: linear-gradient(180deg, rgba(58, 48, 0, 0.65), rgba(42, 34, 0, 0.65));
+  border-color: var(--gold-bright);
+  box-shadow:
+    0 0 18px 3px rgba(251, 191, 36, 0.60),
+    0 0 44px 12px rgba(245, 158, 11, 0.36);
 }
 .tile-title {
   font-family: "Cinzel", "Times New Roman", serif;
