@@ -94,17 +94,15 @@ async function refresh(): Promise<void> {
   if (logo) logo.onerror = (): void => { logo.style.display = "none"; };
 }
 
-/** Static "Created by MoTZ" credit box shown directly above the wallet pill.
- *  The whole box is a link to the MoTZ Discord. */
+/** Static "Created by" + MoTZ wordmark credit box shown directly above the
+ *  wallet pill. The whole box is a link to the MoTZ Discord. */
 function renderCreditBox(): string {
   return `
     <a class="motz-credit" href="https://discord.gg/motz" target="_blank" rel="noopener noreferrer"
        title="Join the MoTZ Discord — discord.gg/motz">
-      <img class="motz-credit-logo" src="/motz-icon.png" alt="" />
-      <div class="motz-credit-text">
-        <span class="motz-credit-by">Created by MoTZ</span>
-        <span class="motz-credit-link">discord.gg/motz</span>
-      </div>
+      <span class="motz-credit-by">Created by</span>
+      <img class="motz-credit-logo" src="/motz-logo.png" alt="MoTZ" />
+      <span class="motz-credit-link">discord.gg/motz</span>
     </a>
   `;
 }
