@@ -12,6 +12,7 @@ import { adminBumpXpCap } from "../auth/energyApi";
 import { XP_TABLE } from "../core/levels";
 import { portraitInner, capeHtml, isUnitLocked } from "../units/art";
 import { confirmModal, alertModal } from "./confirmModal";
+import { fetchShopStatus, consumeShopItem } from "../core/shop";
 
 const LORE: Record<string, string> = {
   soda: "A fizzy elemental from the spring. Said to fight harder when shaken.",
@@ -54,6 +55,16 @@ export interface RenderUnitsScreenOpts {
 export function renderUnitsScreen(root: HTMLElement, onBack: () => void, opts: RenderUnitsScreenOpts = {}): void {
   const pickingFor = new Set<string>();
   const editingSkillsFor = new Set<string>();
+  // Units that are mid-pick via a spent Unit Class Change token (as opposed
+  // to an initial pick or a dev/admin change). Tracked separately so the
+  // pick handler knows to consume the entitlement + reset custom stats.
+  const tokenChangeFor = new Set<string>();
+  // How many Unit Class Change entitlement tokens the wallet owns. Starts at
+  // 0 and is filled in by an async fetchShopStatus() right after first draw —
+  // when > 0, locked-class units get a "Change Class" button instead of the
+  // bare "🔒 locked" tag (the bug MisterBanatero hit: bought the item, no UI
+  // to spend it).
+  let classChangeTokens = 0;
   // Forced stat-alloc does NOT auto-open the allocator — the player must
   // click the highlighted "Allocate" button themselves so the action feels
   // intentional. All other interactions are disabled via CSS while forced.
@@ -109,7 +120,7 @@ export function renderUnitsScreen(root: HTMLElement, onBack: () => void, opts: R
         <div class="units-section">
           <div class="section-label">Player roster</div>
           <div class="units-grid">
-            ${roster.map(t => unitCardHtml(t, pickingFor.has(t.id), settings.devUnlockClass || admin, admin, editingSkillsFor.has(t.id))).join("")}
+            ${roster.map(t => unitCardHtml(t, pickingFor.has(t.id), settings.devUnlockClass || admin, admin, editingSkillsFor.has(t.id), classChangeTokens)).join("")}
           </div>
         </div>
       </div>
@@ -131,7 +142,7 @@ export function renderUnitsScreen(root: HTMLElement, onBack: () => void, opts: R
         }
       }
     });
-    wireClassPicker(root, pickingFor, settings.devUnlockClass || admin, () => {
+    wireClassPicker(root, pickingFor, tokenChangeFor, settings.devUnlockClass || admin, () => {
       // Same pattern — redraw first so the class-picker UI updates with the
       // just-saved class assignment before we navigate away.
       draw();
@@ -141,18 +152,32 @@ export function renderUnitsScreen(root: HTMLElement, onBack: () => void, opts: R
           opts.onForcedComplete();
         }
       }
+    }, () => {
+      // onTokenConsumed — drop the local count so the button label / gating
+      // updates on the next draw without another shop fetch.
+      classChangeTokens = Math.max(0, classChangeTokens - 1);
     });
     wireSkillLoadout(root, editingSkillsFor, draw);
     wireAdminControls(root, admin, draw);
   };
   draw();
+  // Pull the wallet's Unit Class Change token count so locked-class units can
+  // offer a "Change Class" button. Async — redraws once when it lands.
+  void fetchShopStatus().then(status => {
+    if (!status) return;
+    const owned = status.inventory.buffs?.unit_class_change ?? 0;
+    if (owned !== classChangeTokens) {
+      classChangeTokens = owned;
+      draw();
+    }
+  }).catch(() => undefined);
 }
 
 function isPlayerTemplate(id: string): boolean {
   return PLAYER_ROSTER.some(t => t.id === id);
 }
 
-function unitCardHtml(t: UnitTemplate, isPicking: boolean, devUnlock: boolean, admin: boolean, isEditingSkills: boolean): string {
+function unitCardHtml(t: UnitTemplate, isPicking: boolean, devUnlock: boolean, admin: boolean, isEditingSkills: boolean, classChangeTokens: number): string {
   const isPlayer = isPlayerTemplate(t.id);
   const progress: UnitProgress | null = isPlayer ? getProgress(t.id) : null;
 
@@ -195,7 +220,7 @@ function unitCardHtml(t: UnitTemplate, isPicking: boolean, devUnlock: boolean, a
 
       ${isPlayer ? xpBarHtml(lvl, xp) : ""}
 
-      ${isPlayer ? classRowHtml(t, classId, isPicking, devUnlock) : ""}
+      ${isPlayer ? classRowHtml(t, classId, isPicking, devUnlock, classChangeTokens) : ""}
 
       <div class="hex-wrap">${hexStatSvg({ unit, classBase: cls, custom: cust, size: 150 })}</div>
 
@@ -238,7 +263,7 @@ function xpBarHtml(level: number, xp: number): string {
   `;
 }
 
-function classRowHtml(t: UnitTemplate, classId: string | undefined, isPicking: boolean, devUnlock: boolean): string {
+function classRowHtml(t: UnitTemplate, classId: string | undefined, isPicking: boolean, devUnlock: boolean, classChangeTokens: number): string {
   const locked = !!classId && !devUnlock;
   if (isPicking) {
     return `
@@ -268,12 +293,22 @@ function classRowHtml(t: UnitTemplate, classId: string | undefined, isPicking: b
     `;
   }
   const cls = getClass(classId);
+  // Action shown next to a chosen class:
+  //  - dev/admin unlock → "Change (dev)" (free re-pick)
+  //  - owns a Unit Class Change token → "Change Class" button that spends it
+  //  - otherwise → bare "🔒 locked" tag (season lock, no token)
+  let actionHtml: string;
+  if (!locked) {
+    actionHtml = `<button class="ghost-btn" data-open-pick="${escapeAttr(t.id)}" type="button">Change (dev)</button>`;
+  } else if (classChangeTokens > 0) {
+    actionHtml = `<button class="ghost-btn class-change-token-btn" data-token-change-class="${escapeAttr(t.id)}" type="button" title="Spend 1 Unit Class Change token — resets this unit's custom stats">🛡 Change Class (${classChangeTokens})</button>`;
+  } else {
+    actionHtml = `<span class="locked-tag" title="Locked for the season — buy a Unit Class Change in the Shop to change it">🔒 locked</span>`;
+  }
   return `
     <div class="class-row chosen">
       <span class="class-row-text">Class: <strong>${escapeHtml(cls?.name ?? classId)}</strong> · ${escapeHtml(cls?.role ?? "")}</span>
-      ${locked
-        ? `<span class="locked-tag" title="Locked for the season">🔒 locked</span>`
-        : `<button class="ghost-btn" data-open-pick="${escapeAttr(t.id)}" type="button">Change (dev)</button>`}
+      ${actionHtml}
     </div>
   `;
 }
@@ -663,16 +698,43 @@ function wireAdminControls(root: HTMLElement, admin: boolean, redraw: () => void
   });
 }
 
-function wireClassPicker(root: HTMLElement, pickingFor: Set<string>, devUnlock: boolean, redraw: () => void): void {
+function wireClassPicker(
+  root: HTMLElement,
+  pickingFor: Set<string>,
+  tokenChangeFor: Set<string>,
+  devUnlock: boolean,
+  redraw: () => void,
+  onTokenConsumed: () => void,
+): void {
   root.querySelectorAll<HTMLButtonElement>("[data-open-pick]").forEach(btn => {
     btn.addEventListener("click", () => {
       pickingFor.add(btn.dataset.openPick!);
       redraw();
     });
   });
+  // Token-spend class change: the player owns a Unit Class Change entitlement.
+  // Warn about the stat reset BEFORE opening the picker so they don't pick a
+  // class and only then learn their build gets wiped.
+  root.querySelectorAll<HTMLButtonElement>("[data-token-change-class]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const tid = btn.dataset.tokenChangeClass!;
+      const ok = await confirmModal({
+        title: "Change This Unit's Class?",
+        message: `This spends <strong>1 Unit Class Change</strong> token and <strong>resets this unit's custom stats</strong> — every allocated point is refunded so you can re-spend it on the new build. Equipped skills are rebuilt for the new class.<br><br>Continue to pick the new class?`,
+        confirmLabel: "Continue",
+        cancelLabel: "Cancel",
+      });
+      if (!ok) return;
+      pickingFor.add(tid);
+      tokenChangeFor.add(tid);
+      redraw();
+    });
+  });
   root.querySelectorAll<HTMLButtonElement>("[data-cancel-pick]").forEach(btn => {
     btn.addEventListener("click", () => {
-      pickingFor.delete(btn.dataset.cancelPick!);
+      const tid = btn.dataset.cancelPick!;
+      pickingFor.delete(tid);
+      tokenChangeFor.delete(tid);  // cancelling a token change spends nothing
       redraw();
     });
   });
@@ -681,8 +743,51 @@ function wireClassPicker(root: HTMLElement, pickingFor: Set<string>, devUnlock: 
       const classId = btn.dataset.pickClass!;
       const tid = btn.dataset.template!;
       const cur = getProgress(tid);
-      if (cur.classId && !devUnlock) return;
-      openClassConfirmModal(root, classId, tid, () => {
+      const isTokenChange = tokenChangeFor.has(tid);
+      // Block re-picking an already-classed unit UNLESS this is a dev unlock
+      // or a legitimate token spend.
+      if (cur.classId && !devUnlock && !isTokenChange) return;
+      openClassConfirmModal(root, classId, tid, async () => {
+        if (isTokenChange) {
+          // Consume the entitlement server-side FIRST. Only mutate the unit
+          // if the token actually burned — otherwise a race / already-spent
+          // token would hand out a free class change.
+          const consumed = await consumeShopItem("unit_class_change");
+          if (!consumed) {
+            await alertModal({
+              kind: "error",
+              title: "Couldn't Use Token",
+              message: "Your Unit Class Change token couldn't be consumed — it may have already been used. Refresh the screen and try again.",
+            });
+            tokenChangeFor.delete(tid);
+            pickingFor.delete(tid);
+            redraw();
+            return;
+          }
+          const c = getProgress(tid);
+          // Reset custom stats per the item's terms; refund every earned
+          // point so the player rebuilds from scratch. earnedPoints = (lvl-1)*4.
+          const refundedPoints = Math.max(0, (c.level - 1) * 4);
+          const equippedSkills = autoEquipNewlyUnlocked(tid, classId, c.level, []);
+          setProgress(tid, {
+            ...c,
+            classId,
+            customStats: { ...ZERO_STATS },
+            availablePoints: refundedPoints,
+            equippedSkills,
+          });
+          tokenChangeFor.delete(tid);
+          pickingFor.delete(tid);
+          onTokenConsumed();
+          redraw();
+          await alertModal({
+            kind: "success",
+            title: "Class Changed",
+            message: `Class updated. This unit's custom stats were reset — <strong>${refundedPoints}</strong> point${refundedPoints === 1 ? "" : "s"} are available to re-allocate on the Units screen.`,
+          });
+          return;
+        }
+        // Non-token path — initial class pick, or a free dev/admin change.
         const c = getProgress(tid);
         const equippedSkills = autoEquipNewlyUnlocked(tid, classId, c.level, c.equippedSkills ?? []);
         setProgress(tid, { ...c, classId, equippedSkills });
