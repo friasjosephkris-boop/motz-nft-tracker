@@ -87,8 +87,8 @@ async function refresh(): Promise<void> {
   el.style.display = "";
   // Credit box stacks ABOVE the wallet pill (flex-column on .wsb-host).
   el.innerHTML = renderCreditBox() + renderBadge({ matching, firstConnected, session });
-  // The MoTZ logo lives at /public/motz-icon.png. If that asset isn't present
-  // yet, hide the <img> so the box still looks clean (text-only) rather than
+  // The MoTZ wordmark lives at /public/motz-logo.png. Defensive: if that asset
+  // ever goes missing, hide the <img> so the box still looks clean rather than
   // showing a broken-image glyph.
   const logo = el.querySelector<HTMLImageElement>(".motz-credit-logo");
   if (logo) logo.onerror = (): void => { logo.style.display = "none"; };
