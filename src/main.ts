@@ -1078,9 +1078,9 @@ function runFloor(party: SquadResult["players"], floorId: number, xpMultiplier: 
     mode === "floor" || (mode === "survival" && Object.keys(survivalCarry).length === 0);
   const xpFromScholars = buffsAllowed && isFirstBattleOfRun && consumeScholarsInsight() ? 1.25 : 1;
   // Repeat penalty — re-clearing a floor at or below your deepest cleared
-  // floor pays half XP. Floor mode only; survival is one continuous climb.
+  // floor pays -25% XP (0.75x). Floor mode only; survival is one continuous climb.
   const isRepeatClear = mode === "floor" && floorId <= getMaxCleared();
-  const repeatMul = isRepeatClear ? 0.5 : 1;
+  const repeatMul = isRepeatClear ? 0.75 : 1;
   const opts: BattleOptions = {
     xpMultiplier: xpMultiplier * getCachedDailyMultiplier() * xpFromScholars * repeatMul,
   };
