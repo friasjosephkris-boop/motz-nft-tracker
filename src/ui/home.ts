@@ -56,8 +56,8 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
         <h1 class="home-title">Gauntlet Tower</h1>
       </div>
       <div class="home-tiles">
-        <button class="home-tile primary" data-action="tower" type="button">
-          <div class="tile-title">Ascend!</div>
+        <button class="home-tile primary tile-ascend" data-action="tower" type="button" aria-label="Ascend">
+          <img class="tile-ascend-art" src="/for ascend!.png" alt="Ascend" />
         </button>
         <button class="home-tile tile-units" data-action="units" type="button" aria-label="Units">
           <img class="tile-units-art" src="/for unit box.png" alt="Units" />
