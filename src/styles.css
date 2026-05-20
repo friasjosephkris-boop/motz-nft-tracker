@@ -3944,9 +3944,11 @@ body:has(.battle) {
 }
 .lb-rows { display: flex; flex-direction: column; gap: 2px; max-height: 600px; overflow-y: auto; }
 .lb-side .lb-rows { max-height: 240px; }
-/* The 4 top-row boards share the same height so the grid stays even no
-   matter how many rows each board has loaded. */
-.lb-top-row .lb-rows { max-height: 420px; }
+/* Top-row boards show a fixed, bounded number of rows (Survival / Boss Raid
+   top 7, Highest Floor / World Ender top 5), so no scroll is needed — let
+   the board size to its content. The grid's align-items:stretch keeps all
+   four the same height regardless. */
+.lb-top-row .lb-rows { max-height: none; overflow: visible; }
 /* First-to-Conquer is a single full-width board below the top row. */
 .lb-conquer-wide { width: 100%; }
 .lb-row {
