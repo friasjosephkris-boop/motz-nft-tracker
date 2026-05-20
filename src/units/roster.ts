@@ -680,16 +680,23 @@ export function xpForFloor(floorId: number): number {
 // Post-game depth difficulty — enemies get a stat multiplier that ramps with
 // floor depth, ON TOP of the Lv30→70 level scaling. This keeps the climb
 // getting harder even for a player who over-levels (level alone can be
-// out-grinded; this can't). +40% enemy power by F500.
-const POST_GAME_POWER_MUL_AT_LAST = 1.40;
+// out-grinded; this can't). Two segments: +0% at F51 → +40% at F250, then
+// the back half steepens → +80% at F500.
+const POST_GAME_POWER_MID_FLOOR = 250;
+const POST_GAME_POWER_MUL_AT_MID = 1.40;   // F250
+const POST_GAME_POWER_MUL_AT_LAST = 1.80;  // F500
 
-/** Enemy stat multiplier for a post-game floor (51-500): 1.0 at F51, ramping
- *  linearly to POST_GAME_POWER_MUL_AT_LAST at F500. Returns 1 for campaign. */
+/** Enemy stat multiplier for a post-game floor (51-500): a piecewise-linear
+ *  ramp — 1.0 at F51, 1.40 at F250, 1.80 at F500. Returns 1 for campaign. */
 export function postGameEnemyPowerMul(floorId: number): number {
   if (floorId < POST_GAME_FIRST_FLOOR) return 1;
   const f = Math.min(POST_GAME_LAST_FLOOR, floorId);
-  const t = (f - POST_GAME_FIRST_FLOOR) / (POST_GAME_LAST_FLOOR - POST_GAME_FIRST_FLOOR);
-  return 1 + (POST_GAME_POWER_MUL_AT_LAST - 1) * t;
+  if (f <= POST_GAME_POWER_MID_FLOOR) {
+    const t = (f - POST_GAME_FIRST_FLOOR) / (POST_GAME_POWER_MID_FLOOR - POST_GAME_FIRST_FLOOR);
+    return 1 + (POST_GAME_POWER_MUL_AT_MID - 1) * t;
+  }
+  const t = (f - POST_GAME_POWER_MID_FLOOR) / (POST_GAME_LAST_FLOOR - POST_GAME_POWER_MID_FLOOR);
+  return POST_GAME_POWER_MUL_AT_MID + (POST_GAME_POWER_MUL_AT_LAST - POST_GAME_POWER_MUL_AT_MID) * t;
 }
 
 /** Floor where resist randomization kicks in. Below this, enemies use their
