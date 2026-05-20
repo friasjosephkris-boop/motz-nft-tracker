@@ -27,29 +27,56 @@ export function clearSession(): void {
 
 export interface Perks { motzKey: boolean }
 
-export async function validateSession(token: string): Promise<{ address: string; perks: Perks } | null> {
+/** Result of a session check. The three states must stay distinct:
+ *   - "valid"       → server confirmed the session.
+ *   - "invalid"     → server DEFINITIVELY rejected it (bad/expired JWT, or the
+ *                     wallet verifiably no longer holds the gated NFT). Only
+ *                     this state should ever revoke the session.
+ *   - "unreachable" → couldn't get a definitive answer (offline, timeout,
+ *                     5xx). Ambiguous — the session may well still be good,
+ *                     so callers must NOT clear it; just retry later. */
+export type SessionCheck =
+  | { status: "valid"; address: string; perks: Perks }
+  | { status: "invalid" }
+  | { status: "unreachable" };
+
+export async function validateSession(token: string): Promise<SessionCheck> {
+  let r: Response;
   try {
-    const r = await fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } });
-    if (!r.ok) return null;
-    const data = await r.json();
-    if (typeof data?.address !== "string") return null;
-    const motzKey = !!data?.perks?.motzKey;
-    // Wipe-epoch check: if the server's wipe counter has advanced since the
-    // last time this browser saw it, every cached value (XP, stage unlocks,
-    // inventory, …) is stale by definition. Preserve the session token,
-    // nuke everything else, reload. Without this, players whose tabs were
-    // open during a wipe keep seeing pre-wipe data until they manually
-    // clear browser storage — which is exactly what's been happening.
-    if (typeof data?.wipeEpoch === "number") {
-      maybeApplyWipeEpoch(data.wipeEpoch);
-    }
-    if (typeof data?.forceResetAt === "number") {
-      maybeApplyForceReset(data.forceResetAt);
-    }
-    return { address: data.address, perks: { motzKey } };
+    r = await fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } });
   } catch {
-    return null;
+    // Network error — never reached the server. Ambiguous, not a rejection.
+    return { status: "unreachable" };
   }
+  // 401/403 are the ONLY definitive rejections: a bad/expired JWT, or the
+  // wallet verifiably no longer holds the gated NFT. Any other non-OK status
+  // (500/502/503/504, a cold-start timeout, a gateway error) is a server-side
+  // hiccup — treat it as unreachable so a transient blip can't kick an
+  // authenticated player back to the wallet gate.
+  if (r.status === 401 || r.status === 403) return { status: "invalid" };
+  if (!r.ok) return { status: "unreachable" };
+  let data: unknown;
+  try {
+    data = await r.json();
+  } catch {
+    return { status: "unreachable" };
+  }
+  const d = data as { address?: unknown; perks?: { motzKey?: unknown }; wipeEpoch?: unknown; forceResetAt?: unknown };
+  if (typeof d?.address !== "string") return { status: "unreachable" };
+  const motzKey = !!d?.perks?.motzKey;
+  // Wipe-epoch check: if the server's wipe counter has advanced since the
+  // last time this browser saw it, every cached value (XP, stage unlocks,
+  // inventory, …) is stale by definition. Preserve the session token,
+  // nuke everything else, reload. Without this, players whose tabs were
+  // open during a wipe keep seeing pre-wipe data until they manually
+  // clear browser storage — which is exactly what's been happening.
+  if (typeof d?.wipeEpoch === "number") {
+    maybeApplyWipeEpoch(d.wipeEpoch);
+  }
+  if (typeof d?.forceResetAt === "number") {
+    maybeApplyForceReset(d.forceResetAt);
+  }
+  return { status: "valid", address: d.address, perks: { motzKey } };
 }
 
 const FORCE_RESET_KEY = "tower-of-zeal.force-reset-at.v1";

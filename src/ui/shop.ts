@@ -257,7 +257,7 @@ export async function renderShop(root: HTMLElement, onBack: () => void): Promise
         const sess = loadSession();
         if (sess) {
           const refreshed = await validateSession(sess.token);
-          if (refreshed) setVerifiedPerks(refreshed.perks);
+          if (refreshed.status === "valid") setVerifiedPerks(refreshed.perks);
         }
       }
       // Successful — re-render to reflect new state.
@@ -339,7 +339,7 @@ export async function renderShop(root: HTMLElement, onBack: () => void): Promise
         const sess = loadSession();
         if (sess) {
           const refreshed = await validateSession(sess.token);
-          if (refreshed) setVerifiedPerks(refreshed.perks);
+          if (refreshed.status === "valid") setVerifiedPerks(refreshed.perks);
         }
       }
       await alertModal({
