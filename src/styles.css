@@ -3894,12 +3894,20 @@ body:has(.battle) {
 
 /* ---------- Leaderboard ---------- */
 .lb-screen { padding: 16px 16px 24px; }
+/* Two-row layout: 4 equal boards across the top, one full-width board below.
+   Top row = Highest Floor · Survival · Boss Raid · Fastest World Ender;
+   bottom row = First to Conquer the Tower (wide). */
 .lb-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 380px;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  max-width: 1280px;
+  max-width: 1480px;
   margin: 16px auto 0;
+}
+.lb-top-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
 }
 .lb-side { display: flex; flex-direction: column; gap: 16px; }
 /* MoTZ glass board surface. Gold border kept since it reinforces the GT
@@ -3936,6 +3944,11 @@ body:has(.battle) {
 }
 .lb-rows { display: flex; flex-direction: column; gap: 2px; max-height: 600px; overflow-y: auto; }
 .lb-side .lb-rows { max-height: 240px; }
+/* The 4 top-row boards share the same height so the grid stays even no
+   matter how many rows each board has loaded. */
+.lb-top-row .lb-rows { max-height: 420px; }
+/* First-to-Conquer is a single full-width board below the top row. */
+.lb-conquer-wide { width: 100%; }
 .lb-row {
   display: grid;
   grid-template-columns: 32px 1fr 60px 80px auto;
@@ -4136,8 +4149,14 @@ body:has(.battle) {
 .first-offer-actions {
   display: flex; flex-direction: column; gap: 8px;
 }
+/* Tablet / narrow desktop: 4-across is too cramped — drop the top row to
+   a 2×2 grid. The conquer board below stays full-width. */
 @media (max-width: 1100px) {
-  .lb-grid { grid-template-columns: 1fr; }
+  .lb-top-row { grid-template-columns: 1fr 1fr; }
+}
+/* Phone: single column for everything. */
+@media (max-width: 620px) {
+  .lb-top-row { grid-template-columns: 1fr; }
 }
 
 /* Secondary / ghost variant — glass surface, no gold gradient. */

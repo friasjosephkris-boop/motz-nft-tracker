@@ -21,22 +21,22 @@ export function renderLeaderboard(root: HTMLElement, onBack: () => void, onPlayR
     <div class="screen-frame lb-screen">
       ${topBarHtml("Leaderboard", true)}
       <div class="lb-grid">
-        <div class="lb-board lb-survival">
-          ${titleHtml("Survival", "survival")}
-          <div class="lb-rows" id="lb-survival-rows">
-            <div class="lb-empty">Loading…</div>
+        <div class="lb-top-row">
+          <div class="lb-board lb-floorclimb">
+            ${titleHtml("Highest Floor Cleared", "floorclimb")}
+            <div class="lb-rows" id="lb-floorclimb-rows">
+              <div class="lb-empty">Loading…</div>
+            </div>
           </div>
-        </div>
-        <div class="lb-board lb-bossraid">
-          ${titleHtml("Boss Raid", "bossraid")}
-          <div class="lb-rows" id="lb-bossraid-rows">
-            <div class="lb-empty">Loading…</div>
+          <div class="lb-board lb-survival">
+            ${titleHtml("Survival", "survival")}
+            <div class="lb-rows" id="lb-survival-rows">
+              <div class="lb-empty">Loading…</div>
+            </div>
           </div>
-        </div>
-        <div class="lb-side">
-          <div class="lb-board lb-conquer">
-            ${titleHtml("First to Conquer the Tower", "conquer")}
-            <div class="lb-rows" id="lb-conquer-rows">
+          <div class="lb-board lb-bossraid">
+            ${titleHtml("Boss Raid", "bossraid")}
+            <div class="lb-rows" id="lb-bossraid-rows">
               <div class="lb-empty">Loading…</div>
             </div>
           </div>
@@ -46,11 +46,11 @@ export function renderLeaderboard(root: HTMLElement, onBack: () => void, onPlayR
               <div class="lb-empty">Loading…</div>
             </div>
           </div>
-          <div class="lb-board lb-floorclimb">
-            ${titleHtml("Highest Floor Cleared", "floorclimb")}
-            <div class="lb-rows" id="lb-floorclimb-rows">
-              <div class="lb-empty">Loading…</div>
-            </div>
+        </div>
+        <div class="lb-board lb-conquer lb-conquer-wide">
+          ${titleHtml("First to Conquer the Tower", "conquer")}
+          <div class="lb-rows" id="lb-conquer-rows">
+            <div class="lb-empty">Loading…</div>
           </div>
         </div>
       </div>
