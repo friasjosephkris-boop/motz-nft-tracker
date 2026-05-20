@@ -36,6 +36,8 @@ export interface ReferralStatus {
   code: string;
   referees: ReferralReferee[];
   totalEnergyEarned: number;
+  /** Unclaimed referral energy waiting to be collected on the referral screen. */
+  claimable: number;
   referredBy: string | null;
   referredByIgn: string | null;
 }
@@ -73,6 +75,42 @@ export async function captureReferral(code: string): Promise<{ ok: boolean; reas
   } catch {
     return { ok: false, reason: "network" };
   }
+}
+
+/** Lightweight read of just the unclaimed-energy count — used by the home
+ *  screen to decide whether to show the notification bubble. Cheaper than a
+ *  full dashboard fetch. Returns 0 on any failure. */
+export async function fetchReferralClaimable(): Promise<number> {
+  const tok = token();
+  if (!tok) return 0;
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "referral_claimable" }),
+    });
+    if (!r.ok) return 0;
+    const data = await r.json() as { claimable?: number };
+    return typeof data.claimable === "number" ? data.claimable : 0;
+  } catch { return 0; }
+}
+
+/** Collect all unclaimed referral energy. Server is atomic — safe to call
+ *  even if the button is double-tapped. Returns the amount claimed and the
+ *  wallet's new energy balance. */
+export async function claimReferralRewards(): Promise<{ ok: boolean; claimed: number; energy: number }> {
+  const tok = token();
+  if (!tok) return { ok: false, claimed: 0, energy: 0 };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "referral_claim" }),
+    });
+    if (!r.ok) return { ok: false, claimed: 0, energy: 0 };
+    const data = await r.json() as { ok?: boolean; claimed?: number; energy?: number };
+    return { ok: !!data.ok, claimed: data.claimed ?? 0, energy: data.energy ?? 0 };
+  } catch { return { ok: false, claimed: 0, energy: 0 }; }
 }
 
 /** Build the full shareable referral URL for a code, rooted at the current

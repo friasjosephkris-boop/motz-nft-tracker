@@ -5,6 +5,7 @@ import { fetchDailyStatus, claimDailyBonus, DailyStatus } from "../core/daily";
 import { setEnergy } from "../core/energy";
 import { refreshSeasonStatus, getCachedSeasonStatus } from "../core/season";
 import { alertModal } from "./confirmModal";
+import { fetchReferralClaimable } from "../core/referral";
 
 export type HomeAction = "tower" | "units" | "settings" | "tutorial" | "leaderboard" | "codex" | "shop" | "inventory" | "referral";
 
@@ -56,6 +57,7 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
         </button>
         <button class="home-tile" data-action="referral" type="button">
           <div class="tile-title">Refer a Friend</div>
+          <span class="home-tile-badge" id="referral-badge" hidden></span>
         </button>
       </div>
     </div>
@@ -88,6 +90,18 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
 
   void mountDailyWidget(root);
   void mountSeasonBanner(root);
+
+  // Referral notification bubble — if the wallet has unclaimed referral
+  // energy, badge the "Refer a Friend" tile with the amount. No popup; the
+  // player sees the bubble, opens the referral screen, and claims there.
+  void fetchReferralClaimable().then(claimable => {
+    if (claimable <= 0) return;
+    const badge = root.querySelector<HTMLElement>("#referral-badge");
+    if (badge) {
+      badge.textContent = claimable > 99 ? "99+" : String(claimable);
+      badge.hidden = false;
+    }
+  }).catch(() => undefined);
 }
 
 async function mountSeasonBanner(root: HTMLElement): Promise<void> {

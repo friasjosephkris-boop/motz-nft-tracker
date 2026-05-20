@@ -45,7 +45,7 @@ import { getAddress } from "viem";
 import { getCurrentMultiplier } from "../_lib/daily.js";
 import { isAdmin } from "../_lib/admin.js";
 import { adminGrantEnergy, adminFillEnergy, ENERGY_MAX, consumePendingClear } from "../_lib/energy.js";
-import { captureReferral, getReferralDashboard, fireFloorMilestone, fireRonMilestone } from "../_lib/referral.js";
+import { captureReferral, getReferralDashboard, fireFloorMilestone, fireRonMilestone, getReferralClaimable, claimReferralRewards } from "../_lib/referral.js";
 
 // Floor-mode battle event endpoint. Handles three operations to stay under
 // the Vercel Hobby 12-function cap:
@@ -399,6 +399,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       // 200 in both ok and rejected cases — the client uses `ok` to decide
       // whether to clear its pending code, and a rejection isn't an error.
       res.status(200).json(result);
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+    }
+    return;
+  }
+  if (op === "referral_claimable") {
+    // Lightweight read for the home-screen notification bubble — just the
+    // unclaimed energy count, no dashboard build.
+    try {
+      const claimable = await getReferralClaimable(address);
+      res.status(200).json({ ok: true, claimable });
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+    }
+    return;
+  }
+  if (op === "referral_claim") {
+    // Collect all unclaimed referral energy. Atomic server-side (GETDEL), so
+    // a double-tapped Claim button can't double-grant.
+    try {
+      const result = await claimReferralRewards(address);
+      res.status(200).json({ ok: true, ...result });
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
     }
