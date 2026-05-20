@@ -99,7 +99,6 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
     });
   });
 
-  void mountDailyWidget(root);
   void mountSeasonBanner(root);
 
   // Referral notification bubble — if the wallet has unclaimed referral
@@ -110,7 +109,13 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
   refreshReferralBadge();
   installReferralBadgeWatcher();
 
-  mountHomeDecor(root);
+  // Decorative silhouettes are placed AFTER the daily card has rendered, so
+  // mountHomeDecor can measure that card (and every other UI box) and
+  // scatter the silhouettes into genuinely-empty space only. rAF lets the
+  // layout flush before we read rects.
+  void mountDailyWidget(root).catch(() => undefined).then(() => {
+    requestAnimationFrame(() => mountHomeDecor(root));
+  });
 }
 
 /** Unit silhouettes scattered across the home background as decoration.
@@ -127,49 +132,76 @@ const DECOR_SILHOUETTES = ["ego", "aspen", "gruyere", "hera", "oge", "soda", "sh
 function mountHomeDecor(root: HTMLElement): void {
   const layer = root.querySelector<HTMLElement>("#home-decor");
   const screen = root.querySelector<HTMLElement>(".home-screen");
-  const tiles = root.querySelector<HTMLElement>(".home-tiles");
-  if (!layer || !screen || !tiles) return;
+  if (!layer || !screen) return;
+  layer.innerHTML = ""; // idempotent — a re-run replaces, never stacks
 
-  const SIZE = 110;       // silhouette box (matches a home-tile's height)
-  const ROT = 16;         // a rotated 110px box pokes out ~16px
-  const PAD = 12;
-  const SLOT = SIZE + ROT; // clearance a silhouette needs to not touch a tile
+  // A silhouette renders at 110px tall; the widest (Shego, ~3:2) is ~165px
+  // wide and rotation pokes out a little more — reserve a generous box so
+  // none of it can clip a UI element.
+  const SLOT_W = 185;
+  const SLOT_H = 140;
+  const PAD = 14; // gap kept between a silhouette and any box (incl. other silhouettes)
 
   const hs = screen.getBoundingClientRect();
-  const tl = tiles.getBoundingClientRect();
   const W = hs.width, H = hs.height;
-  const tileLeft = tl.left - hs.left;
-  const tileRight = tl.right - hs.left;
-  const tileBottom = tl.bottom - hs.top;
-  const yMax = Math.max(PAD, H - PAD - SLOT);
 
-  // Empty gutters beside the centered tile column.
-  type Zone = { x0: number; x1: number; y0: number; y1: number };
-  const zones: Zone[] = [];
-  const leftMax = tileLeft - PAD - SLOT;
-  if (leftMax >= PAD) zones.push({ x0: PAD, x1: leftMax, y0: PAD, y1: yMax });
-  if (tileRight + PAD <= W - PAD - SLOT) zones.push({ x0: tileRight + PAD, x1: W - PAD - SLOT, y0: PAD, y1: yMax });
-  if (zones.length === 0) {
-    // Viewport too narrow for side gutters — use the strip below the tiles,
-    // and if even that has no room, fall back to the whole area.
-    if (tileBottom + PAD <= yMax) zones.push({ x0: PAD, x1: Math.max(PAD, W - PAD - SLOT), y0: tileBottom + PAD, y1: yMax });
-    else zones.push({ x0: PAD, x1: Math.max(PAD, W - SLOT), y0: PAD, y1: Math.max(PAD, H - SLOT) });
-  }
+  // Collect every UI box the silhouettes must NOT cover, in screen-relative
+  // coords, each inflated by PAD. Hidden / not-yet-laid-out elements report a
+  // zero-size rect and are skipped.
+  type Rect = { x0: number; y0: number; x1: number; y1: number };
+  const keepOut: Rect[] = [];
+  const addRect = (el: Element | null): void => {
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return;
+    keepOut.push({
+      x0: r.left - hs.left - PAD,
+      y0: r.top - hs.top - PAD,
+      x1: r.right - hs.left + PAD,
+      y1: r.bottom - hs.top + PAD,
+    });
+  };
+  root.querySelectorAll(".gear-btn").forEach(addRect);     // top icon row
+  addRect(root.querySelector(".energy-pill"));             // energy counter
+  addRect(root.querySelector(".home-header"));             // greeting + title
+  addRect(root.querySelector("#daily-slot"));              // daily reward card
+  addRect(root.querySelector("#season-halt-banner"));      // off-season banner
+  addRect(root.querySelector(".home-tiles"));              // menu tile column
+  addRect(document.getElementById("wallet-status-badge")); // credit + wallet box (on <body>)
+
+  const overlaps = (x: number, y: number): boolean => {
+    const x1 = x + SLOT_W, y1 = y + SLOT_H;
+    for (const k of keepOut) {
+      if (x < k.x1 && x1 > k.x0 && y < k.y1 && y1 > k.y0) return true;
+    }
+    return false;
+  };
 
   const rand = (a: number, b: number): number => a + Math.random() * Math.max(0, b - a);
+  const xMax = Math.max(PAD, W - PAD - SLOT_W);
+  const yMax = Math.max(PAD, H - PAD - SLOT_H);
 
-  DECOR_SILHOUETTES.forEach((name, i) => {
+  DECOR_SILHOUETTES.forEach(name => {
+    // Rejection-sample a spot clear of every UI box AND every already-placed
+    // silhouette. Falls back to the last tried spot if the screen is too
+    // cramped to find a free one (graceful — these are just decoration).
+    let x = rand(PAD, xMax), y = rand(PAD, yMax);
+    for (let t = 0; t < 120; t++) {
+      const cx = rand(PAD, xMax), cy = rand(PAD, yMax);
+      if (!overlaps(cx, cy)) { x = cx; y = cy; break; }
+    }
     const img = document.createElement("img");
     img.className = "home-decor-silhouette";
     img.dataset.unit = name; // drives the per-unit hover aura colour in CSS
     img.src = `/units/${name}-silhouette.png`;
     img.alt = "";
     img.draggable = false;
-    const z = zones[i % zones.length];
-    img.style.left = `${rand(z.x0, z.x1).toFixed(1)}px`;
-    img.style.top = `${rand(z.y0, z.y1).toFixed(1)}px`;
+    img.style.left = `${x.toFixed(1)}px`;
+    img.style.top = `${y.toFixed(1)}px`;
     img.style.setProperty("--decor-rot", `${(Math.random() * 36 - 18).toFixed(1)}deg`);
     layer.appendChild(img);
+    // Reserve this silhouette's footprint so later ones don't pile onto it.
+    keepOut.push({ x0: x, y0: y, x1: x + SLOT_W, y1: y + SLOT_H });
   });
 }
 
