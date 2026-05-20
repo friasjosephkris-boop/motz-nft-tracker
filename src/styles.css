@@ -3853,7 +3853,60 @@ body:has(.battle) {
   z-index: 1500;
   pointer-events: auto;
   font-family: inherit;
+  /* Stack the "Created by MoTZ" credit box above the wallet pill, both
+     right-aligned. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
+
+/* "Created by MoTZ" credit box — sits directly above the wallet pill and
+   links to the MoTZ Discord. Styled to match the wallet card. */
+.motz-credit {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px 7px 9px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 50%),
+    rgba(8, 11, 28, 0.92);
+  border: 1px solid var(--motz-glass-border-hi);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  min-width: 200px;
+  max-width: 320px;
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.motz-credit:hover {
+  border-color: rgba(244, 211, 94, 0.6);
+  transform: translateY(-1px);
+}
+.motz-credit-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+.motz-credit-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.motz-credit-by {
+  font-family: "Cinzel", "Times New Roman", serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--gold-bright);
+  text-transform: uppercase;
+}
+.motz-credit-link {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+.motz-credit:hover .motz-credit-link { color: var(--gold-bright); }
 .wsb-card {
   display: grid;
   grid-template-columns: auto 1fr auto;
