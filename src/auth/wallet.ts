@@ -50,6 +50,13 @@ export async function performAuthFlow(): Promise<{ token: string; address: strin
     const data = await verifyRes.json().catch(() => ({}));
     throw new Error(data?.error ?? "wallet does not hold required NFT");
   }
+  if (verifyRes.status === 503) {
+    // Retryable NFT-verification outage — surface the server's friendly
+    // message verbatim ("Ronin network is busy, try again") instead of a
+    // bare status code. The player likely DOES hold the NFT.
+    const data = await verifyRes.json().catch(() => ({}));
+    throw new Error(data?.error ?? "NFT verification temporarily unavailable — please try again in a moment");
+  }
   if (!verifyRes.ok) throw new Error(`verify failed: ${verifyRes.status}`);
   const { session, address } = await verifyRes.json();
   return { token: session, address };
