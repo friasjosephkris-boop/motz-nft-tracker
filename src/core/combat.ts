@@ -377,6 +377,9 @@ export interface BattleOptions {
    *  template's intrinsic `level` field is ignored. Solo-boss templates also
    *  honor this override — their stats grow alongside their mob counterparts. */
   enemyLevelOverride?: number;
+  /** Post-game depth difficulty: flat stat multiplier applied to every enemy,
+   *  on top of level scaling. 1.0 = no change. */
+  enemyStatMul?: number;
   /** Post-game resist randomization (Floor 100+): replace every enemy's
    *  intrinsic resist field with this profile. Two of {physical, magical,
    *  melee, range} are usually 0 (100% resist → 1 dmg floor); the others
@@ -459,6 +462,13 @@ export function startBattle(
       applyBossScaling(c, statMul, speedMul);
     }
   }
+  // Post-game depth difficulty: beef up every enemy by a per-floor multiplier
+  // so deeper floors stay harder regardless of how fast the player levels.
+  if (opts.enemyStatMul && opts.enemyStatMul > 1) {
+    for (const c of enemyCombatants) {
+      applyEnemyStatMul(c, opts.enemyStatMul);
+    }
+  }
 
   // Boss Raid: stacking player stat boost (10% per pick) — affects all players.
   const boost = Math.max(0, opts.playerStatBoost ?? 0);
@@ -523,6 +533,19 @@ function applyBossScaling(c: Combatant, statMul: number, speedMul: number): void
   if (c.atkMultiplier && c.atkMultiplier > 1) {
     c.atkMultiplier = c.atkMultiplier * 1.5;
   }
+}
+
+/** Post-game depth scaling — multiply an enemy's input stats by `mul` so
+ *  derived HP / attack / defense rise ~mul×. Unlike boss-raid scaling this
+ *  leaves atb-speed and atkMultiplier untouched: depth makes enemies tankier
+ *  and hit harder, never faster. */
+function applyEnemyStatMul(c: Combatant, mul: number): void {
+  c.stats = scaleStats(c.stats, mul);
+  const d = deriveStats(c.stats);
+  c.maxHp = Math.max(1, Math.round(d.maxHp));
+  c.maxMp = Math.max(0, Math.round(d.maxMp + c.level * MP_PER_LEVEL));
+  c.hp = c.maxHp;
+  c.mp = c.maxMp;
 }
 
 function applyPlayerBoost(c: Combatant, mul: number): void {

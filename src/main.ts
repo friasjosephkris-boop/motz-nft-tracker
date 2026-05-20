@@ -28,7 +28,7 @@ import { ATB_FULL } from "./core/timeline";
 import { recordClear, getMaxCleared } from "./core/clears";
 import { installGlobalClickSounds } from "./core/audio";
 import { mountWalletStatusBadge, refreshWalletStatusBadge } from "./ui/walletStatusBadge";
-import { STAGE_DEFS, getStage, BOSS_RAID_FLOORS, PLAYER_ROSTER, isPostGameFloor, postGameEnemyLevelFor, resistProfileForFloor, xpForFloor } from "./units/roster";
+import { STAGE_DEFS, getStage, BOSS_RAID_FLOORS, PLAYER_ROSTER, isPostGameFloor, postGameEnemyLevelFor, resistProfileForFloor, xpForFloor, postGameEnemyPowerMul } from "./units/roster";
 import { Stats } from "./core/stats";
 import { loadSession, validateSession, clearSession, setVerifiedAddress, setVerifiedPerks, Session } from "./auth/session";
 import { setUserScope } from "./auth/scope";
@@ -1107,6 +1107,10 @@ function runFloor(party: SquadResult["players"], floorId: number, xpMultiplier: 
   // the same. Boss raid uses its own gentler profile (see runBossRaidFloor).
   if (isPostGameFloor(floorId)) {
     opts.enemyLevelOverride = postGameEnemyLevelFor(floorId);
+    // Depth difficulty: enemies get a stat multiplier that ramps with floor
+    // depth, on top of level scaling — so the climb keeps getting harder
+    // even for an over-levelled player. Applies to floor + survival climbs.
+    opts.enemyStatMul = postGameEnemyPowerMul(floorId);
     // Post-game floor XP comes from the smooth depth curve (deeper = more),
     // not the summed enemy xpReward. Floor mode only — survival keeps its
     // own heavily-reduced XP model (1/50× the enemy sum).

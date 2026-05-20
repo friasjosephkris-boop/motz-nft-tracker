@@ -677,6 +677,21 @@ export function xpForFloor(floorId: number): number {
   return Math.round(POST_GAME_FLOOR_XP_BASE + POST_GAME_FLOOR_XP_STEP * (floorId - POST_GAME_FIRST_FLOOR));
 }
 
+// Post-game depth difficulty — enemies get a stat multiplier that ramps with
+// floor depth, ON TOP of the Lv30→70 level scaling. This keeps the climb
+// getting harder even for a player who over-levels (level alone can be
+// out-grinded; this can't). +40% enemy power by F500.
+const POST_GAME_POWER_MUL_AT_LAST = 1.40;
+
+/** Enemy stat multiplier for a post-game floor (51-500): 1.0 at F51, ramping
+ *  linearly to POST_GAME_POWER_MUL_AT_LAST at F500. Returns 1 for campaign. */
+export function postGameEnemyPowerMul(floorId: number): number {
+  if (floorId < POST_GAME_FIRST_FLOOR) return 1;
+  const f = Math.min(POST_GAME_LAST_FLOOR, floorId);
+  const t = (f - POST_GAME_FIRST_FLOOR) / (POST_GAME_LAST_FLOOR - POST_GAME_FIRST_FLOOR);
+  return 1 + (POST_GAME_POWER_MUL_AT_LAST - 1) * t;
+}
+
 /** Floor where resist randomization kicks in. Below this, enemies use their
  *  template's intrinsic resist field (or none). At-or-above, every enemy on
  *  the floor inherits the floor's randomized resist profile — see below. */
