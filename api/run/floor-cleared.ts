@@ -45,6 +45,7 @@ import { getAddress } from "viem";
 import { getCurrentMultiplier } from "../_lib/daily.js";
 import { isAdmin } from "../_lib/admin.js";
 import { adminGrantEnergy, adminFillEnergy, ENERGY_MAX, consumePendingClear } from "../_lib/energy.js";
+import { captureReferral, getReferralDashboard, fireFloorMilestone, fireRonMilestone } from "../_lib/referral.js";
 
 // Floor-mode battle event endpoint. Handles three operations to stay under
 // the Vercel Hobby 12-function cap:
@@ -373,6 +374,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   }
 
+  // ---- Referral system ----
+  // referral_status  → dashboard payload (own code, referees, totals, who
+  //                    referred you).
+  // referral_capture → bind the caller to a referrer behind a code. Server
+  //                    rejects self-referral / already-referred / non-new
+  //                    wallets, so the client can fire it freely on sign-in.
+  if (op === "referral_status") {
+    try {
+      const dash = await getReferralDashboard(address);
+      res.status(200).json({ ok: true, ...dash });
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+    }
+    return;
+  }
+  if (op === "referral_capture") {
+    const codeRaw = (req.body as { code?: unknown }).code;
+    if (typeof codeRaw !== "string" || codeRaw.trim().length === 0) {
+      res.status(400).json({ ok: false, reason: "code required" }); return;
+    }
+    try {
+      const result = await captureReferral(address, codeRaw);
+      // 200 in both ok and rejected cases — the client uses `ok` to decide
+      // whether to clear its pending code, and a rejection isn't an error.
+      res.status(200).json(result);
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+    }
+    return;
+  }
+
   if (op === "get_replay") {
     const scope = typeof (req.body as { scope?: unknown }).scope === "string" ? (req.body as { scope: string }).scope : "";
     const targetRaw = typeof (req.body as { address?: unknown }).address === "string" ? (req.body as { address: string }).address : "";
@@ -577,8 +609,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       // AND the global shop revenue (real RON flows to the treasury via the
       // same verified tx, so it's revenue just like any other shop_buy).
       const ronPrice = Number((ITEM_PRICES_WEI["energy_first_offer"] ?? 0n) / 10n ** 18n);
-      void bumpRonSpent(address, ronPrice);
+      await bumpRonSpent(address, ronPrice).catch(() => undefined);
       void bumpShopRevenue(ronPrice);
+      // Referral RON-spend reward — this offer purchase counts toward the
+      // referee's 10-RON milestone.
+      await fireRonMilestone(address).catch(() => undefined);
       res.status(200).json({ ok: true, energy: grant.energy });
       return;
     } catch (e) {
@@ -740,8 +775,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       // Analytics: same as the first-energy-offer path — real RON flows to
       // treasury, so per-wallet RON-spent + global shop revenue both bump.
       const ronPrice = Number((ITEM_PRICES_WEI["floor20_offer_bundle"] ?? 0n) / 10n ** 18n);
-      void bumpRonSpent(address, ronPrice);
+      await bumpRonSpent(address, ronPrice).catch(() => undefined);
       void bumpShopRevenue(ronPrice);
+      // Referral RON-spend reward — this offer purchase counts toward the
+      // referee's 10-RON milestone.
+      await fireRonMilestone(address).catch(() => undefined);
       res.status(200).json({ ok: true, grants: grant.grants });
       return;
     } catch (e) {
@@ -869,8 +907,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       // don't move new RON to the treasury). We use the item's listed RON
       // price rather than the paid wei in case the player over-paid.
       const ronPriceForRevenue = Number((ITEM_PRICES_WEI[itemId] ?? 0n) / 10n ** 18n);
-      void bumpRonSpent(address, ronPriceForRevenue);
+      // Awaited (not void) so the referral RON-milestone check below reads a
+      // cumulative total that already includes THIS purchase.
+      await bumpRonSpent(address, ronPriceForRevenue).catch(() => undefined);
       void bumpShopRevenue(ronPriceForRevenue);
+      // Referral RON-spend reward: this purchase may push the referee's
+      // lifetime RON spend over the 10-RON milestone. One-time + no-op for
+      // non-referred wallets.
+      await fireRonMilestone(address).catch(() => undefined);
       res.status(200).json({ ok: true, grant });
       return;
     } catch (e) {
@@ -1242,6 +1286,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
     }
     const conquer = await recordFloorModeClear(address, stageId, conquerParty).catch(() => ({ newMax: 0, awardedConqueror: false }));
+
+    // Referral floor-milestone reward: if this clearing wallet was referred
+    // and just cleared Floor 20/40/60/80/100, grant 5 energy to both the
+    // referee and their referrer. Idempotent + no-op for non-referred
+    // wallets, so it's safe to await unconditionally on every clear.
+    await fireFloorMilestone(address, stageId).catch(() => undefined);
 
     res.status(200).json({
       ok: true,
