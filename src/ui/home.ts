@@ -6,7 +6,7 @@ import { setEnergy } from "../core/energy";
 import { refreshSeasonStatus, getCachedSeasonStatus } from "../core/season";
 import { alertModal } from "./confirmModal";
 
-export type HomeAction = "tower" | "units" | "settings" | "tutorial" | "leaderboard" | "codex" | "shop" | "inventory";
+export type HomeAction = "tower" | "units" | "settings" | "tutorial" | "leaderboard" | "codex" | "shop" | "inventory" | "referral";
 
 export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void): void {
   const s = loadSettings();
@@ -53,6 +53,9 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
         </button>
         <button class="home-tile" data-action="leaderboard" type="button">
           <div class="tile-title">Leaderboard</div>
+        </button>
+        <button class="home-tile" data-action="referral" type="button">
+          <div class="tile-title">Refer a Friend</div>
         </button>
       </div>
     </div>

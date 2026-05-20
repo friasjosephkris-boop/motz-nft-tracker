@@ -48,6 +48,8 @@ import { playBattleStartAnimation } from "./ui/battleStartAnim";
 import { fetchAttemptsStatus, claimAttempt, consumeShopItem, rollBron, ShopItemId } from "./core/shop";
 import { renderShop } from "./ui/shop";
 import { renderInventory } from "./ui/inventory";
+import { renderReferral } from "./ui/referral";
+import { getPendingRefCode, clearPendingRefCode, captureReferral, setPendingRefCode } from "./core/referral";
 
 const root = document.getElementById("app");
 if (!root) throw new Error("#app not found");
@@ -57,6 +59,18 @@ let currentSession: Session | null = null;
 void bootstrap();
 
 async function bootstrap(): Promise<void> {
+  // Referral link capture — if the player arrived via ?ref=CODE, stash the
+  // code before auth and strip it from the URL so a refresh / bookmark
+  // doesn't carry it around. The code is submitted to the server right
+  // after sign-in (see proceedAfterAuth).
+  try {
+    const refParam = new URLSearchParams(window.location.search).get("ref");
+    if (refParam && refParam.trim().length > 0) {
+      setPendingRefCode(refParam);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  } catch { /* ignore — malformed URL / no history API */ }
+
   const existing = loadSession();
   if (existing) {
     // Dev build: re-check allowlist on every boot so removing a tester actually
@@ -148,6 +162,17 @@ function forceReauth(): void {
 }
 
 async function proceedAfterAuth(): Promise<void> {
+  // Referral capture — if a ?ref= code is pending, submit it now. The server
+  // validates eligibility (new wallet, not self, not already referred), so
+  // firing it on every sign-in is safe: a returning player is rejected
+  // cleanly. Clear the pending code on success OR a definitive rejection;
+  // keep it only on a transport error so the next visit retries.
+  const pendingRef = getPendingRefCode();
+  if (pendingRef) {
+    void captureReferral(pendingRef).then(res => {
+      if (res.ok || res.reason !== "network") clearPendingRefCode();
+    }).catch(() => undefined);
+  }
   // Seed the local energy cache from the server right after auth so devtools
   // edits made before login are immediately overwritten by the canonical value.
   void fetchServerEnergy();
@@ -200,7 +225,7 @@ function startApp(): void {
   requestAnimationFrame(t => { lastT = t; frame(t); });
 }
 
-type Screen = "home" | "stage_select" | "squad_select" | "battle" | "units" | "settings" | "leaderboard" | "run_summary" | "replay" | "codex" | "shop" | "inventory";
+type Screen = "home" | "stage_select" | "squad_select" | "battle" | "units" | "settings" | "leaderboard" | "run_summary" | "replay" | "codex" | "shop" | "inventory" | "referral";
 
 interface CarryEntry { hp: number; mp: number; xp: number; level: number; availablePoints: number; customStats: Stats; classId?: string; skillCooldowns?: Record<string, number>; gauge?: number; alive?: boolean; damageDealt?: number; damageTaken?: number; kills?: number; xpGainedTotal?: number }
 
@@ -768,11 +793,17 @@ function onHomeAction(a: HomeAction): void {
   else if (a === "codex") showCodex();
   else if (a === "shop") showShop();
   else if (a === "inventory") showInventory();
+  else if (a === "referral") showReferral();
 }
 
 function showShop(): void {
   screen = "shop" as Screen;
   void renderShop(root!, showHome);
+}
+
+function showReferral(): void {
+  screen = "referral" as Screen;
+  renderReferral(root!, showHome);
 }
 
 function showInventory(): void {
