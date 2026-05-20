@@ -1701,9 +1701,16 @@ body:has(.battle) {
   color: var(--text);
   font-size: 26px;
   cursor: pointer;
-  transition: background 0.1s, border-color 0.1s, transform 0.05s;
+  transition: background 0.1s, border-color 0.1s, transform 0.05s, box-shadow 0.15s;
 }
-.gear-btn:hover { background: var(--panel-2); border-color: var(--gold); }
+/* Blue hover aura — bright inner ring + soft outer bloom. */
+.gear-btn:hover {
+  background: var(--panel-2);
+  border-color: rgba(77, 163, 255, 0.85);
+  box-shadow:
+    0 0 14px 2px rgba(77, 163, 255, 0.55),
+    0 0 32px 8px rgba(14, 125, 233, 0.35);
+}
 .gear-btn:active { transform: rotate(20deg); }
 .gear-btn.tutorial-btn { right: 64px; font-family: "Cinzel", "Times New Roman", serif; font-weight: 700; color: var(--gold-bright); }
 .gear-btn.tutorial-btn:active { transform: scale(0.95); }
