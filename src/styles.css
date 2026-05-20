@@ -1726,6 +1726,8 @@ body:has(.battle) {
 .home-decor-silhouette[data-unit="hera"]:hover    { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 18px rgba(255, 255, 255, 0.70)); }
 .home-decor-silhouette[data-unit="oge"]:hover     { filter: drop-shadow(0 0 6px rgba(255, 110, 180, 0.95)) drop-shadow(0 0 18px rgba(255, 110, 180, 0.70)); }
 .home-decor-silhouette[data-unit="soda"]:hover    { filter: drop-shadow(0 0 6px rgba(255, 140, 60, 0.95))  drop-shadow(0 0 18px rgba(255, 140, 60, 0.70)); }
+/* Shego — leafy green aura, matching her wind-and-leaves motif. */
+.home-decor-silhouette[data-unit="shego"]:hover   { filter: drop-shadow(0 0 6px rgba(110, 235, 130, 0.95)) drop-shadow(0 0 18px rgba(110, 235, 130, 0.72)); }
 /* Lift interactive home content above the decorative layer. */
 .home-screen > .gear-btn,
 .home-screen > .energy-pill { z-index: 3; }
