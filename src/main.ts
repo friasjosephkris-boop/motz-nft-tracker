@@ -79,7 +79,7 @@ async function bootstrap(): Promise<void> {
       clearSession();
     } else {
       const v = await validateSession(existing.token);
-      if (v) {
+      if (v.status === "valid") {
         currentSession = existing;
         setVerifiedAddress(v.address);
         setVerifiedPerks(v.perks);
@@ -90,6 +90,23 @@ async function bootstrap(): Promise<void> {
         void proceedAfterAuth();
         return;
       }
+      if (v.status === "unreachable") {
+        // Couldn't reach the server to verify the stored session. Do NOT
+        // force a reconnect over a transient blip — proceed with the stored
+        // session. Every gameplay API call independently verifies the JWT,
+        // so an actually-dead session still can't do anything; and the
+        // periodic revalidator will revoke it cleanly once the server is
+        // reachable again and returns a definitive answer.
+        currentSession = existing;
+        setVerifiedAddress(existing.address);
+        setUserScope(existing.address);
+        ensureWalletInSettings(existing.address);
+        startSessionRevalidator();
+        refreshWalletStatusBadge();
+        void proceedAfterAuth();
+        return;
+      }
+      // v.status === "invalid" — definitive server rejection.
       clearSession();
       refreshWalletStatusBadge();
     }
@@ -101,7 +118,7 @@ async function bootstrap(): Promise<void> {
     ensureWalletInSettings(s.address);
     // Fetch perks immediately after fresh auth so the gate is correct on first render.
     const v = await validateSession(s.token);
-    if (v) setVerifiedPerks(v.perks);
+    if (v.status === "valid") setVerifiedPerks(v.perks);
     startSessionRevalidator();
     refreshWalletStatusBadge();
     void proceedAfterAuth();
@@ -123,13 +140,21 @@ async function runRevalidate(): Promise<void> {
   revalidateInFlight = true;
   try {
     const v = await validateSession(currentSession.token);
-    if (v) {
+    if (v.status === "valid") {
       // Refresh perks in case key holding changed (sold/bought MoTZ Key).
       setVerifiedPerks(v.perks);
       return;
     }
-    // Session invalidated server-side — wallet sold NFT, JWT expired, or
-    // secret rotated. Hard-clear and route back to the gate.
+    if (v.status === "unreachable") {
+      // Transient network/server hiccup — the answer is ambiguous, so keep
+      // the session and let the next poll (or tab-focus) re-check. NEVER
+      // revoke on an ambiguous failure: that's what was bouncing players
+      // back to the wallet gate on every refresh / alt-tab.
+      return;
+    }
+    // v.status === "invalid" — session genuinely revoked server-side
+    // (wallet sold NFT, JWT expired, or secret rotated). Hard-clear and
+    // route back to the gate.
     forceReauth();
   } finally {
     revalidateInFlight = false;
