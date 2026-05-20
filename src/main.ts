@@ -617,7 +617,11 @@ async function showRunSummary(outcome: "victory" | "defeat", floorsCleared: numb
     const replayStageId = currentStageId;
     const replayAction = async () => { await advanceToNextFloor(replayStageId, partyForRetry); };
 
-    if (outcome === "victory" && currentStageId < 50) {
+    // No `currentStageId < N` cap here — getStage() below is the real bound:
+    // it returns null past the last floor (501+), so the final floor naturally
+    // gets no Next Floor button. A hardcoded `< 50` here is what hid the button
+    // for the entire post-game (floors 51-500).
+    if (outcome === "victory") {
       const nextStageId = currentStageId + 1;
       const nextStage = getStage(nextStageId);
       if (nextStage) {
@@ -629,7 +633,7 @@ async function showRunSummary(outcome: "victory" | "defeat", floorsCleared: numb
         return;
       }
     }
-    // Victory on Floor 50, or any defeat: replay button alone (no Next Floor).
+    // Victory on the final floor, or any defeat: replay button alone (no Next Floor).
     renderRunSummary(root!, summary, showHome, { onReplayFloor: replayAction });
     return;
   }
