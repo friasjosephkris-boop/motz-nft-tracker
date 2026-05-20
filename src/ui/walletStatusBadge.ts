@@ -85,7 +85,28 @@ async function refresh(): Promise<void> {
   }
 
   el.style.display = "";
-  el.innerHTML = renderBadge({ matching, firstConnected, session });
+  // Credit box stacks ABOVE the wallet pill (flex-column on .wsb-host).
+  el.innerHTML = renderCreditBox() + renderBadge({ matching, firstConnected, session });
+  // The MoTZ logo lives at /public/motz-icon.png. If that asset isn't present
+  // yet, hide the <img> so the box still looks clean (text-only) rather than
+  // showing a broken-image glyph.
+  const logo = el.querySelector<HTMLImageElement>(".motz-credit-logo");
+  if (logo) logo.onerror = (): void => { logo.style.display = "none"; };
+}
+
+/** Static "Created by MoTZ" credit box shown directly above the wallet pill.
+ *  The whole box is a link to the MoTZ Discord. */
+function renderCreditBox(): string {
+  return `
+    <a class="motz-credit" href="https://discord.gg/motz" target="_blank" rel="noopener noreferrer"
+       title="Join the MoTZ Discord — discord.gg/motz">
+      <img class="motz-credit-logo" src="/motz-icon.png" alt="" />
+      <div class="motz-credit-text">
+        <span class="motz-credit-by">Created by MoTZ</span>
+        <span class="motz-credit-link">discord.gg/motz</span>
+      </div>
+    </a>
+  `;
 }
 
 function renderBadge(args: {
