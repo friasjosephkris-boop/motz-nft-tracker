@@ -14,6 +14,7 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
   const energy = getEnergy();
   root.innerHTML = `
     <div class="home-screen">
+      <div class="home-decor" id="home-decor" aria-hidden="true"></div>
       <button class="gear-btn" id="open-settings" type="button" title="Settings">⚙</button>
       <button class="gear-btn tutorial-btn" id="open-tutorial" type="button" title="Replay tutorial">?</button>
       <button class="gear-btn codex-btn" id="open-codex" type="button" title="Codex — stats, actions, effects">📖</button>
@@ -108,6 +109,30 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
   // energy is claimed (e.g. in another tab).
   refreshReferralBadge();
   installReferralBadgeWatcher();
+
+  mountHomeDecor(root);
+}
+
+/** Unit silhouettes scattered across the home background as decoration.
+ *  Each is hoverable (visual only) but carries no click handler, and the
+ *  layer sits below the interactive content, so a silhouette can never
+ *  intercept a tile or button click. Positions re-randomize on each render. */
+const DECOR_SILHOUETTES = ["ego", "aspen", "gruyere", "hera", "oge", "soda"];
+
+function mountHomeDecor(root: HTMLElement): void {
+  const layer = root.querySelector<HTMLElement>("#home-decor");
+  if (!layer) return;
+  for (const name of DECOR_SILHOUETTES) {
+    const img = document.createElement("img");
+    img.className = "home-decor-silhouette";
+    img.src = `/units/${name}-silhouette.png`;
+    img.alt = "";
+    img.draggable = false;
+    img.style.left = `${(2 + Math.random() * 84).toFixed(2)}%`;
+    img.style.top = `${(4 + Math.random() * 74).toFixed(2)}%`;
+    img.style.setProperty("--decor-rot", `${(Math.random() * 36 - 18).toFixed(1)}deg`);
+    layer.appendChild(img);
+  }
 }
 
 /** Re-fetch the unclaimed referral count and sync the home tile badge.
