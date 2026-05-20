@@ -1119,7 +1119,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   const stageId = typeof body.stageId === "number" ? body.stageId : null;
-  if (stageId === null || stageId < 1 || stageId > 50) {
+  // Campaign is 500 floors (1-50 base + 51-500 post-game). This cap was 50
+  // pre-post-game and never got bumped — clears of floor 51+ were rejected
+  // 400, so the server max-floor counter stayed stuck at 50 and the next
+  // pullCanonicalProgress clobbered the client's local unlock state back
+  // down. Keep this in sync with STAGE_DEFS.length / POST_GAME_LAST_FLOOR.
+  const CAMPAIGN_LAST_FLOOR = 500;
+  if (stageId === null || stageId < 1 || stageId > CAMPAIGN_LAST_FLOOR) {
     res.status(400).json({ error: "stageId out of range" }); return;
   }
   const ms = typeof body.ms === "number" && Number.isFinite(body.ms) ? Math.floor(body.ms) : null;
