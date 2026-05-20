@@ -3,7 +3,8 @@
 // "Refer a Friend" tile on the home screen.
 
 import { topBarHtml } from "./settings";
-import { fetchReferralStatus, referralLink, ReferralStatus } from "../core/referral";
+import { fetchReferralStatus, claimReferralRewards, referralLink, ReferralStatus } from "../core/referral";
+import { setEnergy } from "../core/energy";
 
 export function renderReferral(root: HTMLElement, onBack: () => void): void {
   root.innerHTML = `
@@ -48,11 +49,23 @@ function dashboardHtml(s: ReferralStatus): string {
         </div>
       `).join("");
 
+  // Claim card — only shown when there's unclaimed energy. This is what the
+  // home-screen notification bubble points the player toward.
+  const claimCard = s.claimable > 0
+    ? `<div class="referral-card referral-claim-card" id="referral-claim-card">
+         <div class="referral-claim-headline">⚡ ${s.claimable} energy ready to claim!</div>
+         <div class="referral-claim-sub">Earned from your referral rewards.</div>
+         <button class="confirm-btn referral-claim-btn" id="referral-claim-btn" type="button">Claim ${s.claimable} ⚡</button>
+       </div>`
+    : "";
+
   return `
     <div class="referral-intro">
       Share your link with friends. When a friend signs up with it, <strong>you both earn energy</strong>
       as they climb the tower.
     </div>
+
+    ${claimCard}
 
     <div class="referral-card referral-link-card">
       <div class="referral-card-label">Your referral code</div>
@@ -70,7 +83,7 @@ function dashboardHtml(s: ReferralStatus): string {
         <li><strong>+5 ⚡ each</strong> — when your friend clears Floor <strong>20, 40, 60, 80 &amp; 100</strong> (5 rewards as they climb).</li>
         <li><strong>+5 ⚡ each</strong> — when your friend spends <strong>10 RON</strong> or more in the shop / on an offer (one-time).</li>
       </ul>
-      <div class="referral-reward-note">Both you and your friend receive the energy. Rewards arrive automatically — no claiming needed.</div>
+      <div class="referral-reward-note">Both you and your friend earn the energy. Rewards collect on this screen — tap <strong>Claim</strong> when energy is ready.</div>
     </div>
 
     <div class="referral-stats">
@@ -94,6 +107,27 @@ function dashboardHtml(s: ReferralStatus): string {
 }
 
 function wireDashboard(body: HTMLElement, s: ReferralStatus): void {
+  // Claim button — collects all unclaimed referral energy. No popup: on
+  // success the card morphs in place into a confirmation line.
+  const claimBtn = body.querySelector<HTMLButtonElement>("#referral-claim-btn");
+  claimBtn?.addEventListener("click", async () => {
+    claimBtn.disabled = true;
+    claimBtn.textContent = "Claiming…";
+    const result = await claimReferralRewards();
+    const card = body.querySelector<HTMLElement>("#referral-claim-card");
+    if (result.ok && result.claimed > 0) {
+      // Sync the local energy cache so the energy pill is correct on return.
+      setEnergy(result.energy);
+      if (card) {
+        card.innerHTML = `<div class="referral-claim-done">✓ Claimed ${result.claimed} ⚡ — energy added to your pool.</div>`;
+      }
+    } else {
+      // Nothing to claim (race / already collected) — fold the card away
+      // quietly rather than erroring at the player.
+      if (card) card.remove();
+    }
+  });
+
   const copyBtn = body.querySelector<HTMLButtonElement>("#referral-copy-btn");
   const input = body.querySelector<HTMLInputElement>("#referral-link-input");
   const statusEl = body.querySelector<HTMLElement>("#referral-copy-status");

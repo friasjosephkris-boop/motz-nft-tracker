@@ -51,6 +51,17 @@ export async function del(key: string): Promise<void> {
   await call(["DEL", key]);
 }
 
+/** Atomically read a key's value AND delete it (Redis GETDEL). Returns the
+ *  pre-delete value as a number, or 0 if the key was absent / non-numeric.
+ *  Used for claim-once flows: two concurrent claims can't both collect — the
+ *  first GETDEL gets the value, the second gets nothing. */
+export async function getDelNumber(key: string): Promise<number> {
+  const r = await call(["GETDEL", key]);
+  if (typeof r !== "string") return 0;
+  const n = Number(r);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export async function zaddGt(key: string, score: number, member: string): Promise<number> {
   // GT: only update if new score is greater than existing.
   // CH returns the count of changed members: 1 if better, 0 otherwise.

@@ -24,7 +24,7 @@
 //   ref:paid:<referee>:<key>  → "1" marker (SETNX) — <key> ∈ f20|f40|…|ron10
 
 import { createHash } from "crypto";
-import { getJson, setJson, hgetAll, hset, setNxWithExpire } from "./redis.js";
+import { getJson, setJson, hgetAll, hset, setNxWithExpire, incrByWithExpire, getNumber, getDelNumber } from "./redis.js";
 import { adminGrantEnergy } from "./energy.js";
 import { getMaxFloorCleared, IGN_HASH_KEY } from "./runState.js";
 
@@ -121,17 +121,37 @@ async function bumpRefereeEnergyEarned(referrer: string, referee: string, amount
   await hset(hashKey, referee, JSON.stringify(entry)).catch(() => undefined);
 }
 
-/** Grant the 5+5 reward for a named milestone, guarded by an atomic SETNX so
- *  it pays at most once. `rewardKey` ∈ {f20,f40,…,ron10}. No-op if the
- *  referee has no referrer or the reward already fired. */
+/** Accrue the 5+5 reward for a named milestone, guarded by an atomic SETNX so
+ *  it accrues at most once. `rewardKey` ∈ {f20,f40,…,ron10}. No-op if the
+ *  referee has no referrer or the reward already fired.
+ *
+ *  The energy is added to each side's CLAIMABLE balance — it is NOT granted
+ *  directly. The player collects it from the referral screen, prompted by a
+ *  notification bubble on the home-screen tile. No interrupting popup. */
 async function grantReferralReward(referee: string, referrer: string, rewardKey: string): Promise<void> {
   const claimed = await setNxWithExpire(`ref:paid:${referee}:${rewardKey}`, "1", REF_TTL);
-  if (!claimed) return; // already paid — atomic guard
+  if (!claimed) return; // already accrued — atomic guard
   await Promise.all([
-    adminGrantEnergy(referee, REFERRAL_REWARD_ENERGY).catch(() => 0),
-    adminGrantEnergy(referrer, REFERRAL_REWARD_ENERGY).catch(() => 0),
+    incrByWithExpire(`ref:claimable:${referee}`, REFERRAL_REWARD_ENERGY, REF_TTL).catch(() => 0),
+    incrByWithExpire(`ref:claimable:${referrer}`, REFERRAL_REWARD_ENERGY, REF_TTL).catch(() => 0),
   ]);
   await bumpRefereeEnergyEarned(referrer, referee, REFERRAL_REWARD_ENERGY);
+}
+
+/** A wallet's currently-unclaimed referral energy. */
+export async function getReferralClaimable(wallet: string): Promise<number> {
+  return await getNumber(`ref:claimable:${wallet.toLowerCase()}`).catch(() => 0);
+}
+
+/** Collect all of a wallet's unclaimed referral energy. Atomic via GETDEL —
+ *  two concurrent claims can't both collect; the loser gets 0. Returns the
+ *  amount claimed and the wallet's new energy balance. */
+export async function claimReferralRewards(wallet: string): Promise<{ claimed: number; energy: number }> {
+  const w = wallet.toLowerCase();
+  const amount = await getDelNumber(`ref:claimable:${w}`);
+  if (amount <= 0) return { claimed: 0, energy: 0 };
+  const energy = await adminGrantEnergy(w, amount).catch(() => 0);
+  return { claimed: amount, energy };
 }
 
 /** Called after a referee clears a campaign floor. Pays the referral reward
@@ -177,6 +197,8 @@ export interface ReferralDashboard {
   code: string;
   referees: ReferralRefereeRow[];
   totalEnergyEarned: number;
+  /** Unclaimed referral energy waiting on the referral screen. */
+  claimable: number;
   referredBy: string | null;
   referredByIgn: string | null;
 }
@@ -184,11 +206,12 @@ export interface ReferralDashboard {
 /** Build the referral dashboard payload for a wallet. */
 export async function getReferralDashboard(wallet: string): Promise<ReferralDashboard> {
   const w = wallet.toLowerCase();
-  const [code, refereesHash, igns, myReferrer] = await Promise.all([
+  const [code, refereesHash, igns, myReferrer, claimable] = await Promise.all([
     ensureReferralCode(w),
     hgetAll(`ref:referees:${w}`).catch(() => ({})),
     hgetAll(IGN_HASH_KEY).catch(() => ({}) as Record<string, string>),
     getJson<string>(`ref:by:${w}`).catch(() => null),
+    getReferralClaimable(w),
   ]);
   // Case-insensitive IGN lookup helper.
   const ignFor = (addr: string): string | null => {
@@ -212,6 +235,7 @@ export async function getReferralDashboard(wallet: string): Promise<ReferralDash
     code,
     referees,
     totalEnergyEarned,
+    claimable,
     referredBy: myReferrer ? myReferrer.toLowerCase() : null,
     referredByIgn: myReferrer ? ignFor(myReferrer) : null,
   };
