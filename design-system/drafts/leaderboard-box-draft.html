@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaderboard Box — MoTZ Design Draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --motz-red:        #FF2A55;
+    --motz-red-deep:   #D91A45;
+    --winner-gold:     #FBBF24;
+    --winner-gold-deep:#F59E0B;
+    --electric-purple: #7000FF;
+    --void-black:      #0F0518;
+
+    --text-primary: #F5F5F4;
+    --text-muted:   #A8A29E;
+    --text-dim:     #78716C;
+
+    --glass-border:    rgba(255,255,255,0.08);
+    --font-display: 'Fredoka', system-ui, sans-serif;
+    --font-body:    'Inter', system-ui, sans-serif;
+    --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+    --ease-out:  cubic-bezier(.2,.7,.2,1);
+    --ease-back: cubic-bezier(.34,1.56,.64,1);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    /* Void mode: near-black base + two large radial accent glows + faint gold core */
+    background:
+      radial-gradient(ellipse 720px 460px at 16% 8%,  rgba(255,42,85,0.16),  transparent 60%),
+      radial-gradient(ellipse 760px 520px at 88% 92%, rgba(112,0,255,0.14),  transparent 60%),
+      radial-gradient(circle 520px at 50% 46%,        rgba(251,191,36,0.05), transparent 70%),
+      linear-gradient(180deg, #0a0314 0%, var(--void-black) 55%, #050108 100%);
+    background-attachment: fixed;
+    padding: 64px 32px 96px;
+  }
+  /* faint 60x60 grid pattern over the void */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .page { position: relative; z-index: 1; max-width: 980px; margin: 0 auto; }
+
+  .doc-head { text-align: center; margin-bottom: 14px; }
+  .doc-kicker {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-dim);
+  }
+  .doc-title { font-family: var(--font-display); font-weight: 600; font-size: 24px; margin: 8px 0 4px; }
+  .doc-note  { color: var(--text-muted); font-size: 14px; }
+
+  .variant { margin-top: 56px; }
+  .variant-label {
+    display: flex; align-items: center; gap: 14px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.22em; text-transform: uppercase; color: var(--text-dim);
+    margin-bottom: 22px;
+  }
+  .variant-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,0.10), transparent); }
+  .variant-label .tag {
+    color: var(--winner-gold); font-family: var(--font-display);
+    letter-spacing: 0; text-transform: none; font-size: 13px;
+  }
+  .stage { display: flex; justify-content: center; }
+  .caption { text-align: center; color: var(--text-dim); font-size: 13px; margin-top: 18px; }
+  .caption b { color: var(--text-muted); font-weight: 600; }
+
+  /* ============================================================
+     VARIANT A — "Hall of Legends" gold champion header
+     The signature treatment: gold-stroke featured frame (trading-card
+     energy), gold-glow display text, mono overline, trophy mark.
+     ============================================================ */
+  .lb-a {
+    position: relative;
+    display: inline-flex; flex-direction: column; align-items: center;
+    gap: 6px;
+    padding: 26px 64px 28px;
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(251,191,36,0.07), rgba(255,255,255,0.02)),
+      linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+    border: 2px solid rgba(251,191,36,0.42);
+    box-shadow:
+      0 14px 40px rgba(0,0,0,0.45),
+      0 0 36px rgba(251,191,36,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    overflow: hidden;
+    transition: transform .24s var(--ease-out), box-shadow .24s var(--ease-out);
+  }
+  /* top gradient accent bar (gold core) */
+  .lb-a::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--winner-gold) 50%, transparent);
+  }
+  .lb-a:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 22px 56px rgba(0,0,0,0.5),
+      0 0 48px rgba(251,191,36,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .lb-a .overline {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.26em; text-transform: uppercase; color: var(--text-dim);
+  }
+  .lb-a .overline .dot { color: var(--winner-gold); }
+  .lb-a .title-row { display: flex; align-items: center; gap: 16px; }
+  .lb-a .trophy { width: 30px; height: 30px; color: var(--winner-gold); flex-shrink: 0;
+    filter: drop-shadow(0 0 10px rgba(251,191,36,0.55)); }
+  .lb-a h1 {
+    margin: 0;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 46px; line-height: 1; letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--winner-gold);
+    text-shadow: 0 0 22px rgba(251,191,36,0.5), 0 0 46px rgba(251,191,36,0.22);
+  }
+
+  /* ============================================================
+     VARIANT B — Gradient headline on glass panel
+     Red->purple hero gradient text on a standard glass surface.
+     ============================================================ */
+  .lb-b {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 18px;
+    padding: 24px 56px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 26px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    transition: transform .24s var(--ease-out), border-color .24s var(--ease-out), box-shadow .24s var(--ease-out);
+  }
+  .lb-b:hover {
+    transform: translateY(-3px);
+    border-color: rgba(251,191,36,0.4);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.46), 0 0 30px rgba(255,42,85,0.12), inset 0 1px 0 rgba(255,255,255,0.07);
+  }
+  .lb-b .trophy { width: 34px; height: 34px; color: var(--motz-red); flex-shrink: 0;
+    filter: drop-shadow(0 0 10px rgba(255,42,85,0.45)); }
+  .lb-b h1 {
+    margin: 0;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 44px; line-height: 1; letter-spacing: 0.01em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #FF2A55 0%, #7000FF 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+
+  /* ============================================================
+     VARIANT C — HUD banner (full width, in-app screen header)
+     How the box reads as a screen-title bar inside the game UI:
+     mono overline, gold title, live season chip on the right.
+     ============================================================ */
+  .lb-c {
+    position: relative; width: 100%;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px;
+    padding: 20px 28px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 26px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05);
+    overflow: hidden;
+  }
+  .lb-c::before {
+    content: '';
+    position: absolute; top: 0; left: 0; width: 100%; height: 1px;
+    background: linear-gradient(90deg, var(--motz-red), var(--winner-gold) 55%, transparent);
+  }
+  .lb-c .left { display: flex; align-items: center; gap: 16px; }
+  .lb-c .badge {
+    display: grid; place-items: center;
+    width: 46px; height: 46px; border-radius: 12px;
+    background: rgba(251,191,36,0.10);
+    border: 1px solid rgba(251,191,36,0.30);
+  }
+  .lb-c .badge svg { width: 24px; height: 24px; color: var(--winner-gold); }
+  .lb-c .text .overline {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    letter-spacing: 0.24em; text-transform: uppercase; color: var(--text-dim);
+  }
+  .lb-c .text h1 {
+    margin: 2px 0 0;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 28px; line-height: 1; letter-spacing: 0.01em;
+    text-transform: uppercase; color: var(--winner-gold);
+    text-shadow: 0 0 16px rgba(251,191,36,0.35);
+  }
+  .lb-c .season-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--glass-border);
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .lb-c .season-chip .pulse {
+    width: 7px; height: 7px; border-radius: 999px; background: var(--motz-red);
+    box-shadow: 0 0 8px var(--motz-red);
+    animation: pulse 2s var(--ease-out) infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  /* token strip */
+  .tokens {
+    margin-top: 64px; padding-top: 28px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex; flex-wrap: wrap; gap: 10px 18px; justify-content: center;
+  }
+  .tok {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);
+  }
+  .sw { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <div class="doc-head">
+      <div class="doc-kicker">MoTZ Design System · Draft</div>
+      <div class="doc-title">Leaderboard Box — Redesign Draft</div>
+      <div class="doc-note">Three treatments of the same header box. Nothing applied to the project yet.</div>
+    </div>
+
+    <!-- VARIANT A -->
+    <section class="variant">
+      <div class="variant-label">Variant A <span class="tag">Hall of Legends — gold champion frame</span></div>
+      <div class="stage">
+        <div class="lb-a">
+          <div class="overline"><span class="dot">◆</span> Season Rankings <span class="dot">◆</span></div>
+          <div class="title-row">
+            <svg class="trophy" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M6 3h12v2h3v3a4 4 0 0 1-4 4h-.3A6 6 0 0 1 13 15.7V18h3v2H8v-2h3v-2.3A6 6 0 0 1 7.3 12H7a4 4 0 0 1-4-4V5h3V3Zm0 4H5v1a2 2 0 0 0 1 1.7V7Zm12 0v2.7A2 2 0 0 0 19 8V7h-1Z"/>
+            </svg>
+            <h1>Leaderboard</h1>
+          </div>
+        </div>
+      </div>
+      <div class="caption">Gold = wins &amp; rewards. 2px gold stroke (trading-card frame), <b>gold-glow display text</b>, top accent bar, mono overline. Hover to lift.</div>
+    </section>
+
+    <!-- VARIANT B -->
+    <section class="variant">
+      <div class="variant-label">Variant B <span class="tag">Gradient headline — glass panel</span></div>
+      <div class="stage">
+        <div class="lb-b">
+          <svg class="trophy" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M6 3h12v2h3v3a4 4 0 0 1-4 4h-.3A6 6 0 0 1 13 15.7V18h3v2H8v-2h3v-2.3A6 6 0 0 1 7.3 12H7a4 4 0 0 1-4-4V5h3V3Zm0 4H5v1a2 2 0 0 0 1 1.7V7Zm12 0v2.7A2 2 0 0 0 19 8V7h-1Z"/>
+          </svg>
+          <h1>Leaderboard</h1>
+        </div>
+      </div>
+      <div class="caption">Standard glass card + <b>red→purple hero gradient text</b>. Quieter, fits next to other glass surfaces. Hover shifts border to gold.</div>
+    </section>
+
+    <!-- VARIANT C -->
+    <section class="variant">
+      <div class="variant-label">Variant C <span class="tag">HUD banner — in-app screen header</span></div>
+      <div class="stage">
+        <div class="lb-c">
+          <div class="left">
+            <div class="badge">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M6 3h12v2h3v3a4 4 0 0 1-4 4h-.3A6 6 0 0 1 13 15.7V18h3v2H8v-2h3v-2.3A6 6 0 0 1 7.3 12H7a4 4 0 0 1-4-4V5h3V3Zm0 4H5v1a2 2 0 0 0 1 1.7V7Zm12 0v2.7A2 2 0 0 0 19 8V7h-1Z"/>
+              </svg>
+            </div>
+            <div class="text">
+              <div class="overline">Hall of Legends</div>
+              <h1>Leaderboard</h1>
+            </div>
+          </div>
+          <div class="season-chip"><span class="pulse"></span> Season 4 · Live</div>
+        </div>
+      </div>
+      <div class="caption">Full-width screen-title bar. Emoji-tile-style icon badge, mono overline, gold title, live season chip with pulse dot.</div>
+    </section>
+
+    <!-- token reference -->
+    <div class="tokens">
+      <span class="tok"><span class="sw" style="background:#FF2A55"></span> MoTZ Red #FF2A55</span>
+      <span class="tok"><span class="sw" style="background:#FBBF24"></span> Winner Gold #FBBF24</span>
+      <span class="tok"><span class="sw" style="background:#7000FF"></span> Electric Purple #7000FF</span>
+      <span class="tok"><span class="sw" style="background:#0F0518"></span> Void Black #0F0518</span>
+      <span class="tok">Fredoka display · JetBrains Mono overline</span>
+    </div>
+
+  </div>
+</body>
+</html>

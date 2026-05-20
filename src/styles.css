@@ -1731,7 +1731,34 @@ body:has(.battle) {
   color: var(--text);
   cursor: pointer;
   font-family: inherit;
+  position: relative; /* anchor for the notification badge */
   transition: background 0.12s, border-color 0.12s, transform 0.05s, box-shadow 0.15s;
+}
+/* Notification bubble — e.g. unclaimed referral energy on the Refer a Friend
+   tile. Sits at the top-right corner of the tile. */
+.home-tile-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #ff6b6b, #d83a3a);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--motz-font-mono, "JetBrains Mono", monospace);
+  border-radius: 999px;
+  border: 2px solid rgba(10, 12, 28, 0.9);
+  box-shadow: 0 0 10px rgba(255, 80, 80, 0.6);
+  animation: home-badge-pulse 1.8s ease-in-out infinite;
+}
+@keyframes home-badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
 }
 .home-tile:hover {
   background: rgba(30, 40, 80, 0.45);
@@ -3972,6 +3999,63 @@ body:has(.battle) {
 
 /* ---------- Leaderboard ---------- */
 .lb-screen { padding: 16px 16px 24px; }
+
+/* Leaderboard header — MoTZ Variant B: trophy mark + red→purple gradient
+   headline on a glass panel. Back button keeps the left grid slot. */
+.lb-header {
+  display: grid;
+  grid-template-columns: 100px 1fr 100px;
+  align-items: center;
+  gap: 12px;
+}
+.lb-header .back-btn { justify-self: start; }
+.lb-title-box {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 44px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 8px 26px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.24s cubic-bezier(.2,.7,.2,1),
+              border-color 0.24s cubic-bezier(.2,.7,.2,1),
+              box-shadow 0.24s cubic-bezier(.2,.7,.2,1);
+}
+.lb-title-box:hover {
+  transform: translateY(-3px);
+  border-color: rgba(251,191,36,0.40);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.46), 0 0 30px rgba(255,42,85,0.12),
+              inset 0 1px 0 rgba(255,255,255,0.07);
+}
+.lb-title-trophy {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  color: var(--motz-red);
+  filter: drop-shadow(0 0 10px rgba(255,42,85,0.45));
+}
+.lb-title-text {
+  margin: 0;
+  font-family: var(--motz-font-display);
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  background: var(--motz-grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lb-title-box { transition: none; }
+  .lb-title-box:hover { transform: none; }
+}
 /* Two-row layout: 4 equal boards across the top, one full-width board below.
    Top row = Highest Floor · Survival · Boss Raid · Fastest World Ender;
    bottom row = First to Conquer the Tower (wide). */
@@ -6448,4 +6532,30 @@ body:has(.battle) {
   color: var(--text);
   opacity: 0.85;
   padding: 4px;
+}
+/* Claim card — shown only when there's unclaimed referral energy. */
+.referral-claim-card {
+  text-align: center;
+  border-color: rgba(255, 107, 107, 0.55);
+  background: linear-gradient(180deg, rgba(255, 107, 107, 0.12), rgba(255, 107, 107, 0.03));
+  box-shadow: var(--motz-sh-card), 0 0 20px rgba(255, 107, 107, 0.12) inset;
+}
+.referral-claim-headline {
+  font-family: "Cinzel", "Times New Roman", serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  text-shadow: 0 0 14px rgba(244, 211, 94, 0.3);
+}
+.referral-claim-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: 4px 0 10px;
+}
+.referral-claim-btn { min-width: 180px; }
+.referral-claim-done {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7aff8a;
+  padding: 6px 0;
 }

@@ -1,5 +1,4 @@
 import { fetchTop, fetchTopWithExtras, formatMs, LbEntry, FirstConquerEntry, WorldEnderEntry, HighestFloorEntry, adminResetOneLeaderboard, AdminLbScope, fetchReplayBlob } from "../core/leaderboard";
-import { topBarHtml } from "./settings";
 import { loadSession } from "../auth/session";
 import { isAdmin } from "../core/admin";
 import { ReplayBlob } from "../core/replay";
@@ -19,7 +18,16 @@ export function renderLeaderboard(root: HTMLElement, onBack: () => void, onPlayR
 
   root.innerHTML = `
     <div class="screen-frame lb-screen">
-      ${topBarHtml("Leaderboard", true)}
+      <div class="lb-header">
+        <button class="back-btn" id="back-btn" type="button">← Back</button>
+        <div class="lb-title-box">
+          <svg class="lb-title-trophy" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M6 3h12v2h3v3a4 4 0 0 1-4 4h-.3A6 6 0 0 1 13 15.7V18h3v2H8v-2h3v-2.3A6 6 0 0 1 7.3 12H7a4 4 0 0 1-4-4V5h3V3Zm0 4H5v1a2 2 0 0 0 1 1.7V7Zm12 0v2.7A2 2 0 0 0 19 8V7h-1Z"/>
+          </svg>
+          <h1 class="lb-title-text">Leaderboard</h1>
+        </div>
+        <div></div>
+      </div>
       <div class="lb-grid">
         <div class="lb-top-row">
           <div class="lb-board lb-floorclimb">
