@@ -122,7 +122,7 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
  *  measured at render time and silhouettes are scattered only in the empty
  *  side gutters (falling back to the strip below the tiles, then anywhere,
  *  if the viewport is too narrow for gutters). Re-randomizes each render. */
-const DECOR_SILHOUETTES = ["ego", "aspen", "gruyere", "hera", "oge", "soda"];
+const DECOR_SILHOUETTES = ["ego", "aspen", "gruyere", "hera", "oge", "soda", "shego"];
 
 function mountHomeDecor(root: HTMLElement): void {
   const layer = root.querySelector<HTMLElement>("#home-decor");
