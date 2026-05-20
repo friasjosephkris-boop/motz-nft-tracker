@@ -3974,6 +3974,44 @@ body:has(.battle) {
   border-left: 2px solid var(--gold-bright);
   border-radius: 6px;
 }
+/* Survival / Boss Raid rows: stacked 2-line layout. The 4-across board is
+   too narrow to fit rank + name + floor + time + loadout on one grid row
+   (names truncated to "H..."), so name + loadout sit on line 1 and the
+   meta (addr · progress · time · prize) wraps onto line 2. Overrides the
+   .lb-row grid with flex. */
+.lb-run-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.lb-run-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.lb-run-top .lb-col.rank { width: 20px; flex: 0 0 20px; }
+.lb-run-top .lb-ign {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lb-run-top .lb-loadout-btn { flex: 0 0 auto; }
+.lb-run-bottom {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  padding-left: 26px;
+}
+.lb-run-meta-item {
+  font-family: var(--motz-font-mono);
+  font-size: 10px;
+  color: var(--motz-text-muted);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
 .lb-col.rank {
   font-family: var(--motz-font-display);
   color: var(--gold-bright);
