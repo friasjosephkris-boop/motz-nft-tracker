@@ -3468,6 +3468,31 @@ body:has(.battle) {
 .game-alert-card .game-confirm-actions { margin-top: 4px; }
 .game-alert-card .game-confirm-actions .confirm-btn { min-width: 140px; }
 
+/* Privacy & Data modal — wider card + scrollable, left-aligned body so the
+   notice reads like a document rather than a one-line alert. */
+.privacy-modal-card {
+  max-width: 560px;
+  width: min(94vw, 560px);
+}
+.privacy-modal-body {
+  text-align: left;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+.privacy-modal-body p { margin: 0 0 10px; }
+.privacy-modal-body h4 {
+  font-family: "Cinzel", "Times New Roman", serif;
+  color: var(--gold-bright);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 16px 0 6px;
+}
+.privacy-modal-body ul { margin: 0 0 10px; padding-left: 20px; }
+.privacy-modal-body li { margin: 3px 0; }
+.privacy-modal-updated { font-size: 11px; opacity: 0.6; margin-top: 14px; }
+
 /* ===================== Transaction progress overlay ===================== */
 .txp-overlay {
   position: fixed; inset: 0; z-index: 2200;
