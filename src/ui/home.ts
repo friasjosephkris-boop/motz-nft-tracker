@@ -138,11 +138,8 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
           <div class="tile-shop-scrim"></div>
           <div class="tile-title">Shop</div>
         </button>
-        <button class="home-tile tile-leaderboard" data-action="leaderboard" type="button">
-          <svg class="tile-lb-trophy" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M6 3h12v2h3v3a4 4 0 0 1-4 4h-.3A6 6 0 0 1 13 15.7V18h3v2H8v-2h3v-2.3A6 6 0 0 1 7.3 12H7a4 4 0 0 1-4-4V5h3V3Zm0 4H5v1a2 2 0 0 0 1 1.7V7Zm12 0v2.7A2 2 0 0 0 19 8V7h-1Z"/>
-          </svg>
-          <div class="tile-title">Leaderboard</div>
+        <button class="home-tile tile-leaderboard" data-action="leaderboard" type="button" aria-label="Leaderboard">
+          <img class="tile-leaderboard-art" src="/for leaderboards.png" alt="Leaderboard" />
         </button>
       </div>
     </div>
