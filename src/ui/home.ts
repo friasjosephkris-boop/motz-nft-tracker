@@ -180,14 +180,44 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
   // Referral notification bubble — if the wallet has unclaimed referral
   // energy, badge the "Refer a Friend" tile with the amount. No popup; the
   // player sees the bubble, opens the referral screen, and claims there.
+  // Also refreshed on tab focus so a stale count can't linger after the
+  // energy is claimed (e.g. in another tab).
+  refreshReferralBadge();
+  installReferralBadgeWatcher();
+}
+
+/** Re-fetch the unclaimed referral count and sync the home tile badge.
+ *  No-ops when the home screen isn't mounted, so it's safe to call from a
+ *  global focus listener. Hides the badge when the count drops to 0 — this
+ *  is what clears a stale bubble after the energy is claimed elsewhere. */
+function refreshReferralBadge(): void {
+  if (!document.getElementById("referral-badge")) return; // home not mounted
   void fetchReferralClaimable().then(claimable => {
-    if (claimable <= 0) return;
-    const badge = root.querySelector<HTMLElement>("#referral-badge");
-    if (badge) {
+    const badge = document.getElementById("referral-badge");
+    if (!badge) return; // navigated away while the fetch was in flight
+    if (claimable > 0) {
       badge.textContent = claimable > 99 ? "99+" : String(claimable);
       badge.hidden = false;
+    } else {
+      badge.textContent = "";
+      badge.hidden = true;
     }
   }).catch(() => undefined);
+}
+
+let referralBadgeWatcherInstalled = false;
+/** Install a one-time visibility/focus listener that re-syncs the referral
+ *  badge whenever the tab is refocused. Browsers throttle backgrounded tabs,
+ *  so a badge rendered before a claim would otherwise show a stale count
+ *  until the home screen is rebuilt. */
+function installReferralBadgeWatcher(): void {
+  if (referralBadgeWatcherInstalled || typeof document === "undefined") return;
+  referralBadgeWatcherInstalled = true;
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") refreshReferralBadge();
+  });
+  // Some browsers fire only `focus` on alt-tab back into the window.
+  window.addEventListener("focus", () => refreshReferralBadge());
 }
 
 async function mountSeasonBanner(root: HTMLElement): Promise<void> {
