@@ -288,9 +288,26 @@ function fillRows(elId: string, entries: LbEntry[], myAddr: string | null, opts:
   }
   el.innerHTML = display.map((e, idx) => {
     const rank = idx + 1;
-    if (!e) return emptySlotRowHtml(rank, PRIZES_RUN[rank], opts.hideFloor);
+    if (!e) return emptyRunRowHtml(rank, PRIZES_RUN[rank]);
     return rowHtml(e, myAddr, opts);
   }).join("");
+}
+
+/** Empty Survival/Boss-Raid slot — matches the stacked .lb-run-row layout
+ *  used by filled rows so the column doesn't jump between row styles. */
+function emptyRunRowHtml(rank: number, prize: number | undefined): string {
+  return `
+    <div class="lb-row lb-run-row lb-row-empty">
+      <div class="lb-run-top">
+        <span class="lb-col rank">${rank}</span>
+        <span class="lb-ign dim">—</span>
+      </div>
+      <div class="lb-run-bottom">
+        ${prizeChip(prize)}
+        <span class="lb-run-meta-item dim">—:—</span>
+      </div>
+    </div>
+  `;
 }
 
 /** Empty-rank row: shows the rank and (if any) RON reward, nothing else. */
@@ -370,17 +387,26 @@ function rowHtml(e: LbEntry, myAddr: string | null, opts: FillOpts): string {
   // it was a Replay button). Seeing a leader's build is useful at every tier.
   const showLoadout = e.rank <= 10;
   const scope = opts.mode === "survival" ? "lb_survival" : "lb_bossraid";
+  // Survival = floors climbed; Boss Raid = bosses downed. Label the count
+  // accordingly instead of a bare number.
+  const progressLabel = opts.mode === "survival" ? "Floor" : "Boss";
+  // Stacked 2-line layout: line 1 = rank + name + loadout button; line 2 =
+  // address + progress + time + prize. The narrow 4-across board can't fit
+  // all of that on one row (player names were truncating to "H..."), so the
+  // name gets the full width of line 1.
   return `
-    <div class="lb-row ${isMe ? "me" : ""}">
-      <span class="lb-col rank">${e.rank}</span>
-      <span class="lb-col player">
-        <span class="lb-ign">${escapeHtml(name)}</span>
-        <span class="lb-addr" title="${escapeHtml(e.address)}">${shortAddr(e.address)}</span>
+    <div class="lb-row lb-run-row ${isMe ? "me" : ""}">
+      <div class="lb-run-top">
+        <span class="lb-col rank">${e.rank}</span>
+        <span class="lb-ign" title="${escapeAttr(e.address)}">${escapeHtml(name)}</span>
+        ${loadoutBtnHtml(showLoadout, scope, e.address, name, e.floor)}
+      </div>
+      <div class="lb-run-bottom">
+        <span class="lb-addr" title="${escapeAttr(e.address)}">${shortAddr(e.address)}</span>
+        ${opts.hideFloor ? "" : `<span class="lb-run-meta-item">${progressLabel} ${e.floor}</span>`}
+        <span class="lb-run-meta-item">${formatMs(e.ms)}</span>
         ${prizeChip(PRIZES_RUN[e.rank])}
-      </span>
-      ${opts.hideFloor ? "" : `<span class="lb-col floor">${e.floor}</span>`}
-      <span class="lb-col time">${formatMs(e.ms)}</span>
-      ${loadoutBtnHtml(showLoadout, scope, e.address, name, e.floor)}
+      </div>
     </div>
   `;
 }
