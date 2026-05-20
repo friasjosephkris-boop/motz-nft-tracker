@@ -663,6 +663,20 @@ export function isPostGameFloor(floorId: number): boolean {
   return floorId >= POST_GAME_FIRST_FLOOR && floorId <= POST_GAME_LAST_FLOOR;
 }
 
+// Post-game floor XP — a smooth linear ramp so deeper floors pay more.
+// Calibrated so a clean 3-unit run of F51 → F500 carries a party from ~Lv30
+// to ~Lv65. Campaign floors (1-50) keep their hand-authored per-enemy XP.
+const POST_GAME_FLOOR_XP_BASE = 2500;
+const POST_GAME_FLOOR_XP_STEP = 9.5;
+
+/** Total XP pool a post-game floor (51-500) awards on a first clear — before
+ *  the party split and any multipliers. Returns 0 for campaign floors, which
+ *  keep summing their enemies' authored xpReward instead. */
+export function xpForFloor(floorId: number): number {
+  if (floorId < POST_GAME_FIRST_FLOOR || floorId > POST_GAME_LAST_FLOOR) return 0;
+  return Math.round(POST_GAME_FLOOR_XP_BASE + POST_GAME_FLOOR_XP_STEP * (floorId - POST_GAME_FIRST_FLOOR));
+}
+
 /** Floor where resist randomization kicks in. Below this, enemies use their
  *  template's intrinsic resist field (or none). At-or-above, every enemy on
  *  the floor inherits the floor's randomized resist profile — see below. */

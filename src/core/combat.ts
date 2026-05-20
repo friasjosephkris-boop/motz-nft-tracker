@@ -110,6 +110,9 @@ export interface Battle {
   actionLock: number;
   /** XP multiplier applied at distribution time (survival = 0.5). */
   xpMultiplier: number;
+  /** Post-game floor mode: a fixed XP pool (the depth curve) used instead of
+   *  summing enemy xpReward. Awarded whole on victory. Undefined elsewhere. */
+  xpPoolOverride?: number;
   /** Seed used to construct the rng — captured for replay recording. */
   seed: number;
   /** True when this Battle is being driven by a recorded replay; suppresses recording / leaderboard / progress writes. */
@@ -347,6 +350,9 @@ export interface BattleOptions {
   }>;
   /** XP multiplier applied at end-of-battle distribution. Default 1. Survival uses 1/50. */
   xpMultiplier?: number;
+  /** Post-game floor mode: fixed XP pool from the depth curve (xpForFloor),
+   *  awarded whole on a victory instead of summing enemy xpReward. */
+  xpPoolOverride?: number;
   /** Boss Raid: scale boss stats 3x and atb-speed 1.5x. Set per battle. */
   bossRaid?: boolean;
   /** Boss Raid: stacking 5%-per-pick reduction applied on top of bossRaid scaling. */
@@ -487,6 +493,7 @@ export function startBattle(
     rng,
     actionLock: 0,
     xpMultiplier: opts.xpMultiplier ?? 1,
+    xpPoolOverride: opts.xpPoolOverride,
     seed,
     simAccum: 0,
     phoenixEmbersCharge: !!opts.phoenixEmbers,
@@ -732,9 +739,15 @@ export function surrenderBattle(b: Battle): void {
 }
 
 export function distributeEndOfBattleXp(b: Battle): void {
-  const totalRaw = b.combatants
+  const enemyKillXp = b.combatants
     .filter(c => c.side === "enemy")
     .reduce((sum, c) => sum + (c.alive ? 0 : c.xpReward), 0);
+  // Post-game floor mode awards a fixed depth-curve pool — but only on a
+  // victory (a full clear). A defeat falls back to per-enemy kill XP so a
+  // loss can't pay the whole floor.
+  const totalRaw = (b.xpPoolOverride !== undefined && b.state.kind === "victory")
+    ? b.xpPoolOverride
+    : enemyKillXp;
   const total = Math.floor(totalRaw * (b.xpMultiplier ?? 1));
   if (total <= 0) return;
   const partyIds = b.originalPartyTemplateIds;

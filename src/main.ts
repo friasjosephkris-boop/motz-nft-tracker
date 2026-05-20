@@ -25,10 +25,10 @@ import {
   ReplayPartyMember,
 } from "./core/replay";
 import { ATB_FULL } from "./core/timeline";
-import { recordClear } from "./core/clears";
+import { recordClear, getMaxCleared } from "./core/clears";
 import { installGlobalClickSounds } from "./core/audio";
 import { mountWalletStatusBadge, refreshWalletStatusBadge } from "./ui/walletStatusBadge";
-import { STAGE_DEFS, getStage, BOSS_RAID_FLOORS, PLAYER_ROSTER, isPostGameFloor, postGameEnemyLevelFor, resistProfileForFloor } from "./units/roster";
+import { STAGE_DEFS, getStage, BOSS_RAID_FLOORS, PLAYER_ROSTER, isPostGameFloor, postGameEnemyLevelFor, resistProfileForFloor, xpForFloor } from "./units/roster";
 import { Stats } from "./core/stats";
 import { loadSession, validateSession, clearSession, setVerifiedAddress, setVerifiedPerks, Session } from "./auth/session";
 import { setUserScope } from "./auth/scope";
@@ -1077,8 +1077,12 @@ function runFloor(party: SquadResult["players"], floorId: number, xpMultiplier: 
   const isFirstBattleOfRun =
     mode === "floor" || (mode === "survival" && Object.keys(survivalCarry).length === 0);
   const xpFromScholars = buffsAllowed && isFirstBattleOfRun && consumeScholarsInsight() ? 1.25 : 1;
+  // Repeat penalty — re-clearing a floor at or below your deepest cleared
+  // floor pays half XP. Floor mode only; survival is one continuous climb.
+  const isRepeatClear = mode === "floor" && floorId <= getMaxCleared();
+  const repeatMul = isRepeatClear ? 0.5 : 1;
   const opts: BattleOptions = {
-    xpMultiplier: xpMultiplier * getCachedDailyMultiplier() * xpFromScholars,
+    xpMultiplier: xpMultiplier * getCachedDailyMultiplier() * xpFromScholars * repeatMul,
   };
   if (mode === "survival" && Object.keys(survivalCarry).length > 0) {
     opts.carryover = survivalCarry;
@@ -1103,6 +1107,10 @@ function runFloor(party: SquadResult["players"], floorId: number, xpMultiplier: 
   // the same. Boss raid uses its own gentler profile (see runBossRaidFloor).
   if (isPostGameFloor(floorId)) {
     opts.enemyLevelOverride = postGameEnemyLevelFor(floorId);
+    // Post-game floor XP comes from the smooth depth curve (deeper = more),
+    // not the summed enemy xpReward. Floor mode only — survival keeps its
+    // own heavily-reduced XP model (1/50× the enemy sum).
+    if (mode === "floor") opts.xpPoolOverride = xpForFloor(floorId);
     const resists = resistProfileForFloor(floorId, mode === "survival" ? "survival" : "floor");
     if (resists) opts.enemyResistOverride = resists;
   }
