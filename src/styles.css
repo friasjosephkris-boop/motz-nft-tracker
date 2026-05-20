@@ -3957,11 +3957,17 @@ body:has(.battle) {
   min-width: 200px;
   max-width: 320px;
   text-decoration: none;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
+/* Red hover aura — keeps the base card shadow, adds a red glow. */
 .motz-credit:hover {
-  border-color: rgba(244, 211, 94, 0.6);
+  border-color: rgba(255, 42, 85, 0.70);
   transform: translateY(-1px);
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 16px 2px rgba(255, 42, 85, 0.55),
+    0 0 36px 9px rgba(217, 26, 69, 0.35);
 }
 .motz-credit-by {
   font-family: "Cinzel", "Times New Roman", serif;
