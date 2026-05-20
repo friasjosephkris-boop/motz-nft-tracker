@@ -1756,6 +1756,11 @@ body:has(.battle) {
   box-shadow: 0 0 10px rgba(255, 80, 80, 0.6);
   animation: home-badge-pulse 1.8s ease-in-out infinite;
 }
+/* The badge is toggled via the `hidden` attribute (see home.ts). The rule
+   above sets display:flex unconditionally, and author CSS beats the UA
+   [hidden]{display:none} — so without this the badge showed permanently
+   (an empty red dot) even with nothing to claim. */
+.home-tile-badge[hidden] { display: none; }
 @keyframes home-badge-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.12); }
@@ -1782,13 +1787,14 @@ body:has(.battle) {
 
 /* Home tiles — MoTZ treatment per design drafts. */
 
-/* Units, Shop & Leaderboard tiles — filled edge-to-edge by their banner
-   artwork. The art already contains the wordmark, so these tiles render no
-   text label. The image is a separate absolutely-positioned layer so the
+/* Ascend, Units, Shop & Leaderboard tiles — filled edge-to-edge by their
+   banner artwork. The art already contains the wordmark, so these tiles render
+   no text label. The image is a separate absolutely-positioned layer so the
    .home-tile:hover background swap doesn't paint over it. Height is fixed to
    match the other home tiles; object-fit: fill compresses the whole banner
    into the short tile (vertically squished) rather than cropping it, so all
    of the artwork stays visible. */
+.tile-ascend,
 .tile-units,
 .tile-shop,
 .tile-leaderboard {
@@ -1796,6 +1802,7 @@ body:has(.battle) {
   overflow: hidden;
   height: 92px;
 }
+.tile-ascend-art,
 .tile-units-art,
 .tile-shop-art,
 .tile-leaderboard-art {
