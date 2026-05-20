@@ -116,16 +116,27 @@ export function renderBattle(
   });
 }
 
-/** Map stage id to its 10-floor tier label. Returns null for out-of-range / undefined.
- *  Floor 50 (World Ender) is its own tier so it can use a dedicated background. */
+/** Map stage id to its tier label, used as the `data-tier` attribute that the
+ *  CSS keys per-tier battle backgrounds off. Returns null for out-of-range /
+ *  undefined. Floor 50 (World Ender) is its own tier so it can use a dedicated
+ *  background.
+ *
+ *  Post-game floors 51-500 map to 10-floor sub-tiers ("51-60", "61-70", …).
+ *  A sub-tier only shows custom art once both a `/public/floor X-Y.png` asset
+ *  AND a matching `.battle[data-tier="X-Y"]` CSS rule exist — sub-tiers without
+ *  art simply fall back to the base battle-field gradient. So adding a new
+ *  tier background later is just: drop the PNG in /public + add one CSS rule. */
 function stageTier(stageId: number | undefined): string | null {
-  if (typeof stageId !== "number" || stageId < 1 || stageId > 50) return null;
+  if (typeof stageId !== "number" || stageId < 1 || stageId > 500) return null;
   if (stageId === 50) return "50";
   if (stageId <= 10) return "1-10";
   if (stageId <= 20) return "11-20";
   if (stageId <= 30) return "21-30";
   if (stageId <= 40) return "31-40";
-  return "41-49";
+  if (stageId <= 49) return "41-49";
+  // Post-game: 10-floor sub-tiers — 51-60, 61-70, … 491-500.
+  const start = Math.floor((stageId - 51) / 10) * 10 + 51;
+  return `${start}-${start + 9}`;
 }
 
 function mountCheaterOverlay(root: HTMLElement, claimed: number, cap: number): void {

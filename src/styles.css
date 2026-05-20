@@ -237,6 +237,24 @@ body:has(.battle) {
     linear-gradient(180deg, rgba(20, 4, 4, 0.40) 0%, rgba(6, 9, 30, 0.7) 100%),
     url("/floor 50.png") center / cover no-repeat;
 }
+/* Post-game sub-tier backgrounds (floors 51-500, 10 floors each). Add a rule
+   here as each `floor X-Y.png` asset is created; tiers without a rule fall
+   back to the base .battle-field gradient. */
+.battle[data-tier="51-60"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 51-60.png") center / cover no-repeat;
+}
+.battle[data-tier="61-70"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 61-70.png") center / cover no-repeat;
+}
+.battle[data-tier="71-80"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 71-80.png") center / cover no-repeat;
+}
 
 .battle-log-panel {
   position: absolute;
