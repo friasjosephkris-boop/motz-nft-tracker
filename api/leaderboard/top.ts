@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { zrevrangeWithScores, hmget } from "../_lib/redis.js";
-import { lbKeyFor, IGN_HASH_KEY, decodeScore, isLbMode, getFirstConquer, getWorldEnderTop, WorldEnderEntry } from "../_lib/runState.js";
+import { lbKeyFor, IGN_HASH_KEY, decodeScore, isLbMode, getFirstConquer, getWorldEnderTop, WorldEnderEntry, getHighestFloorTop, HighestFloorEntry } from "../_lib/runState.js";
+import { readShopRevenue } from "../_lib/analytics.js";
 
 // Public endpoint — no auth needed to read top scores.
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -29,6 +30,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     let firstConquer: { address: string; ign: string | null; when: number; party?: unknown } | null = null;
     let worldEnder: WorldEnderEntry[] = [];
+    let highestFloor: HighestFloorEntry[] = [];
+    // Live prize pool for the Highest Floor board — total RON spent on the shop.
+    let shopRevenue = 0;
     if (wantExtras) {
       const rec = await getFirstConquer().catch(() => null);
       if (rec) {
@@ -37,10 +41,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
       // 5 — matches the leaderboard UI's SLOT_COUNT (5 rows rendered).
       worldEnder = await getWorldEnderTop(5).catch(() => []);
+      highestFloor = await getHighestFloorTop(5).catch(() => []);
+      shopRevenue = await readShopRevenue().catch(() => 0);
     }
 
     res.setHeader("Cache-Control", "public, max-age=10");
-    res.status(200).json({ entries, firstConquer, worldEnder });
+    res.status(200).json({ entries, firstConquer, worldEnder, highestFloor, shopRevenue });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
   }
