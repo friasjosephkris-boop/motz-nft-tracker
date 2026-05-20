@@ -1842,6 +1842,25 @@ body:has(.battle) {
     0 2px 0 rgba(120, 60, 0, 0.55);
 }
 
+/* Units tile — filled edge-to-edge by the UNITS banner artwork. The art
+   already contains the word "UNITS", so the tile renders no text label.
+   The image is a separate absolutely-positioned layer (like the shop scene)
+   so the .home-tile:hover background swap doesn't paint over it. The 3:2
+   aspect-ratio matches the art, so object-fit: cover shows it whole. */
+.tile-units {
+  padding: 0;
+  overflow: hidden;
+  aspect-ratio: 1536 / 1024;
+}
+.tile-units-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* ---------- Top bar ---------- */
 .screen-frame { display: flex; flex-direction: column; gap: 18px; }
 .top-bar {
@@ -5535,23 +5554,6 @@ body:has(.battle) {
   -webkit-backdrop-filter: blur(8px);
   padding-bottom: 6px;
   box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.7);
-}
-
-/* Units-screen title banner — the "UNITS" artwork replaces the plain text
-   top-bar. background-size: contain shows the whole banner (incl. the
-   characters leaning over the top frame) without cropping; the art's own
-   black backdrop blends into the dark sticky header. */
-.units-banner {
-  position: relative;
-  width: 100%;
-  height: clamp(140px, 21vh, 220px);
-  background: url("/for unit box.png") center center / contain no-repeat;
-}
-.units-banner-back {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 2;
 }
 
 /* ---------- Battle log review modal ---------- */

@@ -59,8 +59,8 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
         <button class="home-tile primary" data-action="tower" type="button">
           <div class="tile-title">Ascend!</div>
         </button>
-        <button class="home-tile" data-action="units" type="button">
-          <div class="tile-title">Units</div>
+        <button class="home-tile tile-units" data-action="units" type="button" aria-label="Units">
+          <img class="tile-units-art" src="/for unit box.png" alt="Units" />
         </button>
         <button class="home-tile tile-shop" data-action="shop" type="button">
           <svg class="tile-shop-scene" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
