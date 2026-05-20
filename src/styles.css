@@ -5537,6 +5537,23 @@ body:has(.battle) {
   box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.7);
 }
 
+/* Units-screen title banner — the "UNITS" artwork replaces the plain text
+   top-bar. background-size: contain shows the whole banner (incl. the
+   characters leaning over the top frame) without cropping; the art's own
+   black backdrop blends into the dark sticky header. */
+.units-banner {
+  position: relative;
+  width: 100%;
+  height: clamp(140px, 21vh, 220px);
+  background: url("/for unit box.png") center center / contain no-repeat;
+}
+.units-banner-back {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+}
+
 /* ---------- Battle log review modal ---------- */
 .rs-log-overlay {
   position: fixed;
