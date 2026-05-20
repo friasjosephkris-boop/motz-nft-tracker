@@ -1,0 +1,576 @@
+================================================================================
+GAUNTLET TOWER — BATTLE BACKGROUND IMAGE PROMPTS
+Post-game floors 51-500  (one prompt per 10-floor sub-tier — 45 prompts total)
+================================================================================
+
+HOW TO USE
+  - Each numbered block below is a COMPLETE, standalone prompt.
+  - Just copy one whole block (the text after the "PROMPT:" line) and paste it
+    into your image generator. No need to combine anything.
+  - Generate at 16:9 widescreen (e.g. 1920x1080 / 1344x768).
+  - Save each result to /public using the matching filename shown, e.g.
+    "floor 51-60.png", "floor 61-70.png", ... so it lines up with the existing
+    "floor 1-10.png" ... "floor 50.png" assets.
+
+ART-STYLE NOTES (already baked into every prompt below — here for reference)
+  - Dark high-fantasy painted game art, matching the existing floor backdrops.
+  - It is a BATTLE ARENA BACKDROP: wide, symmetrical, with an empty open floor
+    in the foreground (characters get drawn on top of it later).
+  - No characters, no creatures, no text, no UI — environment only.
+  - Moody and dim; the game lays a dark gradient over the top, so keep the
+    centre from being too bright or busy.
+  - Atmospheric depth: a glowing focal point or doorway in the mid-background.
+
+================================================================================
+
+[01] FLOORS 51-60  —  PALE THRESHOLD          (file: floor 51-60.png)
+Floors: Pale Threshold, Echoing Halls, Whisper of Ash, Forgotten Garrison,
+        Vault of Lost Pacts, Withered Shrine, Tomb of Acolytes, Marrow Wastes,
+        Cinder Court, Echo of the Stone Sentinel.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A pale ghost-lit threshold hall at the edge of a ruined tower: cracked grey
+flagstones, faded banners, drifting ash motes, cold white light bleeding
+through a tall archway in the mid-background. Empty open floor in the
+foreground for combatants. Withered shrine alcoves and crumbled garrison
+walls along the sides. Muted, washed-out colours, eerie and quiet, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[02] FLOORS 61-70  —  HOLLOW SOVEREIGNTY      (file: floor 61-70.png)
+Floors: Hollow Veins, Black Glass Bazaar, Bonemarch, The Lacuna, Cathedral of
+        Splinters, Iron Garden, Wraith's Promenade, Spire of Spite, Pale
+        Sovereignty, Echo of the Wraith Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A hollow throne-kingdom hall: a vacant obsidian throne on a raised dais in the
+mid-background, black-glass pillars, an iron garden of bladed metal flowers
+flanking the sides, faint purple wraith-light. Empty open stone floor in the
+foreground for combatants. Regal but abandoned, cold and spiteful mood,
+painterly rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[03] FLOORS 71-80  —  TWILIGHT FOUNDRY        (file: floor 71-80.png)
+Floors: Twilight Foundry, Threadbare Halls, Coiled Reliquary, Pyrelight Bog,
+        Throat of Ash, Smoldering Wake, Pallid Crossing, Spire of Mirrors,
+        Calcified Veil, Echo of the Tower Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+An abandoned twilight forge complex: cold dormant furnaces, hanging chains,
+dull orange ember-light at dusk, mirrored panels reflecting a fading violet
+sky through a broken roof. Empty open foundry floor in the foreground for
+combatants. Industrial gothic ruins, smouldering and still, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[04] FLOORS 81-90  —  VEINFLOW DEPTHS         (file: floor 81-90.png)
+Floors: Veinflow Mines, Riven Sky, Choking Galleries, Witherspine Pass,
+        Sepulchre of Names, Cradle of Embers, Hollowed Hallows, Suncrack
+        Aqueduct, Ashen Carnival, Echo of the Iron Behemoth.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A deep mineshaft cavern: jagged rock galleries, glowing red ore veins
+threading the walls, broken mine scaffolding, a cracked aqueduct overhead with
+a sliver of riven sky. Empty open rock floor in the foreground for combatants.
+Claustrophobic underground, ember-red glow, painterly rendered game art,
+moody dim lighting, no characters, no text, no UI.
+
+[05] FLOORS 91-100  —  TIDEBLOOD REACH        (file: floor 91-100.png)
+Floors: Plagueglass Quay, Tideblood Reach, Shrouded Conservatory, Cinder-River
+        Crossing, Crypt of Last Light, Pale Conjunction, Splintered Reverie,
+        The Outer Cloister, Throne of Echoes, Echo of the Storm Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A drowned coastal quay: a dark blood-tinted sea lapping at cracked stone
+piers, a ruined conservatory dome, storm clouds and pale lightning on the
+horizon. Empty open wet-stone floor in the foreground for combatants.
+Desolate seaside ruin, cold blue-and-crimson palette, painterly rendered game
+art, moody dim lighting, no characters, no text, no UI.
+
+[06] FLOORS 101-110  —  VEILED BASTION        (file: floor 101-110.png)
+Floors: Pall-Watcher Causeway, Bleak Approach, Funereal Galleries,
+        Ash-Wreathed Outlands, Conclave of Husks, Wormcoil Tunnels, Slow-Burn
+        Refectory, Sepulchral Veil, Bastion's Heart, Shade of the Demon General.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A grim fortress interior wrapped in funereal grey veils: heavy battlement
+arches, draped shrouds hanging between pillars, dim ash-choked outlands seen
+through a far gate. Empty open keep floor in the foreground for combatants.
+Bleak, oppressive, militaristic gothic, painterly rendered game art, moody
+dim lighting, no characters, no text, no UI.
+
+[07] FLOORS 111-120  —  CRUCIBLE OF SHROUDS   (file: floor 111-120.png)
+Floors: Shroud-Wind Pass, Loose-Thread Shrine, Forelight Atrium, Sallow
+        Marches, Choir-Lit Foundry, Wax-Lined Cells, Pinprick Constellation,
+        Pall-Torch Necropolis, Shrouded Apex, Hollow Witch Queen.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A wind-torn ritual atrium: tattered grey shrouds streaming sideways, hundreds
+of pinprick candle-flames floating like a constellation, wax-dripping pillars,
+pale torch-lit necropolis archways. Empty open ritual floor in the foreground
+for combatants. Witchy, windswept, sallow-green undertone, painterly rendered
+game art, moody dim lighting, no characters, no text, no UI.
+
+[08] FLOORS 121-130  —  SALT-CHOKED REACHES   (file: floor 121-130.png)
+Floors: Saltveil Approach, Murmur Tide, Ferric Lagoons, Brackish Library,
+        Salt-Pillar Cathedral, Drowned Concourse, Bleached Anchorage, Cured
+        Ossuary, Reach Eternal, Aspect of the Dragon Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A salt-encrusted drowned cathedral: white crystalline salt pillars, rusty
+ferric lagoons of still water, bleached bone and waterlogged shelves, a
+half-submerged concourse. Empty open salt-flat floor in the foreground for
+combatants. Pale, briny, decayed, cold teal-and-white palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[09] FLOORS 131-140  —  BRIMSTONE CHOIR       (file: floor 131-140.png)
+Floors: Brimstone Antechamber, Black-Lung Foundry, Forge of Sighs, Pyremarch,
+        Vault of Smoldered Vows, Caustic Aviary, Slag-Throat Gully, Cinderscar
+        Tower, Brim-Vault, Black Tower God.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A hellish brimstone forge-cathedral: rivers of glowing molten slag, black
+soot-stained columns, sulphurous yellow smoke, a towering scarred furnace in
+the mid-background. Empty open scorched-stone floor in the foreground for
+combatants. Infernal, choking, orange-and-black palette, painterly rendered
+game art, moody dim lighting, no characters, no text, no UI.
+
+[10] FLOORS 141-150  —  BLACK AURORA          (file: floor 141-150.png)
+Floors: Twilight Filaments, Polar Reliquary, Frost-Etched Halls, Penumbra
+        Galleries, Vault of Riven Skies, Glacial Conservatory, Borealis
+        Crucible, Frozen Antiphon, Aurora's End, Splintered Null Hierophant.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A frozen polar reliquary under a black sky: ribbons of dim violet-green aurora
+overhead, frost-etched ice pillars, a glacial domed ceiling, riven cracks of
+pale light. Empty open ice floor in the foreground for combatants. Glacial,
+silent, cold purple-and-cyan palette, painterly rendered game art, moody dim
+lighting, no characters, no text, no UI.
+
+[11] FLOORS 151-160  —  GLASSBONE MARCHES     (file: floor 151-160.png)
+Floors: Glass-Veil Crossing, Splintered Lowlands, Crystal Catacombs, Refracted
+        Pass, Vault of Mirror-Bones, Prism Reliquary, Sand-Glass Reach,
+        Knife-Edge Walk, March's Pinnacle, Risen Untouched.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A catacomb of crystal and glass: bone-white prismatic shards jutting from the
+walls, refracted shafts of cold light, mirror-like floors, knife-edge crystal
+bridges. Empty open glassy floor in the foreground for combatants. Sharp,
+brittle, iridescent pale palette, painterly rendered game art, moody dim
+lighting, no characters, no text, no UI.
+
+[12] FLOORS 161-170  —  HOLLOW HELIOPAUSE     (file: floor 161-170.png)
+Floors: Helio-Drift Outlands, Silent Aurora, Sun-Cracked Wastes, Tide-Pulled
+        Forge, Vault of Cooled Stars, Empty Photosphere, Solar-Cinder Span,
+        Pallid Corona, Heliopause Threshold, Crowned Apex Arbiter.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+The edge of a dead solar system: a vast cold dim sun cracked and dark on the
+horizon, drifting cinder-debris, a pallid wisp of corona, ruined observatory
+spans floating in near-vacuum. Empty open metallic floor in the foreground for
+combatants. Vast, lonely, faded gold-and-grey palette, painterly rendered game
+art, moody dim lighting, no characters, no text, no UI.
+
+[13] FLOORS 171-180  —  CRIMSON SOLSTICE      (file: floor 171-180.png)
+Floors: Bloodwarden Approach, Crimson Atrium, Pulse-Lit Sepulchre,
+        Vein-Marbled Halls, Vault of Last Heartbeats, Sanguine Conservatory,
+        Carmine Aviary, Solstice Crucible, Crimson Apex, Lord-Eternal World Ender.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A blood-red cathedral atrium: walls marbled with pulsing crimson veins,
+deep-red stained glass, a sanguine glow that throbs like a heartbeat, dark
+arches dripping carmine light. Empty open dark-stone floor in the foreground
+for combatants. Visceral, ominous, saturated red-and-black palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[14] FLOORS 181-190  —  CALAMITY'S LEDGER     (file: floor 181-190.png)
+Floors: Tally-Hall of Names, Disaster's Anteroom, Reckoning Furnace, Auditor's
+        Vault, Vault of Unpaid Debts, Account of Embers, Ledger's Edge,
+        Numbered Sepulchre, Calamity's Last Page, Shade of the Stone Sentinel.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+An immense gothic hall of accounts: towering shelves of dust-blackened ledgers
+and tally-stones, hanging brass scales, a cold reckoning furnace glowing faint
+in the mid-background, numbered tomb-niches. Empty open marble floor in the
+foreground for combatants. Bureaucratic-doom, oppressive, sepia-and-grey
+palette, painterly rendered game art, moody dim lighting, no characters, no
+text, no UI.
+
+[15] FLOORS 191-200  —  THE WORMWOOD SKY      (file: floor 191-200.png)
+Floors: Wormwood Marches, Bitter-Star Watchtower, Plumbago Gardens,
+        Soot-Steeped Vault, Vault of Acrid Hymns, Tannic Aviary, Bile-Lit
+        Foundry, Wormwood Apex, Sky's Last Bough, Hollow Wraith Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A bitter poisoned skyland: a watchtower atop wormwood marshes, sickly
+yellow-green haze, blackened soot-steeped ruins, one bitter cold star low in
+the acrid sky. Empty open weathered floor in the foreground for combatants.
+Toxic, mournful, bilious green-and-grey palette, painterly rendered game art,
+moody dim lighting, no characters, no text, no UI.
+
+[16] FLOORS 201-210  —  VERDIGRIS CATHEDRALS  (file: floor 201-210.png)
+Floors: Verdigris Approach, Patina Halls, Greenflame Cloister, Copper-Choked
+        Reliquary, Vault of Quiet Rust, Oxidized Atrium, Tarnished Vows,
+        Bronze-Skin Foundry, Cathedral's Pinnacle, Aspect of the Tower Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A vast oxidized copper cathedral: walls and statues coated in green verdigris
+patina, tarnished bronze fittings, eerie green-flame braziers, a corroded
+domed ceiling. Empty open metal floor in the foreground for combatants. Aged,
+corroded, copper-green-and-teal palette, painterly rendered game art, moody
+dim lighting, no characters, no text, no UI.
+
+[17] FLOORS 211-220  —  MURMURING WASTES      (file: floor 211-220.png)
+Floors: Whisper-Wind Wastes, Hollow Susurrus, Babbling Outlands, Echo-Marred
+        Plains, Vault of Endless Murmur, Choking Concourse, Throat-Sand Reach,
+        Resonant Apex, Murmur's Final Verse, Black Iron Behemoth.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A vast windblown desert of whispering sand: half-buried hollow ruins shaped
+like open mouths and throats, drifting dust, an echo-marred plain stretching
+to a dim horizon. Empty open sand-swept floor in the foreground for
+combatants. Desolate, restless, muted ochre-and-grey palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[18] FLOORS 221-230  —  LACUNA OF STARS       (file: floor 221-230.png)
+Floors: Star-Wound Approach, Constellation's Gap, Empty Asterism, Galactic
+        Reliquary, Vault of Lost Suns, Void-Lit Atrium, Wandering Comet's Tail,
+        Lacuna Crucible, Stars' Far Boundary, Splintered Storm Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A reliquary suspended in deep space: a black starfield with an unnatural empty
+void-gap where a constellation should be, drifting dead suns, a faint comet's
+tail, broken floating astral stonework. Empty open dark platform floor in the
+foreground for combatants. Cosmic, hollow, deep-blue-and-black palette,
+painterly rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[19] FLOORS 231-240  —  THREADBARE ETERNITY   (file: floor 231-240.png)
+Floors: Threadbare Outlands, Hollow Loom, Frayed Tapestry, Moth-Eaten Vault,
+        Vault of Unwoven Hours, Bobbin's Cradle, Worn Antiphon, Eternity
+        Frayed, Last Thread, Risen Demon General.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A colossal hall of unravelling fabric: a giant hollow loom, immense moth-eaten
+tapestries hanging in shreds, loose threads drifting in the air, dust and
+faded dye. Empty open worn floor in the foreground for combatants. Frayed,
+faded, melancholy dusty-brown-and-grey palette, painterly rendered game art,
+moody dim lighting, no characters, no text, no UI.
+
+[20] FLOORS 241-250  —  THE FORSAKEN DIADEM   (file: floor 241-250.png)
+Floors: Crown-Shed Approach, Diadem's Hollow, Gem-Mute Reliquary, Toppled
+        Coronet, Vault of Empty Crowns, Throneless Atrium, Discarded Sceptre,
+        Forsaken Vault, Diadem's Last Stone, Crowned Witch Queen.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A toppled royal treasury: a huge cracked crown lying on its side, scattered
+dull lightless gemstones, a discarded sceptre, an empty throne dais with no
+throne. Empty open marble floor in the foreground for combatants. Fallen
+majesty, abandoned, faded gold-and-violet palette, painterly rendered game
+art, moody dim lighting, no characters, no text, no UI.
+
+[21] FLOORS 251-260  —  INKWELL CONJUNCTION   (file: floor 251-260.png)
+Floors: Inksoaked Approach, Quill's Final Stroke, Margin Wastes, Blotted
+        Reliquary, Vault of Black Letters, Manuscript Foundry, Pen-Stricken
+        Apex, Glyph-Lit Sepulchre, Inkwell's Edge, Lord-Eternal Dragon Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A vast ink-drowned scriptorium: rivers and pools of black ink, towering
+manuscript shelves, drifting torn pages, glowing glyphs etched into the walls,
+a giant broken quill. Empty open ink-stained floor in the foreground for
+combatants. Scholarly-occult, blotted, black-and-parchment palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[22] FLOORS 261-270  —  FROSTGALLOWS SPAN     (file: floor 261-270.png)
+Floors: Frostgallows Approach, Icebound Scaffold, Hangman's Frost, Cryo-Lit
+        Cells, Vault of Hung Vows, Glacier-Marrow Reach, Rime-Locked Atrium,
+        Hangman's Apex, Span's Last Plank, Aspect of the Tower God.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A frozen gallows bridge: icebound wooden scaffolds and empty hanging frames
+crusted with rime, a deep glacial chasm below, frost-locked iron cells.
+Empty open frosted-plank floor in the foreground for combatants. Grim, cold,
+cruel, pale-blue-and-white palette, painterly rendered game art, moody dim
+lighting, no characters, no text, no UI.
+
+[23] FLOORS 271-280  —  BLEACHED CONSTELLATION (file: floor 271-280.png)
+Floors: Bleach-Star Approach, Sun-Skinned Halls, Bone-Light Cathedral, Faded
+        Asterism, Vault of Pallid Stars, Ashen Heliosphere, Marrow-Sky Span,
+        Bleach Antiphon, Constellation's End, Black Null Hierophant.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A bone-white celestial cathedral: pale star-shaped skylights, walls of
+sun-bleached bone, faded dim constellations overhead, an ashen washed-out
+glow. Empty open pale floor in the foreground for combatants. Bleached,
+skeletal, near-monochrome bone-white palette, painterly rendered game art,
+moody dim lighting, no characters, no text, no UI.
+
+[24] FLOORS 281-290  —  SPIRE OF LAST HOURS   (file: floor 281-290.png)
+Floors: Lasthour Approach, Clock-Choked Atrium, Cog-Strewn Reliquary,
+        Pendulum's Stop, Vault of Final Minutes, Hourless Aviary, Timepiece
+        Cathedral, Sundial's Shadow, Spire's Crown, Splintered Untouched.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A vast clockwork spire interior: enormous stopped clock-faces, frozen
+pendulums, scattered brass cogs and gears, a giant sundial casting one long
+shadow. Empty open clockwork floor in the foreground for combatants.
+Mechanical, time-stilled, brass-and-deep-blue palette, painterly rendered game
+art, moody dim lighting, no characters, no text, no UI.
+
+[25] FLOORS 291-300  —  THE MUTE CHOIR        (file: floor 291-300.png)
+Floors: Voiceless Approach, Throat-Sewn Halls, Hush-Stoppered Cloister,
+        Tongueless Reliquary, Vault of Silent Vows, Whispermute Atrium,
+        Mum-Stitched Apex, Choirless Aviary, Mute's Last Note, Risen Apex Arbiter.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A silenced cathedral choir: tiered empty choir stalls, a great pipe organ with
+its pipes sewn shut and bound, hush-grey banners, a stifled airless stillness.
+Empty open stone choir floor in the foreground for combatants. Suffocatingly
+quiet, sombre, muted grey-and-charcoal palette, painterly rendered game art,
+moody dim lighting, no characters, no text, no UI.
+
+[26] FLOORS 301-310  —  ANNIHILATION CAUSEWAY (file: floor 301-310.png)
+Floors: Causeway's Mouth, Annulled Galleries, Erased Reliquary, Voiding March,
+        Vault of Forgotten Names, Annihilator's Atrium, Unmade Concourse,
+        Causeway's Edge, Annihilation Apex, Crowned World Ender.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A long causeway dissolving into nothing: stonework that frays and erases into
+blank white void at the edges, galleries half-unmade, fragments crumbling
+upward into oblivion. Empty open stone floor in the foreground for combatants.
+Apocalyptic, dissolving, stark white-and-void palette against dark, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[27] FLOORS 311-320  —  PALL OF THE OUTER WORLDS (file: floor 311-320.png)
+Floors: Outer-Pall Approach, Hollowed Exosphere, Distant-Sun Sepulchre,
+        Vacuum Garden, Vault of Forgotten Worlds, Outer Cloister, Pall-Wreathed
+        Apex, Far-Sky Atrium, Outerworlds' Edge, Bleached Stone Sentinel.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A cloister floating at the rim of space: an airless vacuum garden of frozen
+crystalline plants, distant pale planets in a black far-sky, a thin grey pall
+drifting over everything. Empty open dark platform floor in the foreground for
+combatants. Remote, hushed, deep-space cold-grey-and-blue palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[28] FLOORS 321-330  —  CARRION ECLIPSE       (file: floor 321-330.png)
+Floors: Carrion Approach, Vulture's Hall, Marrow-Sown Reliquary, Eclipse-Lit
+        Mausoleum, Vault of Half-Light, Carrion Atrium, Eclipsed Aviary,
+        Carrion Apex, Last Eclipse, Shade of the Tower Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A mausoleum under a total eclipse: a black sun ringed with a thin corona in
+the sky, half-light gloom, scattered bone and marrow-strewn flagstones, perched
+empty vulture roosts. Empty open tomb floor in the foreground for combatants.
+Carrion, eerie, eclipse half-dark palette of black-grey and dim gold,
+painterly rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[29] FLOORS 331-340  —  FURNACE OF NAMES      (file: floor 331-340.png)
+Floors: Furnace Approach, Letter-Forged Halls, Brand-Lit Reliquary, Sigil
+        Crucible, Vault of Smelted Titles, Names-on-Coals, Forged Identity,
+        Furnace Apex, Names' Last Spark, Aspect of the Iron Behemoth.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A branding-furnace forge-hall: glowing red-hot letters and sigils embedded in
+the walls, racks of branding irons, a crucible of molten metal casting orange
+light, coals strewn with smouldering names. Empty open scorched iron floor in
+the foreground for combatants. Searing, identity-erasing, orange-and-iron
+palette, painterly rendered game art, moody dim lighting, no characters, no
+text, no UI.
+
+[30] FLOORS 341-350  —  SUNDERED ANTIPHON     (file: floor 341-350.png)
+Floors: Sundered Approach, Hymn-Cleaved Halls, Split-Voice Cathedral, Riven
+        Choir, Vault of Broken Hymns, Cracked Antiphon, Cleft Cloister, Halved
+        Apex, Sundered Verse, Hollow Storm Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A cathedral split clean down the middle: a vast vertical crack cleaving the
+nave in two, the halves drifting slightly apart, broken organ pipes, riven
+choir stalls, storm-light pouring through the rift. Empty open cleft floor in
+the foreground for combatants. Fractured, dramatic, cold-grey-and-storm-blue
+palette, painterly rendered game art, moody dim lighting, no characters, no
+text, no UI.
+
+[31] FLOORS 351-360  —  CRUCIBLE BENEATH      (file: floor 351-360.png)
+Floors: Crucible's Mouth, Submerged Forge, Beneath-Halls, Crucible's Core,
+        Vault of Re-Melted Vows, Subterrane Atrium, Below-Light Cathedral,
+        Crucible Apex, Beneath's Edge, Black Demon General.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A drowned underworld forge far beneath the earth: a submerged crucible glowing
+deep orange under black water, dripping subterranean halls, glowing magma
+seams in the cavern walls. Empty open dark-stone floor in the foreground for
+combatants. Deep, crushing, magma-orange-and-black palette, painterly rendered
+game art, moody dim lighting, no characters, no text, no UI.
+
+[32] FLOORS 361-370  —  MOURNER'S LATTICE     (file: floor 361-370.png)
+Floors: Mourner's Approach, Crepe-Hung Halls, Wake-Lit Cathedral, Lattice of
+        Tears, Vault of Last Goodbyes, Mourner's Atrium, Veil-Strewn Aviary,
+        Lattice Apex, Mourner's Final Knell, Splintered Witch Queen.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A funeral hall draped in black crepe: a lattice of mourning veils crisscrossing
+overhead, dim wake-candles, a great silent bell, glistening tear-like dewdrops
+on the lattice threads. Empty open dark floor in the foreground for combatants.
+Grieving, hushed, black-and-pale-grey palette, painterly rendered game art,
+moody dim lighting, no characters, no text, no UI.
+
+[33] FLOORS 371-380  —  ASHEN APEX            (file: floor 371-380.png)
+Floors: Ash-Wreath Approach, Soot-Sworn Halls, Cinder-Lit Cathedral, Ember
+        Reliquary, Vault of Cold Ash, Ashen Atrium, Cinder Apex, Soot-Wreathed
+        Cloister, Apex's Final Ember, Risen Dragon Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A burned-out summit cathedral: everything coated in cold grey ash, drifting
+soot, a few last dying embers glowing faint orange, charred columns reaching
+toward a smoke-choked sky. Empty open ash-covered floor in the foreground for
+combatants. Spent, smouldering, grey-ash-and-dim-ember palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[34] FLOORS 381-390  —  THE SEVERED HOUR      (file: floor 381-390.png)
+Floors: Hourless Approach, Time-Sundered Halls, Severed Pendulum, Cleft
+        Sundial, Vault of Severed Time, Hour-Sewn Cathedral, Stopped-Clock
+        Atrium, Severed Apex, Hour's Last Tick, Crowned Tower God.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A hall where time itself is cut apart: a giant pendulum sliced through and
+hanging in two pieces, a cracked sundial, stopped clocks frozen at different
+hours, fragments of broken hour-hands suspended in midair. Empty open floor in
+the foreground for combatants. Surreal, fractured-time, cold-blue-and-brass
+palette, painterly rendered game art, moody dim lighting, no characters, no
+text, no UI.
+
+[35] FLOORS 391-400  —  CRADLE OF CINDERS     (file: floor 391-400.png)
+Floors: Cradle Approach, Cinder-Nursery, Ash-Lullaby Halls, Smoldering Cradle,
+        Vault of Young Embers, Hearth-Crucible, Cradle Cathedral, Cradle's
+        Apex, Cradle's Last Spark, Lord-Eternal Null Hierophant.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+An eerie nursery of fire: rows of small stone cradles each holding a glowing
+young ember, a central hearth-crucible, warm soft orange light, drifting
+gentle sparks. Empty open warm-stone floor in the foreground for combatants.
+Tender yet ominous, warm-orange-and-deep-shadow palette, painterly rendered
+game art, moody dim lighting, no characters, no text, no UI.
+
+[36] FLOORS 401-410  —  UNWRITTEN WASTES      (file: floor 401-410.png)
+Floors: Margins Beyond, Unscribed Halls, Blank Reliquary, Page-Stripped Atrium,
+        Vault of Unwritten Names, Margin-Walk, Unbound Apex, Blankspace
+        Cathedral, Margin's Edge, Bleached Untouched.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A cathedral made of blank unwritten pages: pale empty parchment walls with no
+text, page-like surfaces peeling away, a vast featureless white margin
+stretching into the distance. Empty open pale floor in the foreground for
+combatants. Empty, unfinished, near-white-and-faint-grey palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[37] FLOORS 411-420  —  MIRAGE OSSUARY        (file: floor 411-420.png)
+Floors: Mirage Approach, Glimmering Bone-Halls, Illusion's Reliquary,
+        Heat-Shimmer Ossuary, Vault of False Skulls, Wavering Atrium, Mirage
+        Cathedral, Ossuary Apex, Mirage's Edge, Shade of the Apex Arbiter.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A bone ossuary warped by heat-shimmer mirage: walls of stacked bone that
+waver and double like a desert illusion, glimmering false reflections, a
+distorted distant cathedral that may not be real. Empty open sand-dusted floor
+in the foreground for combatants. Hazy, deceptive, warm-bone-and-shimmer
+palette, painterly rendered game art, moody dim lighting, no characters, no
+text, no UI.
+
+[38] FLOORS 421-430  —  CHOIRLESS REACH       (file: floor 421-430.png)
+Floors: Hushed Approach, Silent Pulpit, Songless Cathedral, Reach of Mute
+        Tongues, Vault of Unsung Hymns, Hushed Aviary, Choirless Atrium,
+        Reach's Apex, Voice's Final End, Aspect of the World Ender.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A vast songless cathedral: an empty pulpit, abandoned choir lofts, hymn-books
+shut and chained, a profound dead acoustic stillness, dust hanging unmoved in
+the air. Empty open stone floor in the foreground for combatants. Voiceless,
+desolate, cold-grey-and-faded-gold palette, painterly rendered game art, moody
+dim lighting, no characters, no text, no UI.
+
+[39] FLOORS 431-440  —  THE BLEAK CONJUGATION (file: floor 431-440.png)
+Floors: Bleak Conjugation Pass, Verb-Stripped Halls, Tense-Locked Reliquary,
+        Syntax of Sorrow, Vault of Failed Tenses, Bleak Atrium, Conjugation
+        Apex, Grammar's End, Bleak Last Word, Hollow Stone Sentinel.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A bleak hall of broken language: walls carved with fractured runic grammar,
+chains and locks binding stone tablets, a labyrinth of cold corridors arranged
+like an unsolvable sentence. Empty open grey-stone floor in the foreground for
+combatants. Austere, sorrowful, slate-grey-and-dim-blue palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[40] FLOORS 441-450  —  THRESHOLD OF UNBECOMING (file: floor 441-450.png)
+Floors: Unbecoming Approach, Reverse Halls, Undone Reliquary, Negation Atrium,
+        Vault of Backward Years, Unmaking Cathedral, Reverse Aviary, Threshold
+        Apex, Unbecoming's Edge, Black Wraith Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A cathedral caught mid-unmaking: architecture flowing backward and coming
+apart, stones lifting and reassembling in reverse, mirror-reversed arches, a
+threshold that leads into negative inverted space. Empty open floor in the
+foreground for combatants. Surreal, reality-undoing, inverted cold-violet-and-
+black palette, painterly rendered game art, moody dim lighting, no characters,
+no text, no UI.
+
+[41] FLOORS 451-460  —  NULLSPIRE APPROACH    (file: floor 451-460.png)
+Floors: Null-Edge Causeway, Zero-Sworn Halls, Voided Reliquary, Cipher Atrium,
+        Vault of Empty Sigils, Nullspire Cathedral, Zero Crucible, Cipher Apex,
+        Nullspire's Crown, Splintered Tower Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A black spire of pure negation: walls etched with hollow empty cipher-sigils
+that glow faint white, a causeway of null-edged stone, a tall dark tower
+crowned with a ring of zeroes. Empty open dark floor in the foreground for
+combatants. Cryptic, absolute, black-and-cold-white palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[42] FLOORS 461-470  —  CATECHISM OF VOIDS    (file: floor 461-470.png)
+Floors: Catechist's Approach, Question-Hollow Halls, Answerless Pulpit,
+        Doctrine of Nothing, Vault of Blank Creeds, Catechism Atrium, Voided
+        Recitation, Catechism Apex, Last Article of Void, Risen Iron Behemoth.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A temple devoted to nothingness: an answerless pulpit facing rows of empty
+pews, blank creed-tablets with no writing, hollow question-shaped alcoves, a
+dark void where an altar should be. Empty open stone floor in the foreground
+for combatants. Doctrinal, empty, cold-grey-and-deep-shadow palette, painterly
+rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[43] FLOORS 471-480  —  FINAL RITE            (file: floor 471-480.png)
+Floors: Rite's Approach, Final-Vow Halls, Censer-Strewn Reliquary, Sacrament's
+        End, Vault of Last Sacraments, Rite's Atrium, Final Recitation, Rite
+        Apex, Sacrament's Last Smoke, Crowned Storm Lord.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A solemn hall set for one last ceremony: swinging censers trailing pale
+incense smoke, a sacramental altar with guttering candles, ritual cloths laid
+out, a heavy sense of finality. Empty open consecrated floor in the foreground
+for combatants. Sacred, final, deep-purple-gold-and-incense-grey palette,
+painterly rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[44] FLOORS 481-490  —  THE LONG SILENCE      (file: floor 481-490.png)
+Floors: Quietened Causeway, Hushlands, Whisperless Cathedral, Tongueless Reach,
+        Vault of Final Silence, Soundless Atrium, Wordless Apex, Lull-Lit
+        Aviary, Silence's Edge, Lord-Eternal Demon General.
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+A cathedral swallowed by total silence: vast soundless halls, everything
+muffled and still, soft grey light with no source, a stillness so complete it
+feels heavy and physical. Empty open pale-grey floor in the foreground for
+combatants. Profoundly quiet, weightless, soft-grey near-monochrome palette,
+painterly rendered game art, moody dim lighting, no characters, no text, no UI.
+
+[45] FLOORS 491-500  —  BEYOND THE LAST DOOR  (file: floor 491-500.png)
+Floors: Last Door's Approach, Hingeless Halls, Threshold Reliquary, Doorless
+        Atrium, Vault of Final Egress, Beyond-Cathedral, Last Door's Crown,
+        Egress Apex, The Door That Closes, Echo of Echoes (final boss).
+PROMPT:
+Dark high-fantasy battle arena backdrop, wide 16:9, symmetrical composition.
+The final chamber of the tower: one immense ancient door at the far end,
+slightly ajar, blinding white-gold light pouring through the gap, the rest of
+the hall grand, hushed and reverent. Empty open ceremonial floor in the
+foreground for combatants. Climactic, awe-struck, deep-shadow-and-radiant-
+gold palette, painterly rendered game art, moody dim lighting, no characters,
+no text, no UI.
+
+================================================================================
+END — 45 prompts (floors 51 through 500)
+================================================================================

@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAddress } from "viem";
 import { verifySession } from "../_lib/jwt.js";
-import { holdsAnyGatedNft, holdsMotzKey } from "../_lib/ronin.js";
+import { holdsAnyGatedNft, holdsMotzKey, NftCheckUnavailableError } from "../_lib/ronin.js";
 import { isDevBypassWallet } from "../_lib/devBypass.js";
 import { hasActiveTempMotzKey, readWipeEpoch, readForceResetAt } from "../_lib/runState.js";
 
@@ -22,7 +22,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // session check (called by the client periodically) revokes access almost
     // immediately. Dev-bypass wallets skip this on dev environments only.
     if (!bypass) {
-      const stillHolds = await holdsAnyGatedNft(address).catch(() => false);
+      // Re-validation is lenient on RPC failures: a transient Ronin RPC blip
+      // must NOT revoke an active session. Only a *definitive* non-holder
+      // result (all contract reads succeeded, all zero) revokes access.
+      // NftCheckUnavailableError → keep the session; the next poll re-checks.
+      let stillHolds = true;
+      try {
+        stillHolds = await holdsAnyGatedNft(address);
+      } catch (e) {
+        if (e instanceof NftCheckUnavailableError) {
+          stillHolds = true; // RPC outage — don't kick the player out
+        } else {
+          stillHolds = false; // unexpected error — fail closed
+        }
+      }
       if (!stillHolds) {
         res.status(403).json({ error: "wallet no longer holds required NFT" });
         return;

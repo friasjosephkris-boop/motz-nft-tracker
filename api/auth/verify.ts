@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getAddress, verifyMessage } from "viem";
 import { verifyChallenge, signSession } from "../_lib/jwt.js";
-import { holdsAnyGatedNft } from "../_lib/ronin.js";
+import { holdsAnyGatedNft, NftCheckUnavailableError } from "../_lib/ronin.js";
 import { buildSignMessage } from "../_lib/signMessage.js";
 import { isDevBypassWallet } from "../_lib/devBypass.js";
 
@@ -46,7 +46,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // Dev tester wallets bypass the NFT-gate check on dev environments only.
   if (!isDevBypassWallet(normalized)) {
-    const holds = await holdsAnyGatedNft(normalized);
+    let holds: boolean;
+    try {
+      holds = await holdsAnyGatedNft(normalized);
+    } catch (e) {
+      // RPC outage / rate-limit — DON'T tell the player they lack the NFT
+      // (they may well hold it). Return a distinct retryable 503 so the
+      // wallet gate shows "try again" instead of a false "no NFT" denial.
+      if (e instanceof NftCheckUnavailableError) {
+        res.status(503).json({ error: "Couldn't verify NFT ownership right now — the Ronin network is busy. Please try connecting again in a moment." });
+        return;
+      }
+      throw e;
+    }
     if (!holds) {
       res.status(403).json({ error: "wallet does not hold required NFT" });
       return;
