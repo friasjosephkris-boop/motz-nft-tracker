@@ -1685,12 +1685,53 @@ body:has(.battle) {
 /* ---------- Home ---------- */
 .home-screen {
   position: relative;
+  isolation: isolate; /* local stacking context for the decor layer */
   min-height: 80vh;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   padding: 24px;
   text-align: center;
 }
+
+/* Decorative unit silhouettes — scattered, hoverable, non-interactive.
+   z-index 1 keeps them above the home background but below the interactive
+   content (z-index 3), so a silhouette never intercepts a tile/button click. */
+.home-decor {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.home-decor-silhouette {
+  position: absolute;
+  height: 110px;        /* same height as a home-tile box */
+  width: auto;          /* shrink proportionally */
+  pointer-events: auto; /* hoverable — but there is no click handler */
+  opacity: 0.40;
+  transform: rotate(var(--decor-rot, 0deg));
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(.2, .7, .2, 1), filter 0.2s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.home-decor-silhouette:hover {
+  opacity: 0.85;
+  transform: rotate(var(--decor-rot, 0deg)) scale(1.12);
+}
+/* Per-unit hover aura — a colored glow that hugs the silhouette shape.
+   drop-shadow follows the PNG's alpha outline (unlike a boxy box-shadow). */
+.home-decor-silhouette[data-unit="aspen"]:hover   { filter: drop-shadow(0 0 6px rgba(190, 190, 196, 0.95)) drop-shadow(0 0 18px rgba(190, 190, 196, 0.65)); }
+.home-decor-silhouette[data-unit="ego"]:hover     { filter: drop-shadow(0 0 6px rgba(255, 42, 85, 0.95))   drop-shadow(0 0 18px rgba(255, 42, 85, 0.70)); }
+.home-decor-silhouette[data-unit="gruyere"]:hover { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.95))  drop-shadow(0 0 18px rgba(168, 85, 247, 0.70)); }
+.home-decor-silhouette[data-unit="hera"]:hover    { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 18px rgba(255, 255, 255, 0.70)); }
+.home-decor-silhouette[data-unit="oge"]:hover     { filter: drop-shadow(0 0 6px rgba(255, 110, 180, 0.95)) drop-shadow(0 0 18px rgba(255, 110, 180, 0.70)); }
+.home-decor-silhouette[data-unit="soda"]:hover    { filter: drop-shadow(0 0 6px rgba(255, 140, 60, 0.95))  drop-shadow(0 0 18px rgba(255, 140, 60, 0.70)); }
+/* Lift interactive home content above the decorative layer. */
+.home-screen > .gear-btn,
+.home-screen > .energy-pill { z-index: 3; }
+.home-header,
+.home-tiles,
+.season-halt-banner { position: relative; z-index: 3; }
 .gear-btn {
   position: absolute;
   top: 0; right: 0;

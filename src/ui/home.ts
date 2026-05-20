@@ -14,6 +14,7 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
   const energy = getEnergy();
   root.innerHTML = `
     <div class="home-screen">
+      <div class="home-decor" id="home-decor" aria-hidden="true"></div>
       <button class="gear-btn" id="open-settings" type="button" title="Settings">⚙</button>
       <button class="gear-btn tutorial-btn" id="open-tutorial" type="button" title="Replay tutorial">?</button>
       <button class="gear-btn codex-btn" id="open-codex" type="button" title="Codex — stats, actions, effects">📖</button>
@@ -108,6 +109,68 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
   // energy is claimed (e.g. in another tab).
   refreshReferralBadge();
   installReferralBadgeWatcher();
+
+  mountHomeDecor(root);
+}
+
+/** Unit silhouettes scattered across the home background as decoration.
+ *  Each is hoverable (visual only) but carries no click handler, and the
+ *  layer sits below the interactive content, so a silhouette can never
+ *  intercept a tile or button click.
+ *
+ *  Placement avoids the centered tile column entirely — the tile column is
+ *  measured at render time and silhouettes are scattered only in the empty
+ *  side gutters (falling back to the strip below the tiles, then anywhere,
+ *  if the viewport is too narrow for gutters). Re-randomizes each render. */
+const DECOR_SILHOUETTES = ["ego", "aspen", "gruyere", "hera", "oge", "soda"];
+
+function mountHomeDecor(root: HTMLElement): void {
+  const layer = root.querySelector<HTMLElement>("#home-decor");
+  const screen = root.querySelector<HTMLElement>(".home-screen");
+  const tiles = root.querySelector<HTMLElement>(".home-tiles");
+  if (!layer || !screen || !tiles) return;
+
+  const SIZE = 110;       // silhouette box (matches a home-tile's height)
+  const ROT = 16;         // a rotated 110px box pokes out ~16px
+  const PAD = 12;
+  const SLOT = SIZE + ROT; // clearance a silhouette needs to not touch a tile
+
+  const hs = screen.getBoundingClientRect();
+  const tl = tiles.getBoundingClientRect();
+  const W = hs.width, H = hs.height;
+  const tileLeft = tl.left - hs.left;
+  const tileRight = tl.right - hs.left;
+  const tileBottom = tl.bottom - hs.top;
+  const yMax = Math.max(PAD, H - PAD - SLOT);
+
+  // Empty gutters beside the centered tile column.
+  type Zone = { x0: number; x1: number; y0: number; y1: number };
+  const zones: Zone[] = [];
+  const leftMax = tileLeft - PAD - SLOT;
+  if (leftMax >= PAD) zones.push({ x0: PAD, x1: leftMax, y0: PAD, y1: yMax });
+  if (tileRight + PAD <= W - PAD - SLOT) zones.push({ x0: tileRight + PAD, x1: W - PAD - SLOT, y0: PAD, y1: yMax });
+  if (zones.length === 0) {
+    // Viewport too narrow for side gutters — use the strip below the tiles,
+    // and if even that has no room, fall back to the whole area.
+    if (tileBottom + PAD <= yMax) zones.push({ x0: PAD, x1: Math.max(PAD, W - PAD - SLOT), y0: tileBottom + PAD, y1: yMax });
+    else zones.push({ x0: PAD, x1: Math.max(PAD, W - SLOT), y0: PAD, y1: Math.max(PAD, H - SLOT) });
+  }
+
+  const rand = (a: number, b: number): number => a + Math.random() * Math.max(0, b - a);
+
+  DECOR_SILHOUETTES.forEach((name, i) => {
+    const img = document.createElement("img");
+    img.className = "home-decor-silhouette";
+    img.dataset.unit = name; // drives the per-unit hover aura colour in CSS
+    img.src = `/units/${name}-silhouette.png`;
+    img.alt = "";
+    img.draggable = false;
+    const z = zones[i % zones.length];
+    img.style.left = `${rand(z.x0, z.x1).toFixed(1)}px`;
+    img.style.top = `${rand(z.y0, z.y1).toFixed(1)}px`;
+    img.style.setProperty("--decor-rot", `${(Math.random() * 36 - 18).toFixed(1)}deg`);
+    layer.appendChild(img);
+  });
 }
 
 /** Re-fetch the unclaimed referral count and sync the home tile badge.
