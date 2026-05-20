@@ -1780,33 +1780,7 @@ body:has(.battle) {
 }
 .tile-sub { font-size: 11px; opacity: 0.7; letter-spacing: 0.08em; }
 
-/* Home tiles — MoTZ treatment for Shop + Leaderboard (per design drafts). */
-
-/* Leaderboard tile: trophy mark + red→purple gradient wordmark. */
-.tile-leaderboard {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-.tile-lb-trophy {
-  width: 26px;
-  height: 26px;
-  flex-shrink: 0;
-  color: var(--motz-red);
-  filter: drop-shadow(0 0 8px rgba(255, 42, 85, 0.45));
-}
-.tile-leaderboard .tile-title {
-  margin-bottom: 0;
-  font-family: var(--motz-font-display);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: var(--motz-grad-text);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
+/* Home tiles — MoTZ treatment per design drafts. */
 
 /* Shop tile: illustrated apothecary scene + gold-glow wordmark. The SVG
    scene and scrim absolutely fill the tile; the wordmark sits above. */
@@ -1842,18 +1816,20 @@ body:has(.battle) {
     0 2px 0 rgba(120, 60, 0, 0.55);
 }
 
-/* Units tile — filled edge-to-edge by the UNITS banner artwork. The art
-   already contains the word "UNITS", so the tile renders no text label.
+/* Units & Leaderboard tiles — filled edge-to-edge by their banner artwork.
+   The art already contains the wordmark, so these tiles render no text label.
    The image is a separate absolutely-positioned layer (like the shop scene)
    so the .home-tile:hover background swap doesn't paint over it. Height is
    fixed to match the other home tiles; object-fit: cover + object-position
-   keep the "UNITS" wordmark framed in the resulting short crop. */
-.tile-units {
+   keep the wordmark framed in the resulting short crop. */
+.tile-units,
+.tile-leaderboard {
   padding: 0;
   overflow: hidden;
   height: 92px;
 }
-.tile-units-art {
+.tile-units-art,
+.tile-leaderboard-art {
   position: absolute;
   inset: 0;
   width: 100%;
