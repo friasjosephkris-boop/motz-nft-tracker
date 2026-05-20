@@ -136,7 +136,7 @@ export async function fetchFloorRetryStatus(stageId: number): Promise<FloorRetry
   } catch { return null; }
 }
 
-export type AdminLbScope = "survival" | "bossraid" | "we" | "conquer";
+export type AdminLbScope = "survival" | "bossraid" | "we" | "conquer" | "floorclimb";
 
 /** Admin: wipe a single leaderboard. */
 export async function adminResetOneLeaderboard(scope: AdminLbScope): Promise<{ ok: boolean; cleared?: string[]; error?: string }> {
@@ -203,23 +203,34 @@ export interface FirstConquerEntry {
 
 export interface WorldEnderEntry { rank: number; address: string; ign: string | null; ms: number; }
 
+export interface HighestFloorEntry { rank: number; address: string; ign: string | null; floor: number; }
+
 export interface LeaderboardFetch {
   entries: LbEntry[];
   firstConquer: FirstConquerEntry | null;
   worldEnder: WorldEnderEntry[];
+  highestFloor: HighestFloorEntry[];
+  /** Total RON spent on the shop — the live prize pool for the floor board. */
+  shopRevenue: number;
 }
 
 export async function fetchTopWithExtras(mode: LbMode = "survival", limit = 50): Promise<LeaderboardFetch> {
+  const empty: LeaderboardFetch = { entries: [], firstConquer: null, worldEnder: [], highestFloor: [], shopRevenue: 0 };
   try {
     const r = await fetch(`/api/leaderboard/top?mode=${mode}&limit=${limit}&extras=1`);
-    if (!r.ok) return { entries: [], firstConquer: null, worldEnder: [] };
-    const data = await r.json() as { entries: LbEntry[]; firstConquer: FirstConquerEntry | null; worldEnder: WorldEnderEntry[] };
+    if (!r.ok) return empty;
+    const data = await r.json() as {
+      entries: LbEntry[]; firstConquer: FirstConquerEntry | null; worldEnder: WorldEnderEntry[];
+      highestFloor?: HighestFloorEntry[]; shopRevenue?: number;
+    };
     return {
       entries: data.entries ?? [],
       firstConquer: data.firstConquer ?? null,
       worldEnder: data.worldEnder ?? [],
+      highestFloor: data.highestFloor ?? [],
+      shopRevenue: typeof data.shopRevenue === "number" ? data.shopRevenue : 0,
     };
-  } catch { return { entries: [], firstConquer: null, worldEnder: [] }; }
+  } catch { return empty; }
 }
 
 export function formatMs(ms: number): string {

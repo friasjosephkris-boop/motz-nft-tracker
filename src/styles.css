@@ -3925,6 +3925,9 @@ body:has(.battle) {
 .lb-conquer .lb-row {
   grid-template-columns: 32px 1fr auto;
 }
+.lb-floorclimb .lb-row {
+  grid-template-columns: 32px 1fr 56px;
+}
 .lb-row.me {
   background: linear-gradient(90deg, rgba(244, 211, 94, 0.14), rgba(244, 211, 94, 0.04));
   border-left: 2px solid var(--gold-bright);

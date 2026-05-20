@@ -113,7 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (op === "admin_reset_lb") {
     if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
     const scope = (req.body as { scope?: unknown }).scope;
-    if (scope !== "survival" && scope !== "bossraid" && scope !== "we" && scope !== "conquer") {
+    if (scope !== "survival" && scope !== "bossraid" && scope !== "we" && scope !== "conquer" && scope !== "floorclimb") {
       res.status(400).json({ error: "bad scope" }); return;
     }
     try {

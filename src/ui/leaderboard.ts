@@ -1,4 +1,4 @@
-import { fetchTop, fetchTopWithExtras, formatMs, LbEntry, FirstConquerEntry, WorldEnderEntry, adminResetOneLeaderboard, AdminLbScope, fetchReplayBlob } from "../core/leaderboard";
+import { fetchTop, fetchTopWithExtras, formatMs, LbEntry, FirstConquerEntry, WorldEnderEntry, HighestFloorEntry, adminResetOneLeaderboard, AdminLbScope, fetchReplayBlob } from "../core/leaderboard";
 import { topBarHtml } from "./settings";
 import { loadSession } from "../auth/session";
 import { isAdmin } from "../core/admin";
@@ -46,6 +46,12 @@ export function renderLeaderboard(root: HTMLElement, onBack: () => void, onPlayR
               <div class="lb-empty">Loading…</div>
             </div>
           </div>
+          <div class="lb-board lb-floorclimb">
+            ${titleHtml("Highest Floor Cleared", "floorclimb")}
+            <div class="lb-rows" id="lb-floorclimb-rows">
+              <div class="lb-empty">Loading…</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -62,6 +68,7 @@ export function renderLeaderboard(root: HTMLElement, onBack: () => void, onPlayR
           bossraid: "Boss Raid LB",
           we: "Fastest World Ender LB",
           conquer: "First to Conquer record",
+          floorclimb: "Highest Floor Cleared LB",
         };
         const ok = await confirmModal({
           title: "Wipe Leaderboard?",
@@ -89,10 +96,11 @@ export function renderLeaderboard(root: HTMLElement, onBack: () => void, onPlayR
 
   // Survival board (with first-conquer + world-ender in same payload).
   // Show up to 10 entries; replays available for top 3.
-  void fetchTopWithExtras("survival", 10).then(({ entries, firstConquer, worldEnder }) => {
+  void fetchTopWithExtras("survival", 10).then(({ entries, firstConquer, worldEnder, highestFloor, shopRevenue }) => {
     fillRows("lb-survival-rows", entries, myAddr, { mode: "survival" });
     fillFirstConquer("lb-conquer-rows", firstConquer, myAddr);
     fillWorldEnder("lb-fastest-rows", worldEnder, myAddr);
+    fillHighestFloor("lb-floorclimb-rows", highestFloor, shopRevenue, myAddr);
   });
 
   // Boss raid board (independent fetch). Up to 10 entries.
@@ -177,9 +185,25 @@ const PRIZES_RUN: Record<number, number> = { 1: 120, 2: 75, 3: 45, 4: 30, 5: 30 
 const PRIZES_WORLD_ENDER: Record<number, number> = { 1: 100, 2: 60, 3: 40 };
 const PRIZE_FIRST_CONQUER = 200;
 
+/** Highest Floor Cleared board: top 3 split the total RON spent on the shop.
+ *  Percentages (not fixed RON) — the actual payout is computed live from the
+ *  shopRevenue pool the server reports. */
+const FLOOR_PRIZE_PCT: Record<number, number> = { 1: 50, 2: 30, 3: 20 };
+
 function prizeChip(amount: number | undefined): string {
   if (!amount) return "";
   return `<span class="lb-prize" title="Prize: ${amount} $RON">${amount} RON</span>`;
+}
+
+/** Prize chip for the Highest Floor board — a percentage share of the live
+ *  shop-revenue pool. Shows the computed RON when the pool is known, falling
+ *  back to just the percentage when the pool is still empty. */
+function floorPrizeChip(rank: number, pool: number): string {
+  const pct = FLOOR_PRIZE_PCT[rank];
+  if (!pct) return "";
+  const ron = Math.floor((pool * pct) / 100);
+  const label = pool > 0 ? `${pct}% · ${ron} RON` : `${pct}% of shop RON`;
+  return `<span class="lb-prize" title="Prize: ${pct}% of total RON spent on the shop">${label}</span>`;
 }
 
 function fillWorldEnder(elId: string, entries: WorldEnderEntry[], myAddr: string | null): void {
@@ -206,6 +230,43 @@ function fillWorldEnder(elId: string, entries: WorldEnderEntry[], myAddr: string
         </span>
         <span class="lb-col time">${formatMs(e.ms)}</span>
         ${loadoutBtnHtml(e.rank <= 10, "we", e.address, e.ign ?? "—", 50)}
+      </div>
+    `;
+  }).join("");
+}
+
+function fillHighestFloor(elId: string, entries: HighestFloorEntry[], shopRevenue: number, myAddr: string | null): void {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  // Top 3 split 50/30/20% of total shop RON; 5 rows rendered so the unclaimed
+  // ranks 4-5 still show as empty slots.
+  const SLOT_COUNT = 5;
+  const display: (HighestFloorEntry | null)[] = [];
+  for (let i = 0; i < SLOT_COUNT; i++) display.push(entries[i] ?? null);
+  el.innerHTML = display.map((e, idx) => {
+    const rank = idx + 1;
+    if (!e) {
+      return `
+        <div class="lb-row lb-row-empty">
+          <span class="lb-col rank">${rank}</span>
+          <span class="lb-col player">
+            <span class="lb-ign dim">—</span>
+            ${floorPrizeChip(rank, shopRevenue)}
+          </span>
+          <span class="lb-col floor dim">—</span>
+        </div>
+      `;
+    }
+    const isMe = myAddr !== null && e.address.toLowerCase() === myAddr;
+    return `
+      <div class="lb-row ${isMe ? "me" : ""}">
+        <span class="lb-col rank">${e.rank}</span>
+        <span class="lb-col player">
+          <span class="lb-ign">${escapeHtml(e.ign ?? "—")}</span>
+          <span class="lb-addr" title="${escapeHtml(e.address)}">${shortAddr(e.address)}</span>
+          ${floorPrizeChip(e.rank, shopRevenue)}
+        </span>
+        <span class="lb-col floor">${e.floor}</span>
       </div>
     `;
   }).join("");

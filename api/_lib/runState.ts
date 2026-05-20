@@ -1,8 +1,8 @@
-import { getJson, setJson, del, zaddGt, zaddLt, zrangeWithScores, zrevrank, zrevrange, incrWithExpire, hset, hmget, hgetAll, hdel, incrBy, incrByWithExpire, getNumber, isPrefixedEnvironment, scanAllPrefixed, scanAllByPattern, delManyRaw, withWalletLock } from "./redis.js";
+import { getJson, setJson, del, zaddGt, zaddLt, zrangeWithScores, zrevrangeWithScores, zrevrank, zrevrange, incrWithExpire, hset, hmget, hgetAll, hdel, incrBy, incrByWithExpire, getNumber, isPrefixedEnvironment, scanAllPrefixed, scanAllByPattern, delManyRaw, withWalletLock } from "./redis.js";
 import { bumpVouchersAcquired } from "./analytics.js";
 
 // ---- Admin: leaderboard resets ----
-export type AdminResetScope = "survival" | "bossraid" | "we" | "conquer";
+export type AdminResetScope = "survival" | "bossraid" | "we" | "conquer" | "floorclimb";
 
 export async function adminClearLeaderboard(scope: AdminResetScope): Promise<string[]> {
   const keys: string[] = [];
@@ -10,13 +10,14 @@ export async function adminClearLeaderboard(scope: AdminResetScope): Promise<str
   else if (scope === "bossraid") keys.push(LB_KEYS.boss_raid);
   else if (scope === "we") keys.push(WORLD_ENDER_LB_KEY);
   else if (scope === "conquer") keys.push(FIRST_CONQUER_KEY);
+  else if (scope === "floorclimb") keys.push(HIGHEST_FLOOR_LB_KEY);
   for (const k of keys) await del(k).catch(() => undefined);
   return keys;
 }
 
 /** Bulk wipe — kept for emergencies but the UI now exposes per-board buttons. */
 export async function adminClearAllLeaderboards(): Promise<string[]> {
-  const all: AdminResetScope[] = ["survival", "bossraid", "we", "conquer"];
+  const all: AdminResetScope[] = ["survival", "bossraid", "we", "conquer", "floorclimb"];
   const keys: string[] = [];
   for (const s of all) keys.push(...await adminClearLeaderboard(s));
   return keys;
@@ -342,6 +343,10 @@ export async function recordFloorModeClear(address: string, stageId: number, par
   if (stageId === cur + 1) {
     newMax = stageId;
     await setJson(maxFloorKey(address), newMax, 60 * 60 * 24 * 365 * 5);
+    // Mirror the new max into the "Highest Floor Cleared" leaderboard zset.
+    // zaddGt only raises the score, never lowers it — safe to call on every
+    // clear. The per-wallet maxfloor: key above stays the source of truth.
+    await zaddGt(HIGHEST_FLOOR_LB_KEY, newMax, address.toLowerCase()).catch(() => 0);
     // One-time floor-20 clear offer: if THIS clear is the first time the
     // wallet crossed floor 20, mark the offer available. The offer module
     // ignores already-consumed states, so re-clears (post-wipe) won't
@@ -753,6 +758,23 @@ export async function getWorldEnderTop(limit = 5): Promise<WorldEnderEntry[]> {
   if (rows.length === 0) return [];
   const igns = await hmget(IGN_HASH_KEY, rows.map(r => r.member));
   return rows.map((r, i) => ({ rank: i + 1, address: r.member, ign: igns[i] ?? null, ms: r.score }));
+}
+
+// ---- "Highest Floor Cleared" — campaign progress leaderboard ----
+// Ranks wallets by their highest contiguously-cleared campaign floor. The
+// zset score IS the floor number; recordFloorModeClear keeps it in sync via
+// zaddGt. Higher floor = better, so reads use zrevrange (descending). The
+// top 3 split a live 50/30/20% share of total shop RON revenue — the prize
+// pool is computed in the leaderboard UI from the shopRevenue field.
+export const HIGHEST_FLOOR_LB_KEY = "lb:highest_floor:v1";
+
+export interface HighestFloorEntry { rank: number; address: string; ign: string | null; floor: number; }
+
+export async function getHighestFloorTop(limit = 5): Promise<HighestFloorEntry[]> {
+  const rows = await zrevrangeWithScores(HIGHEST_FLOOR_LB_KEY, 0, limit - 1);
+  if (rows.length === 0) return [];
+  const igns = await hmget(IGN_HASH_KEY, rows.map(r => r.member));
+  return rows.map((r, i) => ({ rank: i + 1, address: r.member, ign: igns[i] ?? null, floor: r.score }));
 }
 
 // ---- Replay storage ----
