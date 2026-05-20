@@ -1820,8 +1820,9 @@ body:has(.battle) {
    The art already contains the wordmark, so these tiles render no text label.
    The image is a separate absolutely-positioned layer (like the shop scene)
    so the .home-tile:hover background swap doesn't paint over it. Height is
-   fixed to match the other home tiles; object-fit: cover + object-position
-   keep the wordmark framed in the resulting short crop. */
+   fixed to match the other home tiles; object-fit: fill compresses the whole
+   banner into the short tile (vertically squished) rather than cropping it,
+   so all of the artwork stays visible. */
 .tile-units,
 .tile-leaderboard {
   padding: 0;
@@ -1834,8 +1835,7 @@ body:has(.battle) {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center 78%;
+  object-fit: fill;
   display: block;
 }
 
