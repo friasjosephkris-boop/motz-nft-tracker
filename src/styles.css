@@ -1718,7 +1718,7 @@ body:has(.battle) {
   text-shadow: 0 0 28px rgba(244, 211, 94, 0.30);
   text-transform: uppercase;
 }
-.home-tiles { display: flex; flex-direction: column; gap: 16px; width: 320px; max-width: 90vw; }
+.home-tiles { display: flex; flex-direction: column; gap: 16px; width: 384px; max-width: 90vw; }
 .home-tile {
   /* Translucent fill so the tower silhouette shows through; a slight blur
      keeps the gold text from clashing with high-contrast pixels behind. */
@@ -1800,7 +1800,7 @@ body:has(.battle) {
 .tile-leaderboard {
   padding: 0;
   overflow: hidden;
-  height: 92px;
+  height: 110px;
 }
 .tile-ascend-art,
 .tile-units-art,
