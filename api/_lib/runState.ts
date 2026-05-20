@@ -748,7 +748,7 @@ export async function submitWorldEnderClear(address: string, ms: number): Promis
 
 export interface WorldEnderEntry { rank: number; address: string; ign: string | null; ms: number; }
 
-export async function getWorldEnderTop(limit = 3): Promise<WorldEnderEntry[]> {
+export async function getWorldEnderTop(limit = 5): Promise<WorldEnderEntry[]> {
   const rows = await zrangeWithScores(WORLD_ENDER_LB_KEY, 0, limit - 1);
   if (rows.length === 0) return [];
   const igns = await hmget(IGN_HASH_KEY, rows.map(r => r.member));

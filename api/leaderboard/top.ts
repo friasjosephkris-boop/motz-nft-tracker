@@ -35,7 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         const [ign] = await hmget(IGN_HASH_KEY, [rec.address.toLowerCase()]).catch(() => [null]);
         firstConquer = { address: rec.address, ign: ign ?? null, when: rec.when, party: rec.party };
       }
-      worldEnder = await getWorldEnderTop(3).catch(() => []);
+      // 5 — matches the leaderboard UI's SLOT_COUNT (5 rows rendered).
+      worldEnder = await getWorldEnderTop(5).catch(() => []);
     }
 
     res.setHeader("Cache-Control", "public, max-age=10");
