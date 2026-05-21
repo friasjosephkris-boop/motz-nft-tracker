@@ -12,8 +12,8 @@ const OFFER_PRICE_WEI: bigint = 20n * 10n ** 18n;
 let modalOpen = false;
 let checkInFlight = false;
 
-/** Call after the player wins floor 20 (and on home screen entry as a
- *  safety net so a wallet that crossed floor 20 before this build deployed
+/** Call after the player wins floor 30 (and on home screen entry as a
+ *  safety net so a wallet that crossed floor 30 before this build deployed
  *  still gets the modal). Self-rate-limited and idempotent. */
 export async function maybeShowFloor20Offer(): Promise<void> {
   if (modalOpen || checkInFlight) return;
@@ -25,7 +25,7 @@ export async function maybeShowFloor20Offer(): Promise<void> {
   try {
     const status = await fetchFloor20OfferStatus();
     if (!status || !status.ok) return;
-    // "pending" means floor 20 not yet cleared; "consumed" means already used.
+    // "pending" means floor 30 not yet cleared; "consumed" means already used.
     if (status.status !== "available" && status.status !== "shown") return;
     if (isOneTimeOfferOpen()) return; // another modal opened during the await
     await openOfferModal(status.priceRon ?? 20);
@@ -42,7 +42,7 @@ async function openOfferModal(priceRon: number): Promise<void> {
   overlay.className = "first-offer-modal";
   overlay.innerHTML = `
     <div class="first-offer-card">
-      <div class="first-offer-banner">🏆 FLOOR 20 REWARD</div>
+      <div class="first-offer-banner">🏆 FLOOR 30 REWARD</div>
       <h2 class="first-offer-title">Campaign Buff Bundle</h2>
       <div class="first-offer-deal">
         <span class="first-offer-deal-energy">ALL Buffs</span>
@@ -50,7 +50,7 @@ async function openOfferModal(priceRon: number): Promise<void> {
         <span class="first-offer-deal-price">${priceRon} RON</span>
       </div>
       <div class="first-offer-desc">
-        Congrats on clearing Floor 20! Grab the entire campaign-buff toolkit
+        Congrats on clearing Floor 30! Grab the entire campaign-buff toolkit
         in one package — Battle Cry, Phoenix Embers, Scholar's Insight,
         Quickdraw, Last Stand — for the price of two singles.
         Pay <strong>${priceRon} RON</strong> on-chain or <strong>${priceRon} bRON</strong> in vouchers.
@@ -72,7 +72,7 @@ async function openOfferModal(priceRon: number): Promise<void> {
     modalOpen = false;
     unlockOneTimeOffer();
     // After closing, check if the OTHER one-time offer should now fire.
-    // Common scenario: player clears floor 20 with 0 energy — both offers
+    // Common scenario: player clears floor 30 with 0 energy — both offers
     // qualify, this modal grabbed the lock first, the first-energy modal
     // was suppressed. Once we release, fire its check so the player still
     // gets to see it. Self-rate-limited via server-side `consumed` state,

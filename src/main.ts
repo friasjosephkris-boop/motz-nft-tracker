@@ -1297,12 +1297,13 @@ function frame(t: number): void {
         );
         recordedThisBattle = true;
         const cleared = currentStageId;
-        // After a floor-20 victory, the server-side recordFloorModeClear has
+        // After a floor-30 victory, the server-side recordFloorModeClear has
         // promoted the one-time campaign-buff-bundle offer from "pending" to
         // "available". Fire-and-forget poll → modal opens on top of the run
         // summary if the wallet just unlocked it. Self-rate-limited so it
-        // can't double-fire.
-        if (cleared === 20) {
+        // can't double-fire. (Trigger floor is 30, not 20, so it doesn't
+        // collide with the first-energy offer.)
+        if (cleared === 30) {
           void import("./ui/floor20Offer").then(m => m.maybeShowFloor20Offer()).catch(() => undefined);
         }
         setTimeout(() => { void showRunSummary("victory", cleared); }, 1500);

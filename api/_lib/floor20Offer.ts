@@ -1,17 +1,21 @@
-// One-time floor-20-clear offer.
+// One-time campaign-buff-bundle offer (the "floor clear" offer).
 //
-// Triggered the first time a player clears campaign floor 20. Offers a
+// Triggered the first time a player clears campaign floor 30. Offers a
 // full campaign-buff bundle (one grant of every SHOP_BUFF) for 20 RON
 // (on-chain) OR 20 bRON in vouchers (off-chain). Strict one-shot:
 // once claimed or dismissed, never offered again to this wallet.
 //
+// NOTE: the trigger floor was moved 20 → 30 so this offer no longer collides
+// with the first-energy offer. The module / functions / Redis key keep the
+// "floor20" name so existing per-wallet offer state isn't orphaned.
+//
 // State storage (Redis JSON at `floor20offer:<wallet>`):
 //   { status, consumedAt?, via? }
 //
-// "available"  = floor 20 has been cleared; offer is ready
+// "available"  = floor 30 has been cleared; offer is ready
 // "shown"      = modal opened, awaiting decision (refresh-safe)
 // "consumed"   = claimed or dismissed; never offer again
-// "pending"    = floor 20 not yet cleared (default if no record)
+// "pending"    = floor 30 not yet cleared (default if no record)
 
 import { getJson, setJson, del } from "./redis.js";
 import { readShopInventory, writeShopInventory, mutateShopInventory, SHOP_BUFF_IDS, BUFF_GRANT_SIZE, VOUCHER_VALUES_RON, ShopItemId } from "./runState.js";
@@ -40,7 +44,7 @@ async function write(address: string, state: Floor20OfferState): Promise<void> {
   await setJson(key(address), state, 60 * 60 * 24 * 365);
 }
 
-/** Called from recordFloorModeClear when the wallet just crossed floor 20.
+/** Called from recordFloorModeClear when the wallet just crossed floor 30.
  *  Promotes "pending" → "available". If already past that state (e.g. a
  *  wipe-then-reclear), leaves it alone. */
 export async function markFloor20OfferAvailable(address: string): Promise<void> {
@@ -77,7 +81,7 @@ export async function grantFloor20Bundle(
 ): Promise<{ ok: boolean; reason?: string; grants?: Record<string, number> }> {
   const cur = await readFloor20Offer(address);
   if (cur.status === "consumed") return { ok: false, reason: "offer already consumed" };
-  if (cur.status === "pending") return { ok: false, reason: "floor 20 not yet cleared" };
+  if (cur.status === "pending") return { ok: false, reason: "floor 30 not yet cleared" };
 
   const grants: Record<string, number> = {};
   const result = await mutateShopInventory<Record<string, number> | null>(address, inv => {
@@ -99,7 +103,7 @@ export async function grantFloor20Bundle(
 export async function claimFloor20WithVouchers(address: string): Promise<{ ok: boolean; reason?: string; grants?: Record<string, number>; deducted?: Record<string, number> }> {
   const cur = await readFloor20Offer(address);
   if (cur.status === "consumed") return { ok: false, reason: "offer already consumed" };
-  if (cur.status === "pending") return { ok: false, reason: "floor 20 not yet cleared" };
+  if (cur.status === "pending") return { ok: false, reason: "floor 30 not yet cleared" };
 
   const inv = await readShopInventory(address);
   const vchs = inv.vouchers ?? {};

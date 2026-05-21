@@ -351,11 +351,14 @@ export async function recordFloorModeClear(address: string, stageId: number, par
     // zaddGt only raises the score, never lowers it — safe to call on every
     // clear. The per-wallet maxfloor: key above stays the source of truth.
     await zaddGt(HIGHEST_FLOOR_LB_KEY, newMax, address.toLowerCase()).catch(() => 0);
-    // One-time floor-20 clear offer: if THIS clear is the first time the
-    // wallet crossed floor 20, mark the offer available. The offer module
-    // ignores already-consumed states, so re-clears (post-wipe) won't
-    // double-fire.
-    if (cur < 20 && newMax >= 20) {
+    // One-time campaign-buff-bundle offer: if THIS clear is the first time the
+    // wallet crossed floor 30, mark the offer available. Trigger floor moved
+    // from 20 → 30 so it no longer collides with the first-energy offer (which
+    // tends to fire around floor 20). The offer module ignores already-consumed
+    // states, so re-clears (post-wipe) won't double-fire. (The module/key are
+    // still named "floor20" internally — kept stable so existing offer state
+    // isn't orphaned.)
+    if (cur < 30 && newMax >= 30) {
       try {
         const { markFloor20OfferAvailable } = await import("./floor20Offer.js");
         await markFloor20OfferAvailable(address);

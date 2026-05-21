@@ -785,7 +785,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const { readFloor20Offer, grantFloor20Bundle } = await import("../_lib/floor20Offer.js");
       const cur = await readFloor20Offer(address);
       if (cur.status === "consumed") { res.status(409).json({ ok: false, reason: "offer already consumed" }); return; }
-      if (cur.status === "pending") { res.status(403).json({ ok: false, reason: "clear floor 20 first" }); return; }
+      if (cur.status === "pending") { res.status(403).json({ ok: false, reason: "clear floor 30 first" }); return; }
       const pay = await verifyShopPayment(txHash, address, "floor20_offer_bundle");
       if (!pay.ok) {
         res.status(pay.pending ? 202 : 400).json({ ok: false, pending: pay.pending, reason: pay.reason });
