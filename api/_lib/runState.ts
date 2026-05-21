@@ -364,6 +364,14 @@ export async function recordFloorModeClear(address: string, stageId: number, par
         await markFloor20OfferAvailable(address);
       } catch { /* non-fatal */ }
     }
+    // One-time floor-200 energy offer: mark available the first time the
+    // wallet crosses floor 200 (50 energy for 25 RON / 25 bRON).
+    if (cur < 200 && newMax >= 200) {
+      try {
+        const { markFloor200OfferAvailable } = await import("./floor200Offer.js");
+        await markFloor200OfferAvailable(address);
+      } catch { /* non-fatal */ }
+    }
   }
   let awardedConqueror = false;
   if (newMax >= TOWER_FINAL_FLOOR) {
@@ -450,7 +458,8 @@ export function attemptsCap(mode: "survival" | "boss_raid"): number {
 
 export type ShopItemId =
   | "energy_5" | "energy_10" | "energy_20"
-  | "energy_first_offer"   // one-time post-zero-energy bundle (20 RON → 35 energy)
+  | "energy_first_offer"     // one-time post-zero-energy bundle (20 RON → 35 energy)
+  | "energy_floor200_offer"  // one-time floor-200-clear bundle (25 RON → 50 energy)
   | "floor20_offer_bundle" // one-time floor-20-clear bundle (20 RON → all campaign buffs)
   | "unit_stat_reset" | "unit_class_change" | "unit_temp_motz_key"
   | "buff_battle_cry" | "buff_phoenix_embers" | "buff_scholars_insight"

@@ -824,6 +824,74 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  // ---- One-time floor-200 energy offer (50 energy for 25 RON / 25 bRON) ----
+  if (op === "floor200_offer_status") {
+    try {
+      const { markFloor200OfferShown, FLOOR200_OFFER_ENERGY_GRANT, FLOOR200_OFFER_RON_PRICE } = await import("../_lib/floor200Offer.js");
+      const state = await markFloor200OfferShown(address);
+      res.status(200).json({ ok: true, status: state.status, energy: FLOOR200_OFFER_ENERGY_GRANT, priceRon: FLOOR200_OFFER_RON_PRICE });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "floor200_offer_dismiss") {
+    try {
+      const { dismissFloor200Offer } = await import("../_lib/floor200Offer.js");
+      const state = await dismissFloor200Offer(address);
+      res.status(200).json({ ok: true, status: state.status });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "floor200_offer_claim_ron") {
+    const txHash = typeof (req.body as { txHash?: unknown }).txHash === "string"
+      ? (req.body as { txHash: string }).txHash : "";
+    if (!txHash) { res.status(400).json({ error: "txHash required" }); return; }
+    try {
+      const { readFloor200Offer, grantFloor200Bundle } = await import("../_lib/floor200Offer.js");
+      const cur = await readFloor200Offer(address);
+      if (cur.status === "consumed") { res.status(409).json({ ok: false, reason: "offer already consumed" }); return; }
+      if (cur.status === "pending") { res.status(403).json({ ok: false, reason: "clear floor 200 first" }); return; }
+      const pay = await verifyShopPayment(txHash, address, "energy_floor200_offer");
+      if (!pay.ok) {
+        res.status(pay.pending ? 202 : 400).json({ ok: false, pending: pay.pending, reason: pay.reason });
+        return;
+      }
+      const grant = await grantFloor200Bundle(address, "ron");
+      if (!grant.ok) { res.status(409).json({ ok: false, reason: grant.reason }); return; }
+      await consumeTxHash(txHash, address, "energy_floor200_offer", pay.valueWei);
+      // Analytics: real RON to treasury — count toward lifetime RON-spent +
+      // global shop revenue, same as the other RON-paid offers.
+      const ronPrice = Number((ITEM_PRICES_WEI["energy_floor200_offer"] ?? 0n) / 10n ** 18n);
+      await bumpRonSpent(address, ronPrice).catch(() => undefined);
+      void bumpShopRevenue(ronPrice);
+      // Referral RON-spend reward — this purchase counts toward the 10-RON milestone.
+      await fireRonMilestone(address).catch(() => undefined);
+      res.status(200).json({ ok: true, energy: grant.energy });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "floor200_offer_claim_voucher") {
+    try {
+      const { claimFloor200WithVouchers, FLOOR200_OFFER_RON_PRICE } = await import("../_lib/floor200Offer.js");
+      const r = await claimFloor200WithVouchers(address);
+      if (!r.ok) { res.status(400).json({ ok: false, reason: r.reason }); return; }
+      // Analytics: lifetime voucher-spent only (vouchers don't move new RON).
+      void bumpVouchersSpent(address, FLOOR200_OFFER_RON_PRICE);
+      res.status(200).json({ ok: true, energy: r.energy, deducted: r.deducted });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "shop_buy" || op === "shop_buy_voucher") {
     if (await isSeasonHalted()) {
       res.status(SEASON_HALTED_RESPONSE.status).json(SEASON_HALTED_RESPONSE.body);

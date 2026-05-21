@@ -812,6 +812,10 @@ function showHome(): void {
   // initial popup (closed tab, etc.). Self-rate-limited; returns immediately
   // if the offer is consumed or floor 20 hasn't been cleared yet.
   void import("./ui/floor20Offer").then(m => m.maybeShowFloor20Offer()).catch(() => undefined);
+  // Safety-net poll for the one-time floor-200 energy offer — catches wallets
+  // that crossed floor 200 before this build deployed, or missed the popup.
+  // Self-rate-limited; no-ops if consumed or floor 200 isn't cleared yet.
+  void import("./ui/floor200Offer").then(m => m.maybeShowFloor200Offer()).catch(() => undefined);
   // Safety-net poll for the one-time first-energy-bundle offer. The energy-
   // consume path only triggers on the >0→0 transition, so wallets that
   // already hit 0 before this feature shipped never see the modal otherwise.
@@ -1321,6 +1325,12 @@ function frame(t: number): void {
         // collide with the first-energy offer.)
         if (cleared === 30) {
           void import("./ui/floor20Offer").then(m => m.maybeShowFloor20Offer()).catch(() => undefined);
+        }
+        // One-time floor-200 energy offer — fires the first time the wallet
+        // clears floor 200 (server-side recordFloorModeClear has just marked
+        // it available). Self-rate-limited; consumed wallets no-op.
+        if (cleared === 200) {
+          void import("./ui/floor200Offer").then(m => m.maybeShowFloor200Offer()).catch(() => undefined);
         }
         setTimeout(() => { void showRunSummary("victory", cleared); }, 1500);
       }
