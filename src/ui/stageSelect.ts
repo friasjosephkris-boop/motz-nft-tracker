@@ -126,7 +126,31 @@ function renderCampaignFloors(root: HTMLElement, onPick: (pick: StagePick) => vo
   // UI from flashing.
   root.innerHTML = `<div class="screen-frame stage-select-screen">${topBarHtml("Campaign", true)}<div style="text-align:center;padding:40px;opacity:0.7">Loading…</div></div>`;
   root.querySelector("#back-btn")?.addEventListener("click", onBack);
-  void pullCanonicalProgress().catch(() => undefined).then(() => drawFloorGrid(root, onPick, onBack));
+
+  // The "Loading…" frame must never be terminal. Render the grid exactly
+  // once — whichever happens first: the canonical-progress pull settling, or
+  // an 8s safety timeout. Any exception inside drawFloorGrid is caught and
+  // turned into a Retry screen rather than a dead loading state.
+  let done = false;
+  const finish = (): void => {
+    if (done) return;
+    done = true;
+    try {
+      drawFloorGrid(root, onPick, onBack);
+    } catch (err) {
+      console.error("[campaign] floor grid render failed", err);
+      root.innerHTML = `<div class="screen-frame stage-select-screen">${topBarHtml("Campaign", true)}`
+        + `<div style="text-align:center;padding:40px;opacity:0.8">Couldn't load floors.<br>`
+        + `<button id="campaign-retry" type="button" style="margin-top:14px;padding:8px 18px;cursor:pointer">Retry</button></div></div>`;
+      root.querySelector("#back-btn")?.addEventListener("click", onBack);
+      root.querySelector("#campaign-retry")?.addEventListener("click", () => renderCampaignFloors(root, onPick, onBack));
+    }
+  };
+  const safety = setTimeout(finish, 8000);
+  void pullCanonicalProgress().catch(() => undefined).then(() => {
+    clearTimeout(safety);
+    finish();
+  });
 }
 
 // Tier groupings. The first tier (Floors 1-50) is the hand-tuned campaign;

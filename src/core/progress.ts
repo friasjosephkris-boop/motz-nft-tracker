@@ -275,11 +275,23 @@ export async function pullCanonicalProgress(): Promise<{ ok: boolean; reason?: s
   const sess = loadSession();
   if (!sess) return null;
   try {
-    const r = await fetch("/api/run/floor-cleared", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${sess.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ op: "progress_get" }),
-    });
+    // fetch() has NO default timeout — a stalled connection would hang this
+    // promise forever, which pins callers (e.g. the Campaign "Loading…"
+    // screen) indefinitely. Abort after 8s so the caller falls back to
+    // local progress instead of waiting on a dead request.
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
+    let r: Response;
+    try {
+      r = await fetch("/api/run/floor-cleared", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${sess.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ op: "progress_get" }),
+        signal: ctrl.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!r.ok) return null;
     const data = await r.json() as ProgressSyncResponse;
     if (data.canonical && data.canonical.units) {
