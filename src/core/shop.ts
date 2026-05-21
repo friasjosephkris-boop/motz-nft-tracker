@@ -317,6 +317,43 @@ export async function rollBron(kills: number, bossKills: number, worldEnderKills
   } catch { return null; }
 }
 
+// ---- Shop purchase history ----
+
+export interface ShopHistoryEntry {
+  /** Purchase timestamp (ms since epoch). */
+  at: number;
+  /** Purchasable id. */
+  item: string;
+  /** Display name. */
+  name: string;
+  /** Emoji icon. */
+  icon: string;
+  /** Short note about what was granted. */
+  detail: string;
+  /** Cost as a display string. */
+  cost: string;
+  /** Payment method. */
+  via: "ron" | "voucher";
+  /** On-chain tx hash for RON payments. */
+  txHash?: string;
+}
+
+/** Most-recent-first list of this wallet's purchases (server-recorded). */
+export async function fetchShopHistory(): Promise<ShopHistoryEntry[] | null> {
+  const tok = token();
+  if (!tok) return null;
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "shop_history" }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json() as { ok?: boolean; history?: ShopHistoryEntry[] };
+    return Array.isArray(data.history) ? data.history : [];
+  } catch { return null; }
+}
+
 // ---- Daily attempts (Survival / Boss Raid 3/day cap) ----
 
 export type AttemptsMode = "survival" | "boss_raid";

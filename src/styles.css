@@ -4851,6 +4851,157 @@ body:has(.battle) {
   color: var(--motz-text-dim);
   box-shadow: none;
 }
+
+/* ===================== Shop purchase history =====================
+   A "🧾 Purchase History" button in the shop header opens a modal listing
+   every RON / voucher purchase the server recorded for the wallet.       */
+.shop-history-btn {
+  margin-top: 10px;
+  font-family: var(--motz-font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--motz-text-primary);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--motz-glass-border);
+  border-radius: var(--motz-r-pill);
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.shop-history-btn:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04));
+  border-color: var(--motz-glass-border-hi);
+}
+.shop-history-modal {
+  position: fixed; inset: 0;
+  background: rgba(12, 4, 22, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 260;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: foFadeIn 200ms ease-out;
+}
+.shop-history-card {
+  display: flex; flex-direction: column;
+  background:
+    var(--motz-grad-surface),
+    linear-gradient(180deg, var(--motz-bg-s2), var(--motz-bg-s1));
+  border: 1px solid var(--motz-glass-border-hi);
+  border-radius: var(--motz-r-xl);
+  max-width: 520px;
+  width: 100%;
+  max-height: 78vh;
+  box-shadow: var(--motz-sh-lift);
+  animation: foSlideIn 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  overflow: hidden;
+}
+.shop-history-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--motz-glass-border);
+}
+.shop-history-title {
+  font-family: var(--motz-font-display);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--motz-text-primary);
+}
+.shop-history-close {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--motz-glass-border);
+  border-radius: 8px;
+  color: var(--motz-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+.shop-history-close:hover { background: rgba(255, 255, 255, 0.12); color: var(--motz-text-primary); }
+.shop-history-body {
+  padding: 8px 10px;
+  overflow-y: auto;
+}
+.shop-history-empty {
+  padding: 36px 24px;
+  text-align: center;
+  font-family: var(--motz-font-body);
+  font-size: 13px;
+  color: var(--motz-text-muted);
+  line-height: 1.6;
+}
+.shop-history-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 12px;
+  border-radius: var(--motz-r-sm);
+}
+.shop-history-row:nth-child(odd) { background: rgba(255, 255, 255, 0.025); }
+.sh-icon {
+  flex: 0 0 auto;
+  font-size: 20px;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(112, 0, 255, 0.10);
+  border: 1px solid rgba(112, 0, 255, 0.28);
+  border-radius: 9px;
+}
+.sh-main { flex: 1 1 auto; min-width: 0; }
+.sh-name {
+  font-family: var(--motz-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--motz-text-primary);
+}
+.sh-detail {
+  font-family: var(--motz-font-body);
+  font-size: 11.5px;
+  color: var(--motz-text-muted);
+  margin-top: 1px;
+}
+.sh-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  margin-top: 5px;
+}
+.sh-via {
+  font-family: var(--motz-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: var(--motz-r-pill);
+}
+.sh-via-ron {
+  color: #ffd98a;
+  background: rgba(251, 191, 36, 0.13);
+  border: 1px solid rgba(251, 191, 36, 0.40);
+}
+.sh-via-voucher {
+  color: #c9b3ff;
+  background: rgba(112, 0, 255, 0.14);
+  border: 1px solid rgba(112, 0, 255, 0.42);
+}
+.sh-date {
+  font-family: var(--motz-font-mono);
+  font-size: 10.5px;
+  color: var(--motz-text-dim);
+}
+.sh-tx {
+  font-family: var(--motz-font-mono);
+  font-size: 10.5px;
+  color: var(--motz-purple);
+  text-decoration: none;
+}
+.sh-tx:hover { text-decoration: underline; }
+.sh-cost {
+  flex: 0 0 auto;
+  font-family: var(--motz-font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--motz-text-primary);
+  text-align: right;
+  white-space: nowrap;
+}
 /* Tablet / narrow desktop: 4-across is too cramped — drop the top row to
    a 2×2 grid. The conquer board below stays full-width. */
 @media (max-width: 1100px) {
