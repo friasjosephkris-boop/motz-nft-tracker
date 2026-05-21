@@ -88,18 +88,31 @@ export function abortLiveRun(): void { live = null; }
 export async function reportFloorCleared(stageId: number, ms?: number, replay?: unknown): Promise<void> {
   const sess = sessionToken();
   if (!sess) return;
-  try {
-    await fetch("/api/run/floor-cleared", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${sess}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        stageId,
-        op: "clear",
-        ...(typeof ms === "number" ? { ms } : {}),
-        ...(replay ? { replay } : {}),
-      }),
-    });
-  } catch { /* ignore */ }
+  const body = JSON.stringify({
+    stageId,
+    op: "clear",
+    ...(typeof ms === "number" ? { ms } : {}),
+    ...(replay ? { replay } : {}),
+  });
+  // RETRY on failure. The server records floor progress with a strict
+  // sequential rule (maxFloor only advances when stageId === cur+1), so a
+  // SINGLE dropped clear report leaves the server's counter behind the
+  // player's real progress — and every later floor then fails the cur+1
+  // check, freezing all unlocks. A canonical-progress pull later yanks the
+  // client back to the stale server value, so the player sees an
+  // already-cleared floor as "next up" and the next tier never appears.
+  // Up to 3 attempts with backoff makes a transient network blip non-fatal.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const r = await fetch("/api/run/floor-cleared", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${sess}`, "Content-Type": "application/json" },
+        body,
+      });
+      if (r.ok) return;
+    } catch { /* network error — fall through to retry */ }
+    if (attempt < 2) await new Promise(res => setTimeout(res, 600 * (attempt + 1)));
+  }
 }
 
 export async function fetchReplayBlob<T = unknown>(scope: string, address: string): Promise<T | null> {

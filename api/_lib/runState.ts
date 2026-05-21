@@ -338,9 +338,17 @@ export async function getMaxFloorCleared(address: string): Promise<number> {
 export async function recordFloorModeClear(address: string, stageId: number, party?: FirstConquerPartyMember[]): Promise<{ newMax: number; awardedConqueror: boolean }> {
   const cur = await getMaxFloorCleared(address);
   let newMax = cur;
-  // Sequential rule: only bump if this is the next floor in line. Prevents
-  // someone clearing floor 5 from being credited as having cleared 1-4.
-  if (stageId === cur + 1) {
+  // Sequential rule with a small gap tolerance. Normally this only bumps on
+  // the exact next floor (stageId === cur+1) — that blocks a jump-cheat (e.g.
+  // claiming floor 500 to top the Highest Floor leaderboard). But a STRICT
+  // ===cur+1 also means a single dropped clear report freezes maxFloor
+  // forever (every later clear fails ===cur+1). So we allow a forward jump
+  // of up to GAP_TOLERANCE floors: that self-heals a lost report or two
+  // without opening a meaningful exploit — each clear still costs a real
+  // energy-spend witness, so a cheater gains at most a few floors per
+  // genuinely-played clear, which is pointless.
+  const GAP_TOLERANCE = 3;
+  if (stageId > cur && stageId <= cur + GAP_TOLERANCE) {
     newMax = stageId;
     await setJson(maxFloorKey(address), newMax, 60 * 60 * 24 * 365 * 5);
     // Mirror the new max into the "Highest Floor Cleared" leaderboard zset.
