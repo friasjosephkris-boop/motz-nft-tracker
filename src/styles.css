@@ -3240,6 +3240,33 @@ body:has(.battle) {
 .wallet-gate__status.is-success { color: var(--motz-success); }
 .wallet-gate__status.is-info { color: var(--motz-info); }
 
+/* Shown only when the wallet verifiably lacks the gated NFT — links out to
+   the MoTZ collection so a non-holder can acquire one. */
+.wallet-gate__nft-link {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 9px 16px;
+  font-family: var(--motz-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--motz-gold, #FBBF24);
+  text-decoration: none;
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: var(--motz-r-md);
+  transition:
+    background var(--motz-dur) var(--motz-ease-out),
+    border-color var(--motz-dur) var(--motz-ease-out),
+    box-shadow var(--motz-dur) var(--motz-ease-out);
+}
+.wallet-gate__nft-link[hidden] { display: none; }
+.wallet-gate__nft-link:hover {
+  background: rgba(251, 191, 36, 0.16);
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.25);
+}
+
 .wallet-gate__label {
   display: block;
   text-align: left;
