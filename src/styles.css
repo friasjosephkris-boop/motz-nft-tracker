@@ -315,6 +315,61 @@ body:has(.battle) {
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
     url("/floor 191-200.png") center / cover no-repeat;
 }
+.battle[data-tier="201-210"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 201-210.png") center / cover no-repeat;
+}
+.battle[data-tier="211-220"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 211-220.png") center / cover no-repeat;
+}
+.battle[data-tier="221-230"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 221-230.png") center / cover no-repeat;
+}
+.battle[data-tier="231-240"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 231-240.png") center / cover no-repeat;
+}
+.battle[data-tier="241-250"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 241-250.png") center / cover no-repeat;
+}
+.battle[data-tier="251-260"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 251-260.png") center / cover no-repeat;
+}
+.battle[data-tier="261-270"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 261-270.png") center / cover no-repeat;
+}
+.battle[data-tier="271-280"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 271-280.png") center / cover no-repeat;
+}
+.battle[data-tier="281-290"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 281-290.png") center / cover no-repeat;
+}
+.battle[data-tier="291-300"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 291-300.png") center / cover no-repeat;
+}
+.battle[data-tier="301-310"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 301-310.png") center / cover no-repeat;
+}
 
 .battle-log-panel {
   position: absolute;
