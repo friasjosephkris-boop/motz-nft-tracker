@@ -2,14 +2,14 @@ import { UnitTemplate, DamageResistance } from "../units/types";
 import { PlayerSlot } from "../core/combat";
 import { PLAYER_ROSTER, MAX_PARTY_SIZE, getStage, STAGE_DEFS, unitBaseAtLevel } from "../units/roster";
 import { topBarHtml } from "./settings";
-import { getProgress } from "../core/progress";
+import { getProgress, setProgress, MAX_EQUIPPED_SKILLS } from "../core/progress";
 import { Stats, ZERO_STATS, sumStats } from "../core/stats";
 import { classBaseAtLevel } from "../units/classes";
 import { hexStatSvg } from "./hexStat";
 import { portraitInner, capeHtml, isUnitLocked } from "../units/art";
 import { confirmModal } from "./confirmModal";
 import { playBattleStartAnimation } from "./battleStartAnim";
-import { getSkill } from "../skills/registry";
+import { getSkill, CLASS_SKILLS, CHARACTER_SKILLS } from "../skills/registry";
 import { getPendingBuff, setPendingBuff } from "../main";
 import { SHOP_CATALOG, ShopItemDef, ShopItemId, fetchShopStatus } from "../core/shop";
 
@@ -179,6 +179,19 @@ export function renderSquadSelect(
       });
     });
 
+    // "Edit Loadout" buttons — open the lobby skill editor. stopPropagation so
+    // the click doesn't bubble to the card's add/remove handler above.
+    root.querySelectorAll<HTMLButtonElement>("[data-edit-loadout]").forEach(btn => {
+      btn.addEventListener("click", async e => {
+        e.stopPropagation();
+        const t = PLAYER_ROSTER.find(x => x.id === btn.dataset.editLoadout);
+        if (!t) return;
+        const changed = await openLoadoutEditor(t);
+        // Re-render so the card's skill chips reflect the new loadout.
+        if (changed) draw();
+      });
+    });
+
     root.querySelector<HTMLButtonElement>("#confirm")?.addEventListener("click", async () => {
       if (picks.length === 0) return;
       // Final defensive truncation — even if the array was mutated externally,
@@ -298,6 +311,7 @@ function rosterItemHtml(t: UnitTemplate, picks: UnitTemplate[], atCap: boolean):
       </div>
       <div class="rs-hex">${hexStatSvg({ unit: unitBase, classBase, custom, size: 140 })}</div>
       <div class="rs-skill-row">${skillChips}</div>
+      ${motzLocked ? "" : `<button class="rs-edit-loadout" data-edit-loadout="${escapeAttr(t.id)}" type="button" title="Edit ${escapeAttr(t.name)}'s skill loadout">✎ Edit Loadout</button>`}
     </div>
   `;
 }
@@ -308,6 +322,118 @@ function escapeHtml(s: string): string {
   } as Record<string, string>)[c]);
 }
 function escapeAttr(s: string): string { return escapeHtml(s); }
+
+/** Lobby skill-loadout editor. Lets the player retune a unit's equipped
+ *  skills right from Squad Select, without a detour to the Units screen.
+ *  Toggling a skill saves immediately via setProgress (which also schedules
+ *  the server sync), so the change is live for the battle about to start.
+ *  Resolves true if anything changed, so the caller can re-render the card.
+ *
+ *  Rules mirror the Units screen: a unit's pool is its signature skills plus
+ *  its class skills; only skills whose unlockLevel is met can be equipped;
+ *  at most MAX_EQUIPPED_SKILLS may be slotted at once. */
+function openLoadoutEditor(t: UnitTemplate): Promise<boolean> {
+  return new Promise<boolean>(resolve => {
+    // Distinct overlay class (NOT game-confirm-overlay) so confirm/alert
+    // modals can't accidentally remove this one, and vice versa.
+    document.querySelectorAll(".lle-overlay").forEach(el => el.remove());
+    let changed = false;
+    let warn = "";
+
+    const overlay = document.createElement("div");
+    overlay.className = "lle-overlay";
+    document.body.appendChild(overlay);
+
+    const close = (): void => {
+      overlay.remove();
+      document.removeEventListener("keydown", onKey);
+      resolve(changed);
+    };
+    const onKey = (e: KeyboardEvent): void => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+    const toggle = (id: string): void => {
+      const cur = getProgress(t.id);
+      const eq = [...(cur.equippedSkills ?? [])];
+      const idx = eq.indexOf(id);
+      if (idx >= 0) {
+        eq.splice(idx, 1);
+        warn = "";
+      } else if (eq.length >= MAX_EQUIPPED_SKILLS) {
+        warn = `Loadout full — remove a skill before adding another (max ${MAX_EQUIPPED_SKILLS}).`;
+        render();
+        return;
+      } else {
+        eq.push(id);
+        warn = "";
+      }
+      setProgress(t.id, { ...cur, equippedSkills: eq });
+      changed = true;
+      render();
+    };
+
+    const render = (): void => {
+      const progress = getProgress(t.id);
+      const classId = progress.classId ?? t.classId;
+      const level = progress.level ?? t.level ?? 1;
+      const equipped = progress.equippedSkills ?? [];
+      const pool = [
+        ...(CHARACTER_SKILLS[t.id] ?? []),
+        ...(classId ? CLASS_SKILLS[classId] ?? [] : []),
+      ];
+      const unlocked = pool.filter(id => (getSkill(id).unlockLevel ?? 1) <= level);
+      const locked = pool
+        .filter(id => (getSkill(id).unlockLevel ?? 1) > level)
+        .sort((a, b) => (getSkill(a).unlockLevel ?? 1) - (getSkill(b).unlockLevel ?? 1));
+      const eqCount = equipped.filter(id => unlocked.includes(id)).length;
+
+      const skillRow = (id: string, isLocked: boolean): string => {
+        const s = getSkill(id);
+        const on = equipped.includes(id);
+        const meta = isLocked
+          ? `Unlocks Lv${s.unlockLevel ?? 1}`
+          : `${s.mpCost > 0 ? `${s.mpCost} MP` : "0 MP"}${s.cooldown > 0 ? ` · CD ${s.cooldown}` : ""}`;
+        const cls = ["lle-skill", on ? "on" : "", isLocked ? "locked" : ""].filter(Boolean).join(" ");
+        return `
+          <button class="${cls}" data-skill="${escapeAttr(id)}" type="button" ${isLocked ? "disabled" : ""}>
+            <span class="lle-mark">${isLocked ? "🔒" : on ? "✓" : ""}</span>
+            <span class="lle-body">
+              <span class="lle-name">${escapeHtml(s.name)}</span>
+              <span class="lle-desc">${escapeHtml(s.description)}</span>
+            </span>
+            <span class="lle-meta">${escapeHtml(meta)}</span>
+          </button>
+        `;
+      };
+
+      const rows = unlocked.map(id => skillRow(id, false)).join("")
+        + locked.map(id => skillRow(id, true)).join("");
+      const listHtml = pool.length > 0
+        ? rows
+        : `<div class="lle-empty">This unit has no skills yet — pick a class and level it up.</div>`;
+
+      overlay.innerHTML = `
+        <div class="game-confirm-card lle-card" role="dialog" aria-modal="true" aria-label="Skill loadout">
+          <div class="lle-title">${escapeHtml(t.name)} — Skill Loadout</div>
+          <div class="lle-sub">Lv${level} · <span class="lle-count">${eqCount}/${MAX_EQUIPPED_SKILLS}</span> equipped — tap a skill to equip or remove</div>
+          ${warn ? `<div class="lle-warn">${escapeHtml(warn)}</div>` : ""}
+          <div class="lle-list">${listHtml}</div>
+          <div class="game-confirm-actions">
+            <button class="confirm-btn lle-done" type="button">Done</button>
+          </div>
+        </div>
+      `;
+
+      overlay.querySelectorAll<HTMLButtonElement>(".lle-skill:not(.locked)").forEach(btn => {
+        btn.addEventListener("click", () => toggle(btn.dataset.skill!));
+      });
+      overlay.querySelector<HTMLButtonElement>(".lle-done")?.addEventListener("click", close);
+    };
+
+    render();
+  });
+}
 
 /** Cache shop status so re-draws don't re-fetch. Cleared when the screen
  *  unmounts (next renderSquadSelect call resets it). */
