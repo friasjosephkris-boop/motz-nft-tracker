@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>MoTZ Pinball</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --motz-red:#FF2A55; --motz-red-deep:#D91A45;
+    --winner-gold:#FBBF24; --winner-gold-deep:#F59E0B;
+    --electric-purple:#7000FF; --electric-purple-deep:#5A00D6;
+    --void-black:#0F0518;
+    --bg-s1:#180B26; --bg-s2:#221133; --bg-elev:#2B1640;
+    --border-sub:#3A2155; --border-strong:#55307A;
+    --text-primary:#F5F5F4; --text-muted:#A8A29E; --text-dim:#78716C;
+    --glass:rgba(255,255,255,0.05); --glass-border:rgba(255,255,255,0.10);
+    --grad-text:linear-gradient(135deg,#FF2A55 0%,#7000FF 100%);
+    --font-display:'Fredoka',system-ui,sans-serif;
+    --font-body:'Inter',system-ui,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--void-black);
+    color:var(--text-primary);
+    font-family:var(--font-body);
+    min-height:100%;
+    display:flex; flex-direction:column; align-items:center;
+    padding:18px 12px 32px;
+    background-image:
+      radial-gradient(circle at 82% 4%,rgba(112,0,255,0.22),transparent 42%),
+      radial-gradient(circle at 8% 96%,rgba(255,42,85,0.16),transparent 44%);
+    overflow-x:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.022) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,0.022) 1px,transparent 1px);
+    background-size:40px 40px;
+  }
+  .wrap{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;}
+
+  header{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .kicker{
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.34em;
+    text-transform:uppercase;color:var(--text-dim);
+  }
+  h1{
+    font-family:var(--font-display);font-weight:700;font-size:38px;line-height:1;
+    letter-spacing:-0.01em;
+    background:var(--grad-text);-webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+
+  .hud{
+    display:flex;gap:10px;width:100%;max-width:480px;
+  }
+  .stat{
+    flex:1;background:var(--glass);border:1px solid var(--glass-border);
+    border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;
+    box-shadow:0 8px 26px rgba(0,0,0,0.34),inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .stat .lbl{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--text-dim);
+  }
+  .stat .val{
+    font-family:var(--font-display);font-weight:700;font-size:22px;line-height:1.1;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat.score .val{color:var(--text-primary);}
+  .stat.best .val{
+    color:var(--winner-gold);
+    text-shadow:0 0 18px rgba(251,191,36,0.45);
+  }
+  .stat.balls .val{display:flex;gap:5px;align-items:center;height:24px;}
+  .pip{
+    width:13px;height:13px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#FFF6D8,var(--winner-gold) 55%,var(--winner-gold-deep));
+    box-shadow:0 0 9px rgba(251,191,36,0.6);
+  }
+  .pip.spent{
+    background:rgba(255,255,255,0.06);box-shadow:none;
+    border:1px solid var(--glass-border);
+  }
+
+  .stage{
+    position:relative;border-radius:18px;
+    padding:10px;
+    background:linear-gradient(180deg,var(--bg-s2),var(--bg-s1));
+    border:1px solid var(--border-strong);
+    box-shadow:0 16px 48px rgba(0,0,0,0.55),0 0 36px rgba(112,0,255,0.16);
+  }
+  canvas{
+    display:block;border-radius:12px;
+    width:480px;max-width:88vw;height:auto;
+    touch-action:none;
+  }
+
+  .controls{
+    display:flex;gap:14px;flex-wrap:wrap;justify-content:center;
+    font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;
+    color:var(--text-muted);max-width:480px;
+  }
+  .controls .key{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--glass);border:1px solid var(--glass-border);
+    border-radius:999px;padding:5px 12px;
+  }
+  kbd{
+    font-family:var(--font-mono);font-size:10px;font-weight:700;
+    background:var(--bg-elev);border:1px solid var(--border-sub);
+    border-radius:5px;padding:2px 6px;color:var(--text-primary);
+  }
+  .credit{
+    font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--text-dim);
+  }
+  @media (max-width:520px){
+    h1{font-size:30px;}
+    .stat .val{font-size:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">Mark of the Zeal</div>
+    <h1>MoTZ PINBALL</h1>
+  </header>
+
+  <div class="hud">
+    <div class="stat score"><span class="lbl">Score</span><span class="val" id="scoreVal">0</span></div>
+    <div class="stat balls"><span class="lbl">Balls</span><span class="val" id="ballPips"></span></div>
+    <div class="stat best"><span class="lbl">Best</span><span class="val" id="bestVal">0</span></div>
+  </div>
+
+  <div class="stage">
+    <canvas id="game" width="480" height="760"></canvas>
+  </div>
+
+  <div class="controls">
+    <span class="key"><kbd>A</kbd>/<kbd>&larr;</kbd> Left flipper</span>
+    <span class="key"><kbd>D</kbd>/<kbd>&rarr;</kbd> Right flipper</span>
+    <span class="key"><kbd>SPACE</kbd> Hold to launch</span>
+  </div>
+  <div class="credit">Squad up &middot; Tilt nothing &middot; Stack the score</div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- canvas / scaling ----------
+  const W = 480, H = 760;
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+
+  // ---------- brand palette ----------
+  const C = {
+    red:"#FF2A55", redDeep:"#D91A45",
+    gold:"#FBBF24", goldDeep:"#F59E0B",
+    purple:"#7000FF", purpleDeep:"#5A00D6",
+    void:"#0F0518",
+    text:"#F5F5F4", dim:"#78716C",
+  };
+
+  // ---------- audio (tiny WebAudio synth) ----------
+  let actx = null;
+  function audio(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
+  function blip(freq, dur, type="sine", vol=0.18){
+    const a = audio(); if(!a) return;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(); o.stop(a.currentTime + dur);
+  }
+  function sweep(f0, f1, dur, type="sawtooth", vol=0.16){
+    const a = audio(); if(!a) return;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(f1, a.currentTime + dur);
+    g.gain.setValueAtTime(vol, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(); o.stop(a.currentTime + dur);
+  }
+
+  // ---------- geometry ----------
+  // walls: {x1,y1,x2,y2,e,kick}
+  const walls = [
+    // outer frame
+    {x1:20,y1:40, x2:460,y2:40,  e:0.45},   // top
+    {x1:20,y1:40, x2:20,y2:560,  e:0.45},   // left
+    {x1:460,y1:40,x2:460,y2:720, e:0.45},   // right outer
+    {x1:424,y1:720,x2:460,y2:720,e:0.30},   // launch-lane floor
+    {x1:424,y1:108,x2:424,y2:720,e:0.45},   // lane divider
+    {x1:424,y1:108,x2:460,y2:150,e:0.55},   // lane-top deflector
+    // lower angled walls -> outlanes / flippers
+    {x1:20,y1:560, x2:112,y2:672, e:0.50},
+    {x1:424,y1:560,x2:348,y2:672, e:0.50},
+  ];
+
+  // slingshots: kick segments (with triangle for drawing)
+  const slings = [
+    { seg:{x1:163,y1:566,x2:150,y2:668,e:0.50,kick:8.5},
+      tri:[[110,560],[167,566],[150,672]], flash:0 },
+    { seg:{x1:317,y1:566,x2:330,y2:668,e:0.50,kick:8.5},
+      tri:[[370,560],[313,566],[330,672]], flash:0 },
+  ];
+
+  // pop bumpers
+  const bumpers = [
+    { x:150, y:252, r:27, flash:0 },
+    { x:305, y:236, r:27, flash:0 },
+    { x:230, y:356, r:26, flash:0 },
+  ];
+
+  // small posts (decorative bouncers)
+  const posts = [
+    { x:96,  y:152, r:9, flash:0 },
+    { x:388, y:152, r:9, flash:0 },
+    { x:150, y:474, r:9, flash:0 },
+    { x:330, y:474, r:9, flash:0 },
+  ];
+
+  // flippers
+  function mkFlipper(px,py,rest,active){
+    return { px,py, len:86, rest, active, angle:rest, prev:rest, omega:0 };
+  }
+  const flipL = mkFlipper(140,690, 0.50, -0.58);
+  const flipR = mkFlipper(340,690, Math.PI-0.50, Math.PI+0.58);
+
+  // ---------- game state ----------
+  const game = {
+    score:0,
+    best: Number(localStorage.getItem("motz-pinball-best") || 0),
+    balls:3,
+    state:"ready",   // ready | playing | over
+    combo:0, comboTimer:0,
+  };
+
+  const ball = { x:442, y:711, vx:0, vy:0, r:8.5, stuck:0 };
+  function ballSpeed(){ return Math.hypot(ball.vx, ball.vy); }
+
+  const popups = []; // {x,y,vy,life,max,text,color}
+  function popup(x,y,text,color){
+    popups.push({ x,y, vy:-0.7, life:58, max:58, text, color });
+  }
+
+  let plunger = 0; // 0..1 charge
+
+  function resetBallToLane(){
+    ball.x = 442; ball.y = 711; ball.vx = 0; ball.vy = 0; ball.stuck = 0;
+    game.state = "ready";
+    plunger = 0;
+  }
+
+  function newGame(){
+    game.score = 0; game.balls = 3; game.combo = 0; game.comboTimer = 0;
+    popups.length = 0;
+    resetBallToLane();
+    syncHUD();
+  }
+
+  // ---------- HUD ----------
+  const scoreVal = document.getElementById("scoreVal");
+  const bestVal  = document.getElementById("bestVal");
+  const ballPips = document.getElementById("ballPips");
+  function syncHUD(){
+    scoreVal.textContent = game.score.toLocaleString();
+    bestVal.textContent  = game.best.toLocaleString();
+    ballPips.innerHTML = "";
+    for(let i=0;i<3;i++){
+      const d = document.createElement("span");
+      d.className = "pip" + (i < game.balls ? "" : " spent");
+      ballPips.appendChild(d);
+    }
+  }
+
+  function addScore(n){
+    const gained = n * multiplier();
+    game.score += gained;
+    if(game.score > game.best){
+      game.best = game.score;
+      localStorage.setItem("motz-pinball-best", String(game.best));
+    }
+    syncHUD();
+    return gained;
+  }
+  function multiplier(){ return Math.min(5, 1 + Math.floor(game.combo / 4)); }
+  function bumpCombo(){
+    game.combo++;
+    game.comboTimer = 150;
+  }
+
+  // ---------- input ----------
+  const keys = { left:false, right:false, space:false };
+  function onKey(e, down){
+    const k = e.code;
+    if(k==="ArrowLeft" || k==="KeyA"){ keys.left = down; e.preventDefault(); }
+    else if(k==="ArrowRight" || k==="KeyD"){ keys.right = down; e.preventDefault(); }
+    else if(k==="Space"){
+      keys.space = down; e.preventDefault();
+      if(down) audio();
+      if(!down) releasePlunger();
+    }
+    else if((k==="Enter"||k==="Space") && down && game.state==="over"){ newGame(); }
+  }
+  window.addEventListener("keydown", e => onKey(e,true));
+  window.addEventListener("keyup",   e => onKey(e,false));
+
+  function releasePlunger(){
+    if(game.state === "ready"){
+      const power = plunger;
+      ball.vy = -(9 + power * 15);
+      ball.vx = 0;
+      game.state = "playing";
+      plunger = 0;
+      sweep(180, 520, 0.18, "square", 0.14);
+    }
+  }
+
+  // touch: left/right halves flip flippers, hold = plunger when ready
+  function touchStart(e){
+    e.preventDefault(); audio();
+    for(const t of e.changedTouches){
+      const rect = canvas.getBoundingClientRect();
+      const x = (t.clientX - rect.left) / rect.width;
+      if(game.state === "over"){ newGame(); return; }
+      if(game.state === "ready"){ keys.space = true; continue; }
+      if(x < 0.5) keys.left = true; else keys.right = true;
+    }
+  }
+  function touchEnd(e){
+    e.preventDefault();
+    if(keys.space){ keys.space = false; releasePlunger(); }
+    // release both on any touchend (simple + reliable for casual play)
+    if(e.touches.length === 0){ keys.left = false; keys.right = false; }
+  }
+  canvas.addEventListener("touchstart", touchStart, {passive:false});
+  canvas.addEventListener("touchend", touchEnd, {passive:false});
+  canvas.addEventListener("touchcancel", touchEnd, {passive:false});
+  canvas.addEventListener("mousedown", () => { audio(); if(game.state==="over") newGame(); });
+
+  // ---------- physics helpers ----------
+  function segClosest(px,py, x1,y1,x2,y2){
+    const dx = x2-x1, dy = y2-y1;
+    const l2 = dx*dx + dy*dy;
+    let t = l2 ? ((px-x1)*dx + (py-y1)*dy) / l2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    return { x:x1+t*dx, y:y1+t*dy };
+  }
+
+  function collideSegment(seg, radius){
+    const c = segClosest(ball.x, ball.y, seg.x1,seg.y1,seg.x2,seg.y2);
+    let dx = ball.x - c.x, dy = ball.y - c.y;
+    let dist = Math.hypot(dx,dy);
+    const R = ball.r + radius;
+    if(dist >= R) return false;
+    if(dist < 0.0001){ dx = 0; dy = -1; dist = 1; }
+    const nx = dx/dist, ny = dy/dist;
+    ball.x += nx * (R - dist);
+    ball.y += ny * (R - dist);
+    const vn = ball.vx*nx + ball.vy*ny;
+    if(vn < 0){
+      const e = seg.e ?? 0.45;
+      ball.vx -= (1+e) * vn * nx;
+      ball.vy -= (1+e) * vn * ny;
+      if(seg.kick){
+        ball.vx += nx * seg.kick;
+        ball.vy += ny * seg.kick;
+      }
+    }
+    return true;
+  }
+
+  function collideCircle(o, restitution, impulse){
+    let dx = ball.x - o.x, dy = ball.y - o.y;
+    let dist = Math.hypot(dx,dy);
+    const R = ball.r + o.r;
+    if(dist >= R) return false;
+    if(dist < 0.0001){ dx = 0; dy = -1; dist = 1; }
+    const nx = dx/dist, ny = dy/dist;
+    ball.x = o.x + nx * R;
+    ball.y = o.y + ny * R;
+    const vn = ball.vx*nx + ball.vy*ny;
+    if(vn < 0){
+      ball.vx -= (1+restitution) * vn * nx;
+      ball.vy -= (1+restitution) * vn * ny;
+    }
+    if(impulse){
+      ball.vx += nx * impulse;
+      ball.vy += ny * impulse;
+    }
+    return true;
+  }
+
+  function flipperTip(f){
+    return { x:f.px + f.len*Math.cos(f.angle), y:f.py + f.len*Math.sin(f.angle) };
+  }
+
+  function collideFlipper(f){
+    const tip = flipperTip(f);
+    const c = segClosest(ball.x, ball.y, f.px,f.py, tip.x,tip.y);
+    let dx = ball.x - c.x, dy = ball.y - c.y;
+    let dist = Math.hypot(dx,dy);
+    const thick = 7.5;
+    const R = ball.r + thick;
+    if(dist >= R) return false;
+    if(dist < 0.0001){ dx = 0; dy = -1; dist = 1; }
+    const nx = dx/dist, ny = dy/dist;
+    ball.x += nx * (R - dist);
+    ball.y += ny * (R - dist);
+    // surface velocity at contact point (rotation about pivot)
+    const rx = c.x - f.px, ry = c.y - f.py;
+    const svx = -ry * f.omega;
+    const svy =  rx * f.omega;
+    const vn = (ball.vx - svx)*nx + (ball.vy - svy)*ny;
+    if(vn < 0){
+      const e = 0.42;
+      ball.vx -= (1+e) * vn * nx;
+      ball.vy -= (1+e) * vn * ny;
+    }
+    // extra forward kick from a moving flipper
+    const surfN = svx*nx + svy*ny;
+    if(surfN > 0){
+      ball.vx += nx * surfN * 1.15;
+      ball.vy += ny * surfN * 1.15;
+    }
+    return true;
+  }
+
+  // ---------- update ----------
+  const GRAVITY = 0.21;
+  const MAX_SPEED = 25;
+  const SUBSTEPS = 6;
+
+  function updateFlipper(f, pressed){
+    f.prev = f.angle;
+    const target = pressed ? f.active : f.rest;
+    const speed = 0.34;
+    if(f.angle < target) f.angle = Math.min(target, f.angle + speed);
+    else if(f.angle > target) f.angle = Math.max(target, f.angle - speed);
+    f.omega = f.angle - f.prev;
+  }
+
+  function update(){
+    // combo decay
+    if(game.comboTimer > 0){ game.comboTimer--; if(game.comboTimer===0) game.combo = 0; }
+
+    // popups
+    for(let i=popups.length-1;i>=0;i--){
+      const p = popups[i];
+      p.y += p.vy; p.life--;
+      if(p.life <= 0) popups.splice(i,1);
+    }
+
+    // bumper / sling flash decay
+    for(const b of bumpers) if(b.flash>0) b.flash--;
+    for(const p of posts)   if(p.flash>0) p.flash--;
+    for(const s of slings)  if(s.flash>0) s.flash--;
+
+    updateFlipper(flipL, keys.left);
+    updateFlipper(flipR, keys.right);
+
+    if(game.state === "ready"){
+      // charge plunger while space / touch held
+      if(keys.space) plunger = Math.min(1, plunger + 0.022);
+      ball.x = 442; ball.y = 711; ball.vx = 0; ball.vy = 0;
+      return;
+    }
+    if(game.state === "over") return;
+
+    ball.vy += GRAVITY;
+
+    // clamp speed
+    const sp = ballSpeed();
+    if(sp > MAX_SPEED){
+      ball.vx = ball.vx/sp*MAX_SPEED;
+      ball.vy = ball.vy/sp*MAX_SPEED;
+    }
+
+    for(let s=0;s<SUBSTEPS;s++){
+      ball.x += ball.vx / SUBSTEPS;
+      ball.y += ball.vy / SUBSTEPS;
+
+      for(const w of walls) collideSegment(w, 0);
+      for(const sl of slings){
+        if(collideSegment(sl.seg, 0)){
+          sl.flash = 10;
+          const g = addScore(60);
+          popup(ball.x, ball.y-14, "+"+g, C.red);
+          blip(360, 0.07, "square", 0.13);
+        }
+      }
+      for(const b of bumpers){
+        if(collideCircle(b, 0.5, 5.6)){
+          b.flash = 12;
+          bumpCombo();
+          const g = addScore(100);
+          popup(b.x, b.y-b.r-4, "+"+g, C.gold);
+          blip(620 + Math.random()*120, 0.09, "triangle", 0.16);
+        }
+      }
+      for(const p of posts){
+        if(collideCircle(p, 0.7, 1.4)){
+          p.flash = 8;
+          addScore(10);
+          blip(880, 0.04, "sine", 0.08);
+        }
+      }
+      collideFlipper(flipL);
+      collideFlipper(flipR);
+
+      // safety clamp inside frame
+      if(ball.x < 14) ball.x = 14;
+      if(ball.x > 466) ball.x = 466;
+      if(ball.y < 14) ball.y = 14;
+    }
+
+    // anti-stuck nudge
+    if(ballSpeed() < 0.35 && ball.y < 690){
+      ball.stuck++;
+      if(ball.stuck > 90){
+        ball.vx += (Math.random()-0.5)*2.4;
+        ball.vy -= 1.6;
+        ball.stuck = 0;
+      }
+    } else ball.stuck = 0;
+
+    // drain
+    if(ball.y - ball.r > H + 4){
+      loseBall();
+    }
+  }
+
+  function loseBall(){
+    game.balls--;
+    game.combo = 0; game.comboTimer = 0;
+    syncHUD();
+    sweep(420, 90, 0.5, "sawtooth", 0.16);
+    if(game.balls <= 0){
+      game.state = "over";
+      if(game.score >= game.best){
+        // already saved in addScore
+      }
+    } else {
+      resetBallToLane();
+    }
+  }
+
+  // ---------- render ----------
+  function drawTable(){
+    // playfield base
+    const g = ctx.createLinearGradient(0,40,0,H);
+    g.addColorStop(0,"#241338");
+    g.addColorStop(0.55,"#1A0C2A");
+    g.addColorStop(1,"#120720");
+    ctx.fillStyle = g;
+    roundRect(0,0,W,H,12); ctx.fill();
+
+    // ambient glows
+    radial(150,250,210,"rgba(112,0,255,0.20)");
+    radial(330,470,200,"rgba(255,42,85,0.13)");
+
+    // faint grid
+    ctx.strokeStyle = "rgba(255,255,255,0.03)";
+    ctx.lineWidth = 1;
+    for(let x=40;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for(let y=40;y<H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    // centre wordmark
+    ctx.save();
+    ctx.globalAlpha = 0.06;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = "700 64px Fredoka, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("MoTZ", 230, 540);
+    ctx.restore();
+  }
+
+  function drawWalls(){
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    // glow pass
+    ctx.strokeStyle = "rgba(112,0,255,0.55)";
+    ctx.lineWidth = 9;
+    ctx.shadowColor = "rgba(112,0,255,0.8)";
+    ctx.shadowBlur = 14;
+    strokeAll(walls);
+    // core pass
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "#C9A6FF";
+    ctx.lineWidth = 3;
+    strokeAll(walls);
+    ctx.restore();
+  }
+  function strokeAll(list){
+    for(const w of list){
+      ctx.beginPath();
+      ctx.moveTo(w.x1,w.y1);
+      ctx.lineTo(w.x2,w.y2);
+      ctx.stroke();
+    }
+  }
+
+  function drawSlings(){
+    for(const s of slings){
+      const lit = s.flash > 0;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(s.tri[0][0],s.tri[0][1]);
+      ctx.lineTo(s.tri[1][0],s.tri[1][1]);
+      ctx.lineTo(s.tri[2][0],s.tri[2][1]);
+      ctx.closePath();
+      const grd = ctx.createLinearGradient(s.tri[0][0],s.tri[0][1],s.tri[2][0],s.tri[2][1]);
+      grd.addColorStop(0, lit ? "#FF6E88" : C.redDeep);
+      grd.addColorStop(1, lit ? "#FFC3CF" : "#7A1230");
+      ctx.fillStyle = grd;
+      ctx.shadowColor = "rgba(255,42,85,"+(lit?0.9:0.45)+")";
+      ctx.shadowBlur = lit ? 22 : 10;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = lit ? "#FFFFFF" : C.red;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  function drawBumpers(){
+    for(const b of bumpers){
+      const lit = b.flash > 0;
+      const t = b.flash / 12;
+      ctx.save();
+      // outer glow ring
+      ctx.beginPath();
+      ctx.arc(b.x,b.y,b.r + 4 + (lit?t*6:0),0,Math.PI*2);
+      ctx.fillStyle = "rgba(255,42,85,"+(0.10 + (lit?t*0.35:0))+")";
+      ctx.fill();
+      // body
+      const grd = ctx.createRadialGradient(b.x-b.r*0.35,b.y-b.r*0.4,2, b.x,b.y,b.r);
+      if(lit){
+        grd.addColorStop(0,"#FFFFFF");
+        grd.addColorStop(0.5,"#FF8DA1");
+        grd.addColorStop(1,C.red);
+      } else {
+        grd.addColorStop(0,"#FF8DA1");
+        grd.addColorStop(0.55,C.red);
+        grd.addColorStop(1,C.redDeep);
+      }
+      ctx.beginPath();
+      ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      ctx.fillStyle = grd;
+      ctx.shadowColor = "rgba(255,42,85,0.8)";
+      ctx.shadowBlur = lit ? 26 : 14;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // rim
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = lit ? "#FFFFFF" : "rgba(255,255,255,0.55)";
+      ctx.stroke();
+      // inner pip
+      ctx.beginPath();
+      ctx.arc(b.x,b.y,b.r*0.42,0,Math.PI*2);
+      ctx.fillStyle = lit ? "#FFFFFF" : "rgba(255,255,255,0.22)";
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawPosts(){
+    for(const p of posts){
+      ctx.save();
+      const grd = ctx.createRadialGradient(p.x-3,p.y-3,1,p.x,p.y,p.r);
+      grd.addColorStop(0, p.flash>0 ? "#FFFFFF" : "#FFE7A6");
+      grd.addColorStop(1, C.goldDeep);
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = grd;
+      ctx.shadowColor = "rgba(251,191,36,0.7)";
+      ctx.shadowBlur = p.flash>0 ? 18 : 9;
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawFlipper(f, pressed){
+    const tip = flipperTip(f);
+    ctx.save();
+    ctx.lineCap = "round";
+    // glow
+    ctx.strokeStyle = pressed ? "rgba(255,42,85,0.9)" : "rgba(255,42,85,0.45)";
+    ctx.lineWidth = 20;
+    ctx.shadowColor = "rgba(255,42,85,0.8)";
+    ctx.shadowBlur = pressed ? 22 : 10;
+    ctx.beginPath();
+    ctx.moveTo(f.px,f.py); ctx.lineTo(tip.x,tip.y); ctx.stroke();
+    // core
+    ctx.shadowBlur = 0;
+    const grd = ctx.createLinearGradient(f.px,f.py,tip.x,tip.y);
+    grd.addColorStop(0, C.red);
+    grd.addColorStop(1, pressed ? "#FFD2DB" : C.redDeep);
+    ctx.strokeStyle = grd;
+    ctx.lineWidth = 13;
+    ctx.beginPath();
+    ctx.moveTo(f.px,f.py); ctx.lineTo(tip.x,tip.y); ctx.stroke();
+    // pivot
+    ctx.beginPath();
+    ctx.arc(f.px,f.py,7,0,Math.PI*2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(f.px,f.py,3.2,0,Math.PI*2);
+    ctx.fillStyle = C.purple;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBall(){
+    ctx.save();
+    // shadow
+    ctx.beginPath();
+    ctx.ellipse(ball.x+3, ball.y+5, ball.r*0.95, ball.r*0.6, 0,0,Math.PI*2);
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.fill();
+    // body
+    const grd = ctx.createRadialGradient(
+      ball.x-ball.r*0.4, ball.y-ball.r*0.45, 1,
+      ball.x, ball.y, ball.r);
+    grd.addColorStop(0,"#FFFDF2");
+    grd.addColorStop(0.45,"#FFE69A");
+    grd.addColorStop(0.8,C.gold);
+    grd.addColorStop(1,C.goldDeep);
+    ctx.beginPath();
+    ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2);
+    ctx.fillStyle = grd;
+    ctx.shadowColor = "rgba(251,191,36,0.75)";
+    ctx.shadowBlur = 16;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // highlight
+    ctx.beginPath();
+    ctx.arc(ball.x-ball.r*0.35, ball.y-ball.r*0.4, ball.r*0.3,0,Math.PI*2);
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPlunger(){
+    // launch-lane plunger at bottom-right
+    const laneX = 442;
+    const baseY = 742;
+    const pull = plunger * 26;
+    ctx.save();
+    // shaft
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(laneX, baseY); ctx.lineTo(laneX, baseY-10); ctx.stroke();
+    // head
+    const grd = ctx.createLinearGradient(0,baseY-pull-14,0,baseY-pull);
+    grd.addColorStop(0, C.purple);
+    grd.addColorStop(1, C.purpleDeep);
+    ctx.fillStyle = grd;
+    ctx.shadowColor = "rgba(112,0,255,0.7)";
+    ctx.shadowBlur = 12;
+    roundRect(laneX-13, baseY-pull-14, 26, 14, 5);
+    ctx.fill();
+    ctx.restore();
+
+    // power meter
+    if(game.state === "ready"){
+      const mx = 432, my = 200, mh = 480, mw = 8;
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.07)";
+      roundRect(mx, my, mw, mh, 4); ctx.fill();
+      const ph = mh * plunger;
+      const pg = ctx.createLinearGradient(0,my+mh-ph,0,my+mh);
+      pg.addColorStop(0, C.red);
+      pg.addColorStop(1, C.gold);
+      ctx.fillStyle = pg;
+      roundRect(mx, my+mh-ph, mw, ph, 4); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawPopups(){
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.font = "700 16px Fredoka, sans-serif";
+    for(const p of popups){
+      const a = Math.min(1, p.life / 22);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 8;
+      ctx.fillText(p.text, p.x, p.y);
+    }
+    ctx.restore();
+  }
+
+  function drawHUDoverlay(){
+    // combo / multiplier badge
+    const m = multiplier();
+    if(game.combo > 1){
+      ctx.save();
+      ctx.textAlign = "center";
+      ctx.font = "700 13px 'JetBrains Mono', monospace";
+      ctx.fillStyle = C.gold;
+      ctx.shadowColor = "rgba(251,191,36,0.6)";
+      ctx.shadowBlur = 10;
+      ctx.fillText("COMBO x" + game.combo + (m>1 ? "   "+m+"x SCORE" : ""), 230, 70);
+      ctx.restore();
+    }
+
+    if(game.state === "ready"){
+      banner("PULL & RELEASE", "Hold SPACE to charge the launch", false);
+    } else if(game.state === "over"){
+      banner("GAME OVER", "Score " + game.score.toLocaleString() +
+             (game.score >= game.best ? "  -  NEW BEST!" : "  -  press SPACE to retry"), true);
+    }
+  }
+
+  function banner(title, sub, gold){
+    ctx.save();
+    ctx.fillStyle = "rgba(15,5,24,0.78)";
+    roundRect(40, 320, 400, 130, 18); ctx.fill();
+    ctx.strokeStyle = gold ? C.gold : "rgba(112,0,255,0.7)";
+    ctx.lineWidth = 2;
+    roundRect(40, 320, 400, 130, 18); ctx.stroke();
+
+    ctx.textAlign = "center";
+    ctx.font = "700 34px Fredoka, sans-serif";
+    ctx.fillStyle = gold ? C.gold : "#FFFFFF";
+    ctx.shadowColor = gold ? "rgba(251,191,36,0.6)" : "rgba(112,0,255,0.6)";
+    ctx.shadowBlur = 16;
+    ctx.fillText(title, 240, 372);
+    ctx.shadowBlur = 0;
+    ctx.font = "500 14px Inter, sans-serif";
+    ctx.fillStyle = "#A8A29E";
+    ctx.fillText(sub, 240, 408);
+    ctx.restore();
+  }
+
+  // canvas utility
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+  function radial(x,y,r,color){
+    const g = ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,color);
+    g.addColorStop(1,"transparent");
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    drawTable();
+    drawWalls();
+    drawSlings();
+    drawPosts();
+    drawBumpers();
+    drawPlunger();
+    drawFlipper(flipL, keys.left);
+    drawFlipper(flipR, keys.right);
+    drawBall();
+    drawPopups();
+    drawHUDoverlay();
+  }
+
+  // ---------- main loop ----------
+  let acc = 0, last = performance.now();
+  const STEP = 1000/60;
+  function loop(now){
+    acc += Math.min(now - last, 100);
+    last = now;
+    while(acc >= STEP){
+      update();
+      acc -= STEP;
+    }
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  newGame();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
