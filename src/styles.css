@@ -265,6 +265,26 @@ body:has(.battle) {
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
     url("/floor 91-100.png") center / cover no-repeat;
 }
+.battle[data-tier="101-110"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 101-110.png") center / cover no-repeat;
+}
+.battle[data-tier="111-120"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 111-120.png") center / cover no-repeat;
+}
+.battle[data-tier="121-130"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 121-130.png") center / cover no-repeat;
+}
+.battle[data-tier="131-140"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 131-140.png") center / cover no-repeat;
+}
 
 .battle-log-panel {
   position: absolute;
