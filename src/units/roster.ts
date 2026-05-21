@@ -728,10 +728,13 @@ export function resistProfileForFloor(
 ): import("./types").DamageResistance | null {
   if (floorId < RESIST_RANDO_FIRST_FLOOR) return null;
   // xorshift-ish hash of the floorId → 32-bit unsigned.
+  // Every step must re-coerce with `>>> 0`: JS `^` yields a SIGNED 32-bit
+  // int, so without it `h` can go negative — and `combos[h % len]` would
+  // then index with a negative number, return undefined, and crash.
   let h = (floorId * 2654435761) >>> 0;
-  h ^= h >>> 13;
+  h = (h ^ (h >>> 13)) >>> 0;
   h = (h * 1597334677) >>> 0;
-  h ^= h >>> 16;
+  h = (h ^ (h >>> 16)) >>> 0;
   // Pick 2 of 4 indices to receive the high resist. The remaining 2 get the
   // low resist. We iterate through the 6 possible 2-of-4 combinations and
   // pick one deterministically. (C(4,2) = 6.)
