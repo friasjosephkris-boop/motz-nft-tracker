@@ -1,4 +1,4 @@
-import { createPublicClient, http, defineChain, getAddress, type Address } from "viem";
+import { createPublicClient, http, defineChain, getAddress, type Address, type PublicClient } from "viem";
 
 export const ronin = defineChain({
   id: 2020,
@@ -7,10 +7,27 @@ export const ronin = defineChain({
   rpcUrls: { default: { http: ["https://api.roninchain.com/rpc"] } },
 });
 
-export const client = createPublicClient({
-  chain: ronin,
-  transport: http(process.env.RONIN_RPC_URL ?? "https://api.roninchain.com/rpc"),
-});
+/** RPC endpoints used for NFT-ownership reads, in priority order.
+ *
+ *  Why multiple endpoints: NFT ownership is the play gate, and a single
+ *  endpoint failing OPEN to a clean `0` is catastrophic — it locks a genuine
+ *  holder out with a false "wallet does not hold required NFT". This happens
+ *  in practice when the public Ronin RPC rate-limits Vercel's shared
+ *  serverless egress IPs, or when RONIN_RPC_URL is misconfigured (e.g. points
+ *  at testnet). Querying several INDEPENDENT endpoints and trusting any
+ *  positive balance defends against any one of them being wrong. */
+const RPC_URLS: string[] = Array.from(new Set([
+  process.env.RONIN_RPC_URL ?? "https://api.roninchain.com/rpc",
+  "https://api.roninchain.com/rpc",
+  "https://ronin.drpc.org",
+].filter((u): u is string => typeof u === "string" && u.length > 0)));
+
+const clients: PublicClient[] = RPC_URLS.map(url =>
+  createPublicClient({ chain: ronin, transport: http(url) }),
+);
+
+/** Primary client — kept as a named export for non-gate callers (payments). */
+export const client: PublicClient = clients[0];
 
 const erc721Abi = [{
   name: "balanceOf",
@@ -46,10 +63,12 @@ const sleep = (ms: number): Promise<void> => new Promise(r => setTimeout(r, ms))
  *  genuine 0 apart from an RPC failure). The public Ronin RPC rate-limits
  *  Vercel's shared serverless egress IPs under load — a single .catch(0n)
  *  there silently locks legit NFT holders out, which is the bug this fixes. */
-async function balanceOfWithRetry(contract: Address, owner: Address): Promise<bigint | null> {
+async function balanceOfWithRetry(
+  rpc: PublicClient, contract: Address, owner: Address,
+): Promise<bigint | null> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const bal = await client.readContract({
+      const bal = await rpc.readContract({
         address: contract, abi: erc721Abi, functionName: "balanceOf", args: [owner],
       });
       return bal as bigint;
@@ -62,38 +81,43 @@ async function balanceOfWithRetry(contract: Address, owner: Address): Promise<bi
 
 /** True if the wallet holds at least one gated NFT.
  *
- *  Three-state logic so a transient RPC failure can't masquerade as "no NFT":
- *    - Any contract read succeeded with balance > 0  → return true  (holder)
- *    - Any contract read is indeterminate (all retries errored) AND no
- *      contract confirmed a holding → throw NftCheckUnavailableError
- *      (an unread contract might hold the NFT — we cannot say "no")
- *    - Every contract read succeeded and all returned 0 → return false
- *      (verified non-holder)
- */
+ *  Queries every gated contract across every configured RPC endpoint, then:
+ *    - Any read on any endpoint returned balance > 0  → return true  (holder).
+ *      A single positive is proof — we never need consensus to CONFIRM.
+ *    - At least one endpoint successfully read EVERY contract as 0 → return
+ *      false (verified non-holder).
+ *    - Otherwise (no positives, and no endpoint completed a full clean
+ *      sweep) → throw NftCheckUnavailableError (retryable, not a denial).
+ *
+ *  This makes a single rate-limited or misconfigured endpoint unable to
+ *  cause a false "no NFT" denial: as long as one healthy endpoint can read
+ *  the chain, a real holder is recognised. */
 export async function holdsAnyGatedNft(owner: Address): Promise<boolean> {
-  const results = await Promise.all(
-    GATED_NFT_CONTRACTS.map(addr => balanceOfWithRetry(addr, owner)),
+  const perEndpoint = await Promise.all(
+    clients.map(rpc => Promise.all(
+      GATED_NFT_CONTRACTS.map(addr => balanceOfWithRetry(rpc, addr, owner)),
+    )),
   );
-  // Confirmed holder — at least one read succeeded with a positive balance.
-  if (results.some(r => r !== null && r > 0n)) return true;
-  // Any indeterminate read means we can't definitively say "no" — the
-  // contract we failed to read might be the one holding the NFT. Surface
-  // as retryable instead of a false denial.
-  if (results.some(r => r === null)) throw new NftCheckUnavailableError();
-  // Every read succeeded and all balances were 0 — genuine non-holder.
-  return false;
+  let sawCleanZeroSweep = false;
+  for (const results of perEndpoint) {
+    // Confirmed holder — bail out the moment any endpoint sees a balance.
+    if (results.some(r => r !== null && r > 0n)) return true;
+    // This endpoint read every gated contract and all were genuinely 0.
+    if (results.every(r => r !== null)) sawCleanZeroSweep = true;
+  }
+  if (sawCleanZeroSweep) return false;
+  // No positives anywhere, and no endpoint managed a complete read — we
+  // cannot definitively say "no". Surface as retryable instead of denying.
+  throw new NftCheckUnavailableError();
 }
 
+/** True if the wallet holds a MoTZ Vault Key. Queries every configured RPC
+ *  endpoint and trusts any positive balance, for the same resilience reason
+ *  as holdsAnyGatedNft. Returns false only if no endpoint saw a key (callers
+ *  treat this as a soft check and additionally honour temp keys). */
 export async function holdsMotzKey(owner: Address): Promise<boolean> {
-  try {
-    const bal = await client.readContract({
-      address: MOTZ_KEY_CONTRACT,
-      abi: erc721Abi,
-      functionName: "balanceOf",
-      args: [owner],
-    });
-    return bal > 0n;
-  } catch {
-    return false;
-  }
+  const results = await Promise.all(
+    clients.map(rpc => balanceOfWithRetry(rpc, MOTZ_KEY_CONTRACT, owner)),
+  );
+  return results.some(r => r !== null && r > 0n);
 }
