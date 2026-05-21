@@ -41,7 +41,7 @@ async function openOfferModal(priceRon: number): Promise<void> {
   const overlay = document.createElement("div");
   overlay.className = "first-offer-modal";
   overlay.innerHTML = `
-    <div class="first-offer-card">
+    <div class="first-offer-card first-offer-card--buff">
       <div class="first-offer-banner">🏆 FLOOR 30 REWARD</div>
       <h2 class="first-offer-title">Campaign Buff Bundle</h2>
       <div class="first-offer-deal">
@@ -62,7 +62,7 @@ async function openOfferModal(priceRon: number): Promise<void> {
       <div class="first-offer-actions">
         <button class="confirm-btn" id="fo20-pay-ron" type="button">Pay ${priceRon} RON</button>
         <button class="confirm-btn secondary" id="fo20-pay-voucher" type="button">Pay ${priceRon} bRON Vouchers</button>
-        <button class="ghost-btn" id="fo20-dismiss" type="button" style="border-color:#ff8888; color:#ffb8b8;">Dismiss (Don't Show Again)</button>
+        <button class="ghost-btn first-offer-dismiss" id="fo20-dismiss" type="button">Dismiss (Don't Show Again)</button>
       </div>
     </div>
   `;

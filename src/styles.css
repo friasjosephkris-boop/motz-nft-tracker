@@ -4403,9 +4403,17 @@ body:has(.battle) {
 .lb-loadout-body { padding: 16px; overflow-y: auto; }
 
 /* ---- First Energy Bundle (one-time offer) modal ---- */
+/* ===================== One-time offer modals =====================
+   MoTZ design system. Shared shell for the first-energy + campaign-buff
+   one-time offers. Each modal adds a theme modifier that recolours the
+   accent through the --fo-* custom properties:
+     .first-offer-card--energy → Electric Purple (energy)
+     .first-offer-card--buff   → Winner Gold (rewards / buffs)            */
 .first-offer-modal {
   position: fixed; inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(15, 5, 24, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   z-index: 250;
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
@@ -4413,69 +4421,126 @@ body:has(.battle) {
 }
 @keyframes foFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .first-offer-card {
-  background: linear-gradient(180deg, #1a1f2c, #14171e);
-  border: 2px solid var(--gold-bright);
-  border-radius: 12px;
-  max-width: 480px;
+  /* Theme defaults (gold) — overridden by the modifier classes below. */
+  --fo-accent: var(--motz-gold);
+  --fo-accent-grad: var(--motz-grad-gold);
+  --fo-accent-rgb: 251, 191, 36;
+
+  position: relative;
+  overflow: hidden;
+  background:
+    var(--motz-grad-surface),
+    linear-gradient(180deg, var(--motz-bg-s2), var(--motz-bg-s1));
+  border: 1px solid var(--motz-glass-border-hi);
+  border-radius: var(--motz-r-xl);
+  max-width: 460px;
   width: 100%;
-  padding: 28px;
+  padding: 30px 28px 26px;
   text-align: center;
-  box-shadow: 0 12px 40px rgba(244, 211, 94, 0.25), 0 0 60px rgba(244, 211, 94, 0.15);
+  box-shadow: var(--motz-sh-lift), 0 0 46px rgba(var(--fo-accent-rgb), 0.22);
   animation: foSlideIn 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @keyframes foSlideIn { from { transform: translateY(40px) scale(0.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+/* Themed accent hairline across the top edge. */
+.first-offer-card::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 3px;
+  background: var(--fo-accent-grad);
+}
+.first-offer-card--energy {
+  --fo-accent: var(--motz-purple);
+  --fo-accent-grad: var(--motz-grad-purple);
+  --fo-accent-rgb: 112, 0, 255;
+}
+.first-offer-card--buff {
+  --fo-accent: var(--motz-gold);
+  --fo-accent-grad: var(--motz-grad-gold);
+  --fo-accent-rgb: 251, 191, 36;
+}
 .first-offer-banner {
   display: inline-block;
-  background: var(--gold-bright);
-  color: #1a1f2c;
   font-family: var(--motz-font-display);
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  padding: 4px 14px;
-  border-radius: 4px;
-  margin-bottom: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fo-accent);
+  background: rgba(var(--fo-accent-rgb), 0.12);
+  border: 1px solid rgba(var(--fo-accent-rgb), 0.45);
+  padding: 5px 14px;
+  border-radius: var(--motz-r-pill);
+  margin-bottom: 14px;
 }
 .first-offer-title {
   font-family: var(--motz-font-display);
-  font-size: 24px;
-  color: var(--gold-bright);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--motz-text-primary);
   margin: 0 0 16px 0;
 }
 .first-offer-deal {
-  display: flex; align-items: baseline; justify-content: center; gap: 12px;
+  display: flex; align-items: baseline; justify-content: center; gap: 10px;
   margin-bottom: 16px;
 }
 .first-offer-deal-energy {
   font-family: var(--motz-font-display);
-  font-size: 32px;
-  color: #ffd76b;
+  font-size: 34px;
   font-weight: 700;
+  color: var(--fo-accent);
+  text-shadow: 0 0 24px rgba(var(--fo-accent-rgb), 0.45);
 }
-.first-offer-deal-sep { color: var(--motz-text-muted); font-size: 20px; }
+.first-offer-deal-sep { color: var(--motz-text-dim); font-size: 20px; }
 .first-offer-deal-price {
   font-family: var(--motz-font-mono);
-  font-size: 22px;
-  color: var(--text);
+  font-size: 20px;
+  color: var(--motz-text-primary);
 }
 .first-offer-desc {
-  color: var(--motz-text-secondary, var(--text));
+  font-family: var(--motz-font-body);
+  color: var(--motz-text-muted);
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.6;
   margin-bottom: 14px;
 }
+.first-offer-desc strong { color: var(--motz-text-primary); }
 .first-offer-warning {
-  background: rgba(255, 90, 107, 0.12);
-  border: 1px solid rgba(255, 90, 107, 0.55);
-  color: #ffb8c0;
+  text-align: left;
+  background: rgba(255, 176, 32, 0.10);
+  border: 1px solid rgba(255, 176, 32, 0.40);
+  color: var(--motz-warning);
+  font-family: var(--motz-font-body);
   font-size: 12px;
   padding: 10px 12px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  line-height: 1.5;
+  border-radius: var(--motz-r-sm);
+  margin-bottom: 22px;
+  line-height: 1.55;
 }
+.first-offer-warning strong { color: #ffd98a; }
 .first-offer-actions {
-  display: flex; flex-direction: column; gap: 8px;
+  display: flex; flex-direction: column; gap: 9px;
+}
+/* Themed primary CTA — purple for the energy offer, gold for the buff offer. */
+.first-offer-card--energy .first-offer-actions .confirm-btn:not(.secondary) {
+  background: var(--motz-grad-purple);
+  border-color: transparent;
+  box-shadow: 0 4px 24px rgba(112, 0, 255, 0.32);
+}
+.first-offer-card--buff .first-offer-actions .confirm-btn:not(.secondary) {
+  background: var(--motz-grad-gold);
+  border-color: transparent;
+  color: #2a1a02;
+  box-shadow: var(--motz-sh-gold);
+}
+/* Dismiss button — quiet destructive ghost. */
+.first-offer-dismiss {
+  border-color: rgba(255, 90, 107, 0.55);
+  color: #ffb8c0;
+}
+.first-offer-dismiss:hover {
+  border-color: var(--motz-error);
+  color: #ffd2d8;
 }
 /* Tablet / narrow desktop: 4-across is too cramped — drop the top row to
    a 2×2 grid. The conquer board below stays full-width. */
