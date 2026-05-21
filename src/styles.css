@@ -290,6 +290,31 @@ body:has(.battle) {
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
     url("/floor 141-150.png") center / cover no-repeat;
 }
+.battle[data-tier="151-160"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 151-160.png") center / cover no-repeat;
+}
+.battle[data-tier="161-170"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 161-170.png") center / cover no-repeat;
+}
+.battle[data-tier="171-180"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 171-180.png") center / cover no-repeat;
+}
+.battle[data-tier="181-190"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 181-190.png") center / cover no-repeat;
+}
+.battle[data-tier="191-200"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 191-200.png") center / cover no-repeat;
+}
 
 .battle-log-panel {
   position: absolute;
