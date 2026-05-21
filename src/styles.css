@@ -285,6 +285,11 @@ body:has(.battle) {
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
     url("/floor 131-140.png") center / cover no-repeat;
 }
+.battle[data-tier="141-150"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 141-150.png") center / cover no-repeat;
+}
 
 .battle-log-panel {
   position: absolute;
