@@ -353,6 +353,20 @@ const SLOWMO_STAGE_THRESHOLD = 31;
 const SLOWMO_FACTOR = 0.75;
 function isSlowMoStage(): boolean { return currentBattleStageId >= SLOWMO_STAGE_THRESHOLD; }
 
+/** Deep post-game floors stack additional slow-mo on top of SLOWMO_FACTOR:
+ *  AGI (and therefore ATB cadence) keeps climbing the deeper you go, so each
+ *  milestone below makes the sim a further 10% slower (compounding) to keep
+ *  late-game battles readable. At F451+ all eight milestones apply. */
+const LATE_SLOWMO_MILESTONES = [101, 151, 201, 251, 301, 351, 401, 451];
+const LATE_SLOWMO_STEP = 0.9; // each milestone reached = 10% slower
+function lateGameSlowMoFactor(): number {
+  let f = 1;
+  for (const m of LATE_SLOWMO_MILESTONES) {
+    if (currentBattleStageId >= m) f *= LATE_SLOWMO_STEP;
+  }
+  return f;
+}
+
 
 // Boss Raid state.
 let brIndex = 0;                              // index into BOSS_RAID_FLOORS, 0 = first boss
@@ -1241,6 +1255,8 @@ function frame(t: number): void {
   // Fast-forward (2x / 4x) applies on top for stages 1-20 only — clamped to
   // 1x for any other context so high-floor pacing isn't affected.
   let dt = isSlowMoStage() ? realDt * SLOWMO_FACTOR : realDt;
+  // Deep post-game floors slow down a further 10% per milestone reached.
+  dt *= lateGameSlowMoFactor();
   const ffMul = getBattleSpeed();
   if (ffMul > 1 && isFastForwardAllowed(currentStageId, mode)) {
     dt *= ffMul;
