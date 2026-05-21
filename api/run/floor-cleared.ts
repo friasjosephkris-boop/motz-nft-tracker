@@ -976,7 +976,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       ? (req.body as { txHash: string }).txHash : "";
     if (!txHash) { res.status(400).json({ error: "txHash required" }); return; }
     try {
-      const { readOraclePlaysToday, rollOracle, ORACLE_DAILY_CAP, ORACLE_PRICE_RON }
+      const { readOraclePlaysToday, rollOracle, claimOracleTx, ORACLE_DAILY_CAP, ORACLE_PRICE_RON }
         = await import("../_lib/oracleEnergy.js");
       // Daily-cap gate BEFORE payment verification so a capped wallet is told
       // to stop before the RON moves. The client also disables the button at
@@ -988,7 +988,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       }
       const pay = await verifyShopPayment(txHash, address, "oracle_energy");
       if (!pay.ok) {
+        // Pending / failed: do NOT claim the hash — the client retry loop
+        // re-submits the same hash while the tx is still being indexed.
         res.status(pay.pending ? 202 : 400).json({ ok: false, pending: pay.pending, reason: pay.reason });
+        return;
+      }
+      // Payment is real + settled. Atomically claim the hash so it can roll
+      // exactly once — blocks replaying one payment for multiple rolls even
+      // under concurrent requests.
+      if (!await claimOracleTx(txHash)) {
+        res.status(409).json({ ok: false, reason: "This payment was already used for an Oracle play." });
         return;
       }
       const result = await rollOracle(address);

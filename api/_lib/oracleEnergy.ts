@@ -10,7 +10,7 @@
 // 1.5 RON transfer to the treasury. Nothing on the client can fix the outcome
 // or skip the payment.
 
-import { getNumber, incrByWithExpire } from "./redis.js";
+import { getNumber, incrByWithExpire, setNxWithExpire } from "./redis.js";
 import { adminGrantEnergy } from "./energy.js";
 import { randomInt } from "node:crypto";
 
@@ -44,6 +44,16 @@ function playsKey(address: string): string {
 /** Plays this wallet has already spent since the last 08:00 PH boundary. */
 export async function readOraclePlaysToday(address: string): Promise<number> {
   return await getNumber(playsKey(address));
+}
+
+/** Atomically claim a payment tx hash for a single Oracle play. Returns false
+ *  if the hash was already claimed — this is the airtight replay guard: even
+ *  if two concurrent requests both pass payment verification with the SAME
+ *  tx hash, only one wins the SETNX and gets to roll. The other is rejected,
+ *  so one 1.5 RON payment can never buy more than one roll.
+ *  TTL is a year — far longer than needed, but gives a clean audit trail. */
+export async function claimOracleTx(txHash: string): Promise<boolean> {
+  return await setNxWithExpire(`oracle:tx:${txHash.toLowerCase()}`, "1", 60 * 60 * 24 * 365);
 }
 
 /** Atomically bump the daily play counter, returns the post-increment count.
