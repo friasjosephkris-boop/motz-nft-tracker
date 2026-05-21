@@ -22,7 +22,7 @@ export async function renderShop(root: HTMLElement, onBack: () => void): Promise
     <div class="screen-frame shop-screen">
       <div class="shop-banner">
         <button class="back-btn shop-back-btn" id="back-btn" type="button">← Back</button>
-        <img class="shop-scene" src="/for%20shop.png" alt="Shop" draggable="false" />
+        <img class="shop-scene" src="/for%20shop.webp" alt="Shop" draggable="false" />
       </div>
       <div class="shop-header">
         <div class="shop-title">Tower Exchange</div>

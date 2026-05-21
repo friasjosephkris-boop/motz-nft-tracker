@@ -58,16 +58,16 @@ export function renderHome(root: HTMLElement, onAction: (a: HomeAction) => void)
       </div>
       <div class="home-tiles">
         <button class="home-tile primary tile-ascend" data-action="tower" type="button" aria-label="Ascend">
-          <img class="tile-ascend-art" src="/for ascend!.png" alt="Ascend" />
+          <img class="tile-ascend-art" src="/for ascend!.webp" alt="Ascend" />
         </button>
         <button class="home-tile tile-units" data-action="units" type="button" aria-label="Units">
-          <img class="tile-units-art" src="/for unit box.png" alt="Units" />
+          <img class="tile-units-art" src="/for unit box.webp" alt="Units" />
         </button>
         <button class="home-tile tile-shop" data-action="shop" type="button" aria-label="Shop">
-          <img class="tile-shop-art" src="/for shop.png" alt="Shop" />
+          <img class="tile-shop-art" src="/for shop.webp" alt="Shop" />
         </button>
         <button class="home-tile tile-leaderboard" data-action="leaderboard" type="button" aria-label="Leaderboard">
-          <img class="tile-leaderboard-art" src="/for leaderboards.png" alt="Leaderboard" />
+          <img class="tile-leaderboard-art" src="/for leaderboards.webp" alt="Leaderboard" />
         </button>
       </div>
     </div>
@@ -193,7 +193,7 @@ function mountHomeDecor(root: HTMLElement): void {
     const img = document.createElement("img");
     img.className = "home-decor-silhouette";
     img.dataset.unit = name; // drives the per-unit hover aura colour in CSS
-    img.src = `/units/${name}-silhouette.png`;
+    img.src = `/units/${name}-silhouette.webp`;
     img.alt = "";
     img.draggable = false;
     img.style.left = `${x.toFixed(1)}px`;

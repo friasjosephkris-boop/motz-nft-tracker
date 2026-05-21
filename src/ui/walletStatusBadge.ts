@@ -87,7 +87,7 @@ async function refresh(): Promise<void> {
   el.style.display = "";
   // Credit box stacks ABOVE the wallet pill (flex-column on .wsb-host).
   el.innerHTML = renderCreditBox() + renderBadge({ matching, firstConnected, session });
-  // The MoTZ wordmark lives at /public/motz-logo.png. Defensive: if that asset
+  // The MoTZ wordmark lives at /public/motz-logo.webp. Defensive: if that asset
   // ever goes missing, hide the <img> so the box still looks clean rather than
   // showing a broken-image glyph.
   const logo = el.querySelector<HTMLImageElement>(".motz-credit-logo");
@@ -101,7 +101,7 @@ function renderCreditBox(): string {
     <a class="motz-credit" href="https://discord.gg/motz" target="_blank" rel="noopener noreferrer"
        title="Join the MoTZ Discord — discord.gg/motz">
       <span class="motz-credit-by">Created by</span>
-      <img class="motz-credit-logo" src="/motz-logo.png" alt="MoTZ" />
+      <img class="motz-credit-logo" src="/motz-logo.webp" alt="MoTZ" />
       <span class="motz-credit-link">discord.gg/motz</span>
     </a>
   `;

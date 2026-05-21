@@ -164,7 +164,7 @@ body {
   background-color: var(--bg);
   background-image:
     linear-gradient(180deg, rgba(6, 9, 30, 0.55) 0%, rgba(6, 9, 30, 0.7) 60%, rgba(6, 9, 30, 0.88) 100%),
-    url("/bg-tower.png");
+    url("/bg-tower.webp");
   background-size: cover, cover;
   background-position: center, center;
   background-repeat: no-repeat, no-repeat;
@@ -5179,7 +5179,7 @@ body:has(.battle) {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("/victory%20and%20defeat%20summary%20background.png");
+  background-image: url("/victory%20and%20defeat%20summary%20background.webp");
   background-position: right center;
   background-repeat: no-repeat;
   background-size: auto 100%;
@@ -6057,7 +6057,7 @@ body:has(.battle) {
 
 /* Shop header — MoTZ illustrated banner (Apothecary scene). Full-width SVG
    shop interior + gold-glow SHOP wordmark; the scrim carries the text. */
-/* Shop banner — the illustrated Shego shop artwork (public/for shop.png),
+/* Shop banner — the illustrated Shego shop artwork (public/for shop.webp),
    shown as a centered hero image rather than a stretched strip so its
    3:2 art isn't cropped. */
 .shop-banner {

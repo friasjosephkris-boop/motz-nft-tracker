@@ -49,7 +49,7 @@ export function renderBattle(
   const showPost = opts.showPostBattleButtons !== false;
   const slowMo = !!opts.slowMo;
   // Map stage → tier so CSS can pick the right background. Tiers correspond
-  // to the floor-X-Y.png/.jpg assets in /public.
+  // to the floor-X-Y.webp/.jpg assets in /public.
   const tier = stageTier(opts.stageId);
   root.innerHTML = `
     <div class="battle${slowMo ? " slowmo" : ""}"${tier ? ` data-tier="${tier}"` : ""}>
@@ -122,7 +122,7 @@ export function renderBattle(
  *  background.
  *
  *  Post-game floors 51-500 map to 10-floor sub-tiers ("51-60", "61-70", …).
- *  A sub-tier only shows custom art once both a `/public/floor X-Y.png` asset
+ *  A sub-tier only shows custom art once both a `/public/floor X-Y.webp` asset
  *  AND a matching `.battle[data-tier="X-Y"]` CSS rule exist — sub-tiers without
  *  art simply fall back to the base battle-field gradient. So adding a new
  *  tier background later is just: drop the PNG in /public + add one CSS rule. */

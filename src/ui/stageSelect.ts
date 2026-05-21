@@ -63,7 +63,7 @@ export function renderStageSelect(root: HTMLElement, onPick: (pick: StagePick) =
           </button>
           <button class="bossraid-tile ${endlessUnlocked ? "" : "locked"}" id="mode-bossraid" type="button" ${bossRaidDisabled ? "disabled" : ""}>
             <div class="bossraid-art">
-              <img class="bossraid-img" src="/boss-raid.png" alt="" draggable="false" />
+              <img class="bossraid-img" src="/boss-raid.webp" alt="" draggable="false" />
             </div>
             <div class="bossraid-overlay">
               <div class="bossraid-title">Boss Raid</div>
