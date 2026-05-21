@@ -15,6 +15,7 @@ import { loadSession, validateSession, setVerifiedPerks } from "../auth/session"
 import { payWithWallet } from "../auth/payment";
 import { pickWalletModal } from "./walletPicker";
 import { showTxProgress } from "./txProgressOverlay";
+import { openOracleModal } from "./oracleEnergy";
 
 export async function renderShop(root: HTMLElement, onBack: () => void): Promise<void> {
   // Initial paint — empty list while we wait on the status fetch.
@@ -74,10 +75,16 @@ export async function renderShop(root: HTMLElement, onBack: () => void): Promise
         <div class="shop-section-title">${sec.label}</div>
         <div class="shop-items">
           ${items.map(i => shopCardHtml(i, status)).join("")}
+          ${sec.cat === "energy" ? oracleCardHtml() : ""}
         </div>
       </div>
     `;
   }).join("");
+
+  // Oracle Energy — opens its own gamble modal instead of the standard
+  // buy flow (server-authoritative 50/50 coin flip).
+  grid.querySelector<HTMLButtonElement>("#oracle-open-btn")
+    ?.addEventListener("click", () => { void openOracleModal(); });
 
   // Buy button handlers.
   grid.querySelectorAll<HTMLButtonElement>("[data-buy]").forEach(btn => {
@@ -326,6 +333,30 @@ function shopCardHtml(def: ShopItemDef, status: ShopStatus): string {
         <div class="shop-card-actions">
           <button class="confirm-btn shop-buy-btn" data-buy="${def.id}" type="button" ${ctaDisabled ? "disabled" : ""}>${escapeHtml(ctaLabel)}</button>
           ${voucherBtn}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/** The Oracle Energy card — sits in the Energy section but opens a dedicated
+ *  gamble modal (server-authoritative 50/50 flip) rather than the standard
+ *  buy flow. Not part of SHOP_CATALOG because it has no daily-buy semantics. */
+function oracleCardHtml(): string {
+  return `
+    <div class="shop-card shop-card-oracle">
+      <div class="shop-card-head">
+        <span class="shop-card-icon">🔮</span>
+        <span class="shop-card-name">Oracle Energy</span>
+        <span class="shop-oracle-tag">GAMBLE</span>
+      </div>
+      <div class="shop-card-desc">
+        Offer <strong>1.5 RON</strong> to the Oracle for a true <strong>50/50</strong> flip — <strong>win</strong> for +3 energy, or +1 energy on a loss. You always gain energy; fortune decides how much. Up to <strong>10 consultations</strong> per day.
+      </div>
+      <div class="shop-card-foot">
+        <span class="shop-card-price">1.5 RON</span>
+        <div class="shop-card-actions">
+          <button class="confirm-btn shop-buy-btn" id="oracle-open-btn" type="button">Consult the Oracle</button>
         </div>
       </div>
     </div>

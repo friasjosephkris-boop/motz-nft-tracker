@@ -892,6 +892,74 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  // ---- Oracle Energy — repeatable 50/50 RON gamble (1.5 RON → 3 or 1 energy) ----
+  if (op === "oracle_status") {
+    try {
+      const { readOraclePlaysToday, ORACLE_DAILY_CAP, ORACLE_PRICE_RON, ORACLE_WIN_ENERGY, ORACLE_LOSE_ENERGY }
+        = await import("../_lib/oracleEnergy.js");
+      const plays = await readOraclePlaysToday(address);
+      res.status(200).json({
+        ok: true,
+        playsToday: plays,
+        playsRemaining: Math.max(0, ORACLE_DAILY_CAP - plays),
+        cap: ORACLE_DAILY_CAP,
+        priceRon: ORACLE_PRICE_RON,
+        win: ORACLE_WIN_ENERGY,
+        lose: ORACLE_LOSE_ENERGY,
+      });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "oracle_play") {
+    // Gambling path: pay 1.5 RON, server flips a crypto coin + grants energy.
+    // Season-halted shuts the oracle alongside the rest of the shop.
+    if (await isSeasonHalted()) {
+      res.status(SEASON_HALTED_RESPONSE.status).json(SEASON_HALTED_RESPONSE.body);
+      return;
+    }
+    const txHash = typeof (req.body as { txHash?: unknown }).txHash === "string"
+      ? (req.body as { txHash: string }).txHash : "";
+    if (!txHash) { res.status(400).json({ error: "txHash required" }); return; }
+    try {
+      const { readOraclePlaysToday, rollOracle, ORACLE_DAILY_CAP, ORACLE_PRICE_RON }
+        = await import("../_lib/oracleEnergy.js");
+      // Daily-cap gate BEFORE payment verification so a capped wallet is told
+      // to stop before the RON moves. The client also disables the button at
+      // 0 remaining; this is the hard server-side enforcement.
+      const plays = await readOraclePlaysToday(address);
+      if (plays >= ORACLE_DAILY_CAP) {
+        res.status(429).json({ ok: false, reason: `Daily Oracle limit reached (${ORACLE_DAILY_CAP}/day). Resets at 8 AM PH.` });
+        return;
+      }
+      const pay = await verifyShopPayment(txHash, address, "oracle_energy");
+      if (!pay.ok) {
+        res.status(pay.pending ? 202 : 400).json({ ok: false, pending: pay.pending, reason: pay.reason });
+        return;
+      }
+      const result = await rollOracle(address);
+      await consumeTxHash(txHash, address, "oracle_energy", pay.valueWei);
+      // Analytics: real RON to treasury — lifetime RON-spent + global revenue.
+      await bumpRonSpent(address, ORACLE_PRICE_RON).catch(() => undefined);
+      void bumpShopRevenue(ORACLE_PRICE_RON);
+      // Referral RON-spend reward — oracle plays count toward the milestone.
+      await fireRonMilestone(address).catch(() => undefined);
+      res.status(200).json({
+        ok: true,
+        won: result.won,
+        energyGranted: result.energyGranted,
+        balance: result.balance,
+        playsRemaining: result.playsRemaining,
+      });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+
   if (op === "shop_buy" || op === "shop_buy_voucher") {
     if (await isSeasonHalted()) {
       res.status(SEASON_HALTED_RESPONSE.status).json(SEASON_HALTED_RESPONSE.body);

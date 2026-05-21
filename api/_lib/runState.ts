@@ -460,6 +460,7 @@ export type ShopItemId =
   | "energy_5" | "energy_10" | "energy_20"
   | "energy_first_offer"     // one-time post-zero-energy bundle (20 RON → 35 energy)
   | "energy_floor200_offer"  // one-time floor-200-clear bundle (25 RON → 50 energy)
+  | "oracle_energy"          // repeatable 50/50 gamble (1.5 RON → 3 or 1 energy)
   | "floor20_offer_bundle" // one-time floor-20-clear bundle (20 RON → all campaign buffs)
   | "unit_stat_reset" | "unit_class_change" | "unit_temp_motz_key"
   | "buff_battle_cry" | "buff_phoenix_embers" | "buff_scholars_insight"

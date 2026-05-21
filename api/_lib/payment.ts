@@ -29,6 +29,7 @@ export const ITEM_PRICES_WEI: Record<ShopItemId, bigint> = {
   energy_20: 20n * 10n ** 18n,
   energy_first_offer: 20n * 10n ** 18n,    // one-time first-offer bundle: 35 energy for 20 RON
   energy_floor200_offer: 25n * 10n ** 18n, // one-time floor-200 bundle: 50 energy for 25 RON
+  oracle_energy: 15n * 10n ** 17n,         // Oracle Energy gamble: 1.5 RON per play
   floor20_offer_bundle: 20n * 10n ** 18n,  // one-time floor-20 bundle: all campaign buffs for 20 RON
   unit_stat_reset:    10n * 10n ** 18n,
   unit_class_change:  10n * 10n ** 18n,

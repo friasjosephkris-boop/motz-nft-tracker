@@ -4648,6 +4648,208 @@ body:has(.battle) {
   border-color: var(--motz-error);
   color: #ffd2d8;
 }
+
+/* ===================== Oracle Energy (shop gamble) =====================
+   A repeatable 50/50 RON gamble living in the shop's Energy section. The
+   shop card opens the .oracle-modal — a large mystical window with the
+   oracle art, mechanics, and a "Consult" button. The result swaps the art
+   to the win (+3) or lose (+1) illustration.                              */
+
+/* ---- Shop card (sits among the energy packs) ---- */
+.shop-card-oracle {
+  border-color: rgba(112, 0, 255, 0.45);
+  background:
+    radial-gradient(ellipse at 80% 0%, rgba(112, 0, 255, 0.16), transparent 60%),
+    var(--motz-grad-surface),
+    linear-gradient(180deg, var(--motz-bg-s2), var(--motz-bg-s1));
+  box-shadow: 0 0 26px rgba(112, 0, 255, 0.18);
+}
+.shop-card-oracle:hover { box-shadow: 0 0 32px rgba(112, 0, 255, 0.28); }
+.shop-oracle-tag {
+  margin-left: auto;
+  font-family: var(--motz-font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #ffd98a;
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  padding: 3px 8px;
+  border-radius: var(--motz-r-pill);
+  text-transform: uppercase;
+}
+
+/* ---- Modal overlay ---- */
+.oracle-modal {
+  position: fixed; inset: 0;
+  background: rgba(12, 4, 22, 0.90);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  z-index: 260;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  animation: foFadeIn 200ms ease-out;
+}
+.oracle-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(112, 0, 255, 0.30), transparent 65%),
+    var(--motz-grad-surface),
+    linear-gradient(180deg, var(--motz-bg-s2), var(--motz-bg-s1));
+  border: 1px solid rgba(112, 0, 255, 0.50);
+  border-radius: var(--motz-r-xl);
+  max-width: 500px;
+  width: 100%;
+  padding: 26px 28px 24px;
+  text-align: center;
+  box-shadow: var(--motz-sh-lift), 0 0 56px rgba(112, 0, 255, 0.32);
+  animation: foSlideIn 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.oracle-card::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 3px;
+  background: var(--motz-grad-purple);
+}
+.oracle-card--win::before { background: var(--motz-grad-gold); }
+.oracle-card--lose::before { background: linear-gradient(90deg, #5a5170, #3a3550); }
+.oracle-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--motz-glass-border);
+  border-radius: 8px;
+  color: var(--motz-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+.oracle-close:hover { background: rgba(255, 255, 255, 0.12); color: var(--motz-text-primary); }
+.oracle-banner {
+  display: inline-block;
+  font-family: var(--motz-font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--motz-purple);
+  background: rgba(112, 0, 255, 0.14);
+  border: 1px solid rgba(112, 0, 255, 0.50);
+  padding: 5px 14px;
+  border-radius: var(--motz-r-pill);
+  margin-bottom: 14px;
+}
+.oracle-art-wrap {
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px;
+}
+.oracle-art {
+  max-width: 100%;
+  max-height: 232px;
+  object-fit: contain;
+  border-radius: var(--motz-r-lg);
+  filter: drop-shadow(0 8px 28px rgba(112, 0, 255, 0.42));
+  animation: oracleArtIn 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.oracle-card--win .oracle-art { filter: drop-shadow(0 8px 30px rgba(251, 191, 36, 0.55)); }
+.oracle-card--lose .oracle-art { filter: drop-shadow(0 8px 24px rgba(90, 81, 112, 0.55)); }
+@keyframes oracleArtIn {
+  from { transform: scale(0.88) rotate(-2deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+.oracle-title {
+  font-family: var(--motz-font-display);
+  font-size: 25px;
+  font-weight: 700;
+  color: var(--motz-text-primary);
+  margin: 0 0 12px 0;
+}
+.oracle-mechanics {
+  font-family: var(--motz-font-body);
+  color: var(--motz-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+.oracle-mechanics strong { color: var(--motz-text-primary); }
+.oracle-odds {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin: 12px 0;
+}
+.oracle-odd {
+  font-family: var(--motz-font-display);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: var(--motz-r-sm);
+}
+.oracle-odd--win {
+  color: #2a1a02;
+  background: var(--motz-grad-gold);
+  box-shadow: var(--motz-sh-gold);
+}
+.oracle-odd--lose {
+  color: var(--motz-text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--motz-glass-border);
+}
+.oracle-odds-sep {
+  font-family: var(--motz-font-mono);
+  font-size: 11px;
+  color: var(--motz-text-dim);
+  text-transform: uppercase;
+}
+/* ---- Result state ---- */
+.oracle-result { margin-bottom: 14px; }
+.oracle-result-verdict {
+  font-family: var(--motz-font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.oracle-result--win .oracle-result-verdict { color: var(--motz-gold); }
+.oracle-result--lose .oracle-result-verdict { color: var(--motz-text-muted); }
+.oracle-result-energy {
+  font-family: var(--motz-font-display);
+  font-size: 38px;
+  font-weight: 700;
+}
+.oracle-result--win .oracle-result-energy {
+  color: var(--motz-gold);
+  text-shadow: 0 0 28px rgba(251, 191, 36, 0.55);
+}
+.oracle-result--lose .oracle-result-energy {
+  color: var(--motz-purple);
+  text-shadow: 0 0 22px rgba(112, 0, 255, 0.45);
+}
+.oracle-plays {
+  font-family: var(--motz-font-mono);
+  font-size: 12px;
+  color: var(--motz-text-dim);
+  margin-bottom: 16px;
+}
+.oracle-plays strong { color: var(--motz-purple); }
+.oracle-actions { display: flex; flex-direction: column; gap: 9px; }
+.oracle-actions .oracle-consult {
+  background: var(--motz-grad-purple);
+  border-color: transparent;
+  box-shadow: 0 4px 24px rgba(112, 0, 255, 0.36);
+}
+.oracle-card--win .oracle-actions .oracle-consult {
+  background: var(--motz-grad-gold);
+  color: #2a1a02;
+  box-shadow: var(--motz-sh-gold);
+}
+.oracle-actions .oracle-consult:disabled {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--motz-text-dim);
+  box-shadow: none;
+}
 /* Tablet / narrow desktop: 4-across is too cramped — drop the top row to
    a 2×2 grid. The conquer board below stays full-width. */
 @media (max-width: 1100px) {
@@ -4923,6 +5125,122 @@ body:has(.battle) {
   color: var(--text-dim);
   font-style: italic;
   letter-spacing: 0.04em;
+}
+
+/* "Edit Loadout" button under the skill chips on each roster card. Sits on
+   its own implicit grid row spanning the full card width. */
+.rs-edit-loadout {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 12px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+.rs-edit-loadout:hover {
+  color: var(--gold-bright);
+  border-color: rgba(251, 191, 36, 0.5);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+/* ---------- Lobby skill-loadout editor (Squad Select → Edit Loadout) ---------- */
+.lle-overlay {
+  position: fixed; inset: 0; z-index: 2100;
+  background: rgba(6, 9, 30, 0.78);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: grid; place-items: center;
+  animation: gc-fade 0.14s ease-out;
+}
+.lle-card {
+  max-width: 520px;
+  width: min(94vw, 520px);
+}
+.lle-title {
+  font-family: "Cinzel", "Times New Roman", serif;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.05em;
+  color: var(--gold-bright);
+  text-align: center;
+  text-shadow: 0 0 12px rgba(212, 169, 62, 0.25);
+}
+.lle-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  margin: 4px 0 12px;
+}
+.lle-count { color: var(--gold-bright); font-weight: 700; }
+.lle-warn {
+  font-size: 11px;
+  color: #ffb4b4;
+  background: rgba(255, 80, 80, 0.10);
+  border: 1px solid rgba(255, 80, 80, 0.40);
+  border-radius: 8px;
+  padding: 6px 10px;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.lle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 52vh;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  padding-right: 2px;
+}
+.lle-skill {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.lle-skill:hover:not(.locked) { background: var(--panel-2); border-color: var(--border-strong); }
+.lle-skill.on {
+  border-color: var(--gold-bright);
+  background: rgba(251, 191, 36, 0.07);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25) inset;
+}
+.lle-skill.locked { opacity: 0.45; cursor: not-allowed; }
+.lle-mark {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  text-align: center;
+}
+.lle-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lle-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.lle-desc { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+.lle-meta {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--gold-bright);
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+}
+.lle-skill.locked .lle-meta { color: var(--text-dim); }
+.lle-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+  text-align: center;
+  padding: 20px;
 }
 
 @media (max-width: 900px) {
