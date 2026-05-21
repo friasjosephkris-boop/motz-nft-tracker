@@ -6609,9 +6609,10 @@ body:has(.battle) {
   font-size: 13px;
   color: var(--motz-text-muted);
 }
+/* Intro — MoTZ Caption: Inter 14px, muted. */
 .referral-intro {
   font-family: var(--motz-font-body);
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.55;
   color: var(--motz-text-muted);
   text-align: center;
@@ -6636,14 +6637,14 @@ body:has(.battle) {
   position: absolute; top: 0; left: 0; right: 0; height: 2px;
   background: linear-gradient(90deg, var(--motz-red), var(--motz-gold) 55%, transparent);
 }
-/* Section label — MoTZ mono overline. */
+/* Section label — MoTZ Overline token: JetBrains Mono 12px, GOLD, 0.2em. */
 .referral-card-label {
   font-family: var(--motz-font-mono);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--motz-text-dim);
+  color: var(--motz-gold);
   margin-bottom: 12px;
 }
 /* Referral code — MoTZ hero gradient headline (red→purple). */
@@ -6710,7 +6711,7 @@ body:has(.battle) {
   position: relative;
   padding-left: 18px;
   font-family: var(--motz-font-body);
-  font-size: 12.5px;
+  font-size: 13px;
   line-height: 1.5;
   color: var(--motz-text-muted);
 }
@@ -6748,11 +6749,13 @@ body:has(.battle) {
   position: absolute; top: 0; left: 0; right: 0; height: 2px;
   background: linear-gradient(90deg, transparent, var(--motz-gold) 50%, transparent);
 }
+/* Stat value — MoTZ heading: Fredoka 700, tight -0.01em tracking, gold glow. */
 .referral-stat-value {
   font-family: var(--motz-font-display);
   font-size: 34px;
   font-weight: 700;
   line-height: 1;
+  letter-spacing: -0.01em;
   color: var(--motz-gold);
   text-shadow: 0 0 20px rgba(251, 191, 36, 0.35);
 }
@@ -6828,6 +6831,7 @@ body:has(.battle) {
   font-family: var(--motz-font-display);
   font-size: 19px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--motz-gold);
   text-shadow: 0 0 16px rgba(251, 191, 36, 0.4);
 }
