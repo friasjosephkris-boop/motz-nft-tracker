@@ -210,7 +210,7 @@ body:has(.battle) {
 .battle[data-tier="1-10"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 1-10.png") center / cover no-repeat;
+    url("/floor 1-10.webp") center / cover no-repeat;
 }
 .battle[data-tier="11-20"] .battle-field {
   background:
@@ -225,150 +225,151 @@ body:has(.battle) {
 .battle[data-tier="31-40"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 31-40.png") center / cover no-repeat;
+    url("/floor 31-40.webp") center / cover no-repeat;
 }
 .battle[data-tier="41-49"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 41-49.png") center / cover no-repeat;
+    url("/floor 41-49.webp") center / cover no-repeat;
 }
 .battle[data-tier="50"] .battle-field {
   background:
     linear-gradient(180deg, rgba(20, 4, 4, 0.40) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 50.png") center / cover no-repeat;
+    url("/floor 50.webp") center / cover no-repeat;
 }
 /* Post-game sub-tier backgrounds (floors 51-500, 10 floors each). Add a rule
-   here as each `floor X-Y.png` asset is created; tiers without a rule fall
-   back to the base .battle-field gradient. */
+   here as each `floor X-Y.webp` asset is created; tiers without a rule fall
+   back to the base .battle-field gradient. (Backgrounds are WebP — convert
+   any newly-uploaded PNG before wiring it.) */
 .battle[data-tier="51-60"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 51-60.png") center / cover no-repeat;
+    url("/floor 51-60.webp") center / cover no-repeat;
 }
 .battle[data-tier="61-70"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 61-70.png") center / cover no-repeat;
+    url("/floor 61-70.webp") center / cover no-repeat;
 }
 .battle[data-tier="71-80"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 71-80.png") center / cover no-repeat;
+    url("/floor 71-80.webp") center / cover no-repeat;
 }
 .battle[data-tier="81-90"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 81-90.png") center / cover no-repeat;
+    url("/floor 81-90.webp") center / cover no-repeat;
 }
 .battle[data-tier="91-100"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 91-100.png") center / cover no-repeat;
+    url("/floor 91-100.webp") center / cover no-repeat;
 }
 .battle[data-tier="101-110"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 101-110.png") center / cover no-repeat;
+    url("/floor 101-110.webp") center / cover no-repeat;
 }
 .battle[data-tier="111-120"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 111-120.png") center / cover no-repeat;
+    url("/floor 111-120.webp") center / cover no-repeat;
 }
 .battle[data-tier="121-130"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 121-130.png") center / cover no-repeat;
+    url("/floor 121-130.webp") center / cover no-repeat;
 }
 .battle[data-tier="131-140"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 131-140.png") center / cover no-repeat;
+    url("/floor 131-140.webp") center / cover no-repeat;
 }
 .battle[data-tier="141-150"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 141-150.png") center / cover no-repeat;
+    url("/floor 141-150.webp") center / cover no-repeat;
 }
 .battle[data-tier="151-160"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 151-160.png") center / cover no-repeat;
+    url("/floor 151-160.webp") center / cover no-repeat;
 }
 .battle[data-tier="161-170"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 161-170.png") center / cover no-repeat;
+    url("/floor 161-170.webp") center / cover no-repeat;
 }
 .battle[data-tier="171-180"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 171-180.png") center / cover no-repeat;
+    url("/floor 171-180.webp") center / cover no-repeat;
 }
 .battle[data-tier="181-190"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 181-190.png") center / cover no-repeat;
+    url("/floor 181-190.webp") center / cover no-repeat;
 }
 .battle[data-tier="191-200"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 191-200.png") center / cover no-repeat;
+    url("/floor 191-200.webp") center / cover no-repeat;
 }
 .battle[data-tier="201-210"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 201-210.png") center / cover no-repeat;
+    url("/floor 201-210.webp") center / cover no-repeat;
 }
 .battle[data-tier="211-220"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 211-220.png") center / cover no-repeat;
+    url("/floor 211-220.webp") center / cover no-repeat;
 }
 .battle[data-tier="221-230"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 221-230.png") center / cover no-repeat;
+    url("/floor 221-230.webp") center / cover no-repeat;
 }
 .battle[data-tier="231-240"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 231-240.png") center / cover no-repeat;
+    url("/floor 231-240.webp") center / cover no-repeat;
 }
 .battle[data-tier="241-250"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 241-250.png") center / cover no-repeat;
+    url("/floor 241-250.webp") center / cover no-repeat;
 }
 .battle[data-tier="251-260"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 251-260.png") center / cover no-repeat;
+    url("/floor 251-260.webp") center / cover no-repeat;
 }
 .battle[data-tier="261-270"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 261-270.png") center / cover no-repeat;
+    url("/floor 261-270.webp") center / cover no-repeat;
 }
 .battle[data-tier="271-280"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 271-280.png") center / cover no-repeat;
+    url("/floor 271-280.webp") center / cover no-repeat;
 }
 .battle[data-tier="281-290"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 281-290.png") center / cover no-repeat;
+    url("/floor 281-290.webp") center / cover no-repeat;
 }
 .battle[data-tier="291-300"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 291-300.png") center / cover no-repeat;
+    url("/floor 291-300.webp") center / cover no-repeat;
 }
 .battle[data-tier="301-310"] .battle-field {
   background:
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
-    url("/floor 301-310.png") center / cover no-repeat;
+    url("/floor 301-310.webp") center / cover no-repeat;
 }
 
 .battle-log-panel {
