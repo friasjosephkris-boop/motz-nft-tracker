@@ -736,17 +736,18 @@ export function resistProfileForFloor(
   h = (h * 1597334677) >>> 0;
   h = (h ^ (h >>> 16)) >>> 0;
   // Pick 2 of 4 indices to receive the high resist. The remaining 2 get the
-  // low resist. We iterate through the 6 possible 2-of-4 combinations and
-  // pick one deterministically. (C(4,2) = 6.)
+  // low resist. We pick one of the valid 2-of-4 combinations deterministically.
+  // Two of the 6 possible combos are excluded: physical+magical and
+  // melee+range. Every attack is either physical OR magical, and either melee
+  // OR range — so resisting both halves of either pair makes the floor
+  // unkillable. That leaves 4 valid combos.
   type Slot = "physical" | "magical" | "melee" | "range";
   const slots: Slot[] = ["physical", "magical", "melee", "range"];
   const combos: [Slot, Slot][] = [
-    ["physical", "magical"],
     ["physical", "melee"],
     ["physical", "range"],
     ["magical", "melee"],
     ["magical", "range"],
-    ["melee",    "range"],
   ];
   const picked = combos[h % combos.length];
   const { highMul, lowMul } = RESIST_PROFILES[mode];
