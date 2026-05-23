@@ -704,13 +704,17 @@ export function postGameEnemyPowerMul(floorId: number): number {
  *  the floor inherits the floor's randomized resist profile — see below. */
 export const RESIST_RANDO_FIRST_FLOOR = 100;
 
-/** Per-mode resist intensity. Campaign + Survival use brutal numbers (100%/70%);
- *  Boss Raid uses gentler numbers (90%/60%) because the full 58-boss run
- *  already compounds difficulty from boss-raid stat scaling + 1.25× ATB —
- *  brutal immunes on top would be unfair. */
+/** Per-mode resist intensity. NO channel is ever fully immune — every type
+ *  of damage gets through at least the highMul fraction, so a player who
+ *  picks the "wrong" damage type for a floor still chips meaningfully
+ *  instead of being locked to 1-dmg minimum hits.
+ *  Note: the two resist axes (kind + range) stack multiplicatively in
+ *  combat.ts, so the effective resist on a given attack can be heavier
+ *  than the per-channel number. With 90%/70% per channel, the
+ *  best-attack-type lands at ~91% effective resist; the worst at ~99%. */
 const RESIST_PROFILES = {
-  floor:     { highMul: 0,   lowMul: 0.3 },  // 100% / 70% resist
-  survival:  { highMul: 0,   lowMul: 0.3 },  // 100% / 70% resist
+  floor:     { highMul: 0.1, lowMul: 0.3 },  // 90% / 70% resist
+  survival:  { highMul: 0.1, lowMul: 0.3 },  // 90% / 70% resist
   boss_raid: { highMul: 0.1, lowMul: 0.4 },  // 90% / 60% resist (gentler)
 } as const;
 export type ResistMode = keyof typeof RESIST_PROFILES;

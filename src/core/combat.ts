@@ -382,10 +382,10 @@ export interface BattleOptions {
   enemyStatMul?: number;
   /** Post-game resist randomization (Floor 100+): replace every enemy's
    *  intrinsic resist field with this profile. Two of {physical, magical,
-   *  melee, range} are usually 0 (100% resist → 1 dmg floor); the others
-   *  are 0.3 (70% resist). main.ts computes the profile deterministically
-   *  from the floor id via resistProfileForFloor() so the same floor always
-   *  rolls the same resists. */
+   *  melee, range} are at 0.1 (90% resist); the others at 0.3 (70% resist).
+   *  No channel is fully immune — every damage type still gets through.
+   *  main.ts computes the profile deterministically from the floor id via
+   *  resistProfileForFloor() so the same floor always rolls the same resists. */
   enemyResistOverride?: import("../units/types").DamageResistance;
 }
 
