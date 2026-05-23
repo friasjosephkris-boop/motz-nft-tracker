@@ -22,8 +22,15 @@ export interface UnitTemplate {
   overrideMaxMp?: number;
   level?: number;
   xpReward?: number;
-  /** Per-damage-type incoming multipliers (e.g., { magical: 0.25 } = takes 25% of magical damage). */
+  /** Per-damage-type incoming multipliers (e.g., { magical: 0.25 } = takes 25% of magical damage).
+   *  LEGACY: multiplicative across kind + range axes. Use for hand-authored
+   *  single-channel resists (e.g. one boss that resists magical). */
   resist?: DamageResistance;
+  /** Tiered resist (used by the floor 100-500 randomized profile). Counts
+   *  how many of the attack's two axes (kind + range) land in `resisted`
+   *  and applies a flat multiplier per count. Avoids the multiplicative
+   *  blow-up that pushes "one viable damage type" to 91%+ effective resist. */
+  resistTiered?: TieredResist;
   /** Outgoing damage multiplier (boss scaling). 1 = normal. 3 = boss hits 3x harder. */
   atkMultiplier?: number;
 }
@@ -33,4 +40,14 @@ export interface DamageResistance {
   magical?: number;
   melee?: number;
   range?: number;
+}
+
+export type ResistChannel = "physical" | "magical" | "melee" | "range";
+
+/** Count-based resist. The attacker's effKind (physical / magical) and range
+ *  (melee / range) each either ARE or ARE NOT in `resisted`. We count how
+ *  many match (0, 1, or 2) and pick the multiplier from `muls`. */
+export interface TieredResist {
+  resisted: ResistChannel[];
+  muls: { none: number; one: number; both: number };
 }

@@ -704,32 +704,29 @@ export function postGameEnemyPowerMul(floorId: number): number {
  *  the floor inherits the floor's randomized resist profile — see below. */
 export const RESIST_RANDO_FIRST_FLOOR = 100;
 
-/** Per-mode resist intensity. NO channel is ever fully immune — every type
- *  of damage gets through at least the highMul fraction, so a player who
- *  picks the "wrong" damage type for a floor still chips meaningfully
- *  instead of being locked to 1-dmg minimum hits.
- *  Note: the two resist axes (kind + range) stack multiplicatively in
- *  combat.ts, so the effective resist on a given attack can be heavier
- *  than the per-channel number. With 90%/70% per channel, the
- *  best-attack-type lands at ~91% effective resist; the worst at ~99%. */
-const RESIST_PROFILES = {
-  floor:     { highMul: 0.1, lowMul: 0.3 },  // 90% / 70% resist
-  survival:  { highMul: 0.1, lowMul: 0.3 },  // 90% / 70% resist
-  boss_raid: { highMul: 0.1, lowMul: 0.4 },  // 90% / 60% resist (gentler)
-} as const;
-export type ResistMode = keyof typeof RESIST_PROFILES;
+/** Count-based resist tiers for the floor 100-500 randomized profile.
+ *  Per attack, we count how many of its two axes (kind + range) land in the
+ *  floor's "resisted" set and apply the matching multiplier:
+ *    both axes resisted → 0.1  (90% resist)
+ *    one  axis resisted → 0.4  (60% resist)
+ *    neither resisted   → 1    (full damage)
+ *  This replaces the older multiplicative per-channel scheme which compounded
+ *  to ~91% effective resist on the only viable attack — too brutal in
+ *  practice. Tiers are uniform across modes; mode is kept as a parameter for
+ *  future per-mode tuning. */
+const FLOOR_RESIST_TIERS = { both: 0.1, one: 0.4, none: 1 } as const;
+export type ResistMode = "floor" | "survival" | "boss_raid";
 
 /** Compute a deterministic resistance profile for the given floor + mode.
- *  From F100 onward, every floor randomly assigns:
- *    - 2 of the 4 resist channels (physical / magical / melee / range) → high resist
- *    - the other 2                                                     → low resist
- *  The selection is seeded by floorId so the same floor always produces the
- *  same resist profile (fair across replays / leaderboard). The MAGNITUDE
- *  comes from `mode`: floor/survival = brutal, boss_raid = lighter. */
+ *  From F100 onward, every floor randomly assigns 2 of the 4 channels
+ *  (physical / magical / melee / range) to the "resisted" set; the other 2
+ *  pass damage through normally. The selection is seeded by floorId so the
+ *  same floor always produces the same profile (fair across replays /
+ *  leaderboard). */
 export function resistProfileForFloor(
   floorId: number,
-  mode: ResistMode = "floor",
-): import("./types").DamageResistance | null {
+  _mode: ResistMode = "floor",
+): import("./types").TieredResist | null {
   if (floorId < RESIST_RANDO_FIRST_FLOOR) return null;
   // xorshift-ish hash of the floorId → 32-bit unsigned.
   // Every step must re-coerce with `>>> 0`: JS `^` yields a SIGNED 32-bit
@@ -739,14 +736,13 @@ export function resistProfileForFloor(
   h = (h ^ (h >>> 13)) >>> 0;
   h = (h * 1597334677) >>> 0;
   h = (h ^ (h >>> 16)) >>> 0;
-  // Pick 2 of 4 indices to receive the high resist. The remaining 2 get the
-  // low resist. We pick one of the valid 2-of-4 combinations deterministically.
-  // Two of the 6 possible combos are excluded: physical+magical and
-  // melee+range. Every attack is either physical OR magical, and either melee
-  // OR range — so resisting both halves of either pair makes the floor
-  // unkillable. That leaves 4 valid combos.
-  type Slot = "physical" | "magical" | "melee" | "range";
-  const slots: Slot[] = ["physical", "magical", "melee", "range"];
+  // Pick which 2 of 4 channels are resisted. Two of the 6 possible combos
+  // are excluded: physical+magical and melee+range. Every attack is either
+  // physical OR magical, AND either melee OR range — so resisting both
+  // halves of either pair means EVERY attack hits ≥1 resisted axis, and
+  // there'd be no "no resist" damage type. We want exactly one fully-viable
+  // damage combo per floor, so we leave a 2-channel "open" set.
+  type Slot = import("./types").ResistChannel;
   const combos: [Slot, Slot][] = [
     ["physical", "melee"],
     ["physical", "range"],
@@ -754,13 +750,7 @@ export function resistProfileForFloor(
     ["magical", "range"],
   ];
   const picked = combos[h % combos.length];
-  const { highMul, lowMul } = RESIST_PROFILES[mode];
-  const profile: import("./types").DamageResistance = {};
-  for (const slot of slots) {
-    const isHigh = slot === picked[0] || slot === picked[1];
-    profile[slot] = isHigh ? highMul : lowMul;
-  }
-  return profile;
+  return { resisted: [picked[0], picked[1]], muls: { ...FLOOR_RESIST_TIERS } };
 }
 
 /** Hand-authored name + enemy overrides for floors 51-500 (all current

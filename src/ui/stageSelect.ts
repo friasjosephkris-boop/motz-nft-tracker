@@ -338,8 +338,11 @@ function stageTooltipHtml(s: StageEnemyDef): string {
   }
   const rows = [...counts.values()].map(({ unit, count }) => {
     const lvl = floorLevel ?? unit.level ?? 1;
-    // Use the floor profile if defined; else fall back to the template's intrinsic resist.
-    const tags = resistTags(floorResists ?? unit.resist);
+    // Floor 100+ profile takes priority and renders as tiered tags; otherwise
+    // fall back to the template's intrinsic per-channel resist.
+    const tags = floorResists
+      ? tieredResistTags(floorResists)
+      : resistTags(unit.resist);
     const atk = unit.atkMultiplier && unit.atkMultiplier > 1
       ? `<span class="stt-tag stt-warn">×${unit.atkMultiplier} ATK</span>`
       : "";
@@ -378,6 +381,16 @@ function resistTags(r: DamageResistance | null | undefined): string {
     else if (v > 1) tags.push(`<span class="stt-tag stt-weak">weak ${key}</span>`);
   }
   return tags.join("");
+}
+
+/** Render the floor-100+ tiered resist profile as tags. We mark every
+ *  channel in `resisted` as "resists X" — combat then escalates the actual
+ *  damage reduction based on how many of an attack's two axes match
+ *  (both → 90%, one → 60%, none → 0%). */
+function tieredResistTags(t: import("../units/types").TieredResist): string {
+  return t.resisted
+    .map(ch => `<span class="stt-tag stt-resist">resists ${ch}</span>`)
+    .join("");
 }
 
 function escapeHtml(s: string): string {

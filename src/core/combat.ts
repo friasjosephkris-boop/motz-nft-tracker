@@ -85,6 +85,7 @@ export interface Combatant {
   /** Active buffs/debuffs (applied on hit, ticks per action). */
   effects: ActiveEffect[];
   resist?: import("../units/types").DamageResistance;
+  resistTiered?: import("../units/types").TieredResist;
   atkMultiplier?: number;
   // ---- Run-summary trackers (accumulate across floors via carryover) ----
   damageDealt: number;
@@ -283,6 +284,7 @@ export function makeCombatant(t: UnitTemplate, side: Side, position: Position, o
       : (t.xpReward ?? 0),
     effects: [],
     resist: t.resist,
+    resistTiered: t.resistTiered,
     atkMultiplier: t.atkMultiplier,
     damageDealt: 0,
     damageTaken: 0,
@@ -380,13 +382,14 @@ export interface BattleOptions {
   /** Post-game depth difficulty: flat stat multiplier applied to every enemy,
    *  on top of level scaling. 1.0 = no change. */
   enemyStatMul?: number;
-  /** Post-game resist randomization (Floor 100+): replace every enemy's
-   *  intrinsic resist field with this profile. Two of {physical, magical,
-   *  melee, range} are at 0.1 (90% resist); the others at 0.3 (70% resist).
-   *  No channel is fully immune — every damage type still gets through.
+  /** Post-game resist randomization (Floor 100+): stamps every enemy with
+   *  a tiered resist profile. Two of {physical, magical, melee, range} are
+   *  "resisted"; the other 2 are open. Per attack, the multiplier depends
+   *  on how many of the attack's two axes (kind + range) hit the resisted
+   *  set: both → 90% resist, one → 60%, none → 0% (full damage).
    *  main.ts computes the profile deterministically from the floor id via
-   *  resistProfileForFloor() so the same floor always rolls the same resists. */
-  enemyResistOverride?: import("../units/types").DamageResistance;
+   *  resistProfileForFloor(). Overwrites any intrinsic enemy resist. */
+  enemyResistOverride?: import("../units/types").TieredResist;
 }
 
 export function startBattle(
@@ -440,7 +443,14 @@ export function startBattle(
   // post-game floors feel mechanically distinct from their F1-50 cousins.
   if (opts.enemyResistOverride) {
     for (const c of enemyCombatants) {
-      c.resist = { ...opts.enemyResistOverride };
+      // Tiered resist supersedes any intrinsic per-channel resist on the
+      // template (e.g. THE_UNTOUCHED) — post-game floors feel mechanically
+      // distinct from their F1-50 cousins.
+      c.resist = undefined;
+      c.resistTiered = {
+        resisted: [...opts.enemyResistOverride.resisted],
+        muls: { ...opts.enemyResistOverride.muls },
+      };
     }
   }
 
@@ -1108,8 +1118,22 @@ function applyDamage(b: Battle, attacker: Combatant, target: Combatant, skill: S
   if (attacker.atkMultiplier && attacker.atkMultiplier !== 1) {
     dmg = Math.max(1, Math.floor(dmg * attacker.atkMultiplier));
   }
-  // Type resistances (melee/range/physical/magical) on the target template.
-  if (target.resist) {
+  // Type resistances on the target. TWO independent encodings exist:
+  //   1. resistTiered (used by the floor 100-500 randomized profile) — count
+  //      how many of the attack's two axes (effKind + range) are in the
+  //      "resisted" set and apply a flat multiplier (both / one / none). NOT
+  //      multiplicative — gives clean discrete tiers regardless of axis count.
+  //   2. resist (legacy per-channel) — multiplicative across kind + range.
+  //      Used by hand-authored single-channel resists on individual enemies.
+  //   At most one is set; resistTiered wins if both somehow exist.
+  if (target.resistTiered) {
+    const tr = target.resistTiered;
+    let hits = 0;
+    if (effKind && tr.resisted.includes(effKind)) hits++;
+    if (range && (range === "melee" || range === "range") && tr.resisted.includes(range)) hits++;
+    const mul = hits === 2 ? tr.muls.both : hits === 1 ? tr.muls.one : tr.muls.none;
+    if (mul !== 1) dmg = Math.max(1, Math.floor(dmg * mul));
+  } else if (target.resist) {
     const r = target.resist;
     let mul = 1;
     if (effKind === "physical" && r.physical !== undefined) mul *= r.physical;
