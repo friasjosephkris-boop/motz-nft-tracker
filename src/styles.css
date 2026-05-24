@@ -1233,6 +1233,17 @@ body:has(.battle) {
   flex-wrap: wrap;
   gap: 6px;
 }
+/* "Show basic + skills side by side" mode (Settings → Combat).
+   Adds a subtle vertical divider between the basic group and the skill
+   group so the two halves are still visually distinct without tabs. */
+.unit-actions-both { align-items: stretch; }
+.unit-actions-divider {
+  width: 1px;
+  align-self: stretch;
+  background: linear-gradient(180deg, transparent, var(--motz-glass-border) 25%, var(--motz-glass-border) 75%, transparent);
+  margin: 0 4px;
+  pointer-events: none;
+}
 .unit-actions button { min-width: 120px; flex: 0 1 auto; }
 .unit-actions button {
   background: var(--panel-2);
@@ -3148,6 +3159,11 @@ body:has(.battle) {
 .setting-hint { font-size: 10px; opacity: 0.5; }
 .audio-toggles { display: flex; flex-direction: column; gap: 6px; }
 .toggle { display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; }
+/* Locked toggle — used by feature gates (e.g. the "Show basic + skills"
+   combat option that unlocks after Floor 50). Visually subdued so it's
+   obviously not interactive, but still readable. */
+.toggle-locked { cursor: not-allowed; opacity: 0.55; }
+.toggle-locked input { cursor: not-allowed; }
 /* Volume slider row — sits indented under its matching toggle. */
 .volume-row {
   display: grid;

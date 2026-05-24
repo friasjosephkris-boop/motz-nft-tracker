@@ -1,5 +1,6 @@
 // Persistent settings stored in localStorage.
 import { addEnergy, getEnergy, ENERGY_MAX, msUntilNextRefill } from "../core/energy";
+import { getMaxCleared } from "../core/clears";
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
@@ -19,6 +20,13 @@ export interface Settings {
   bgmOn: boolean;
   /** Dev override: when true, the units screen lets you change classes anytime. */
   devUnlockClass: boolean;
+  /** Combat UI: when true, every player unit's action bar shows BOTH the
+   *  basic actions (Idle/Attack/Guard) AND the skill list at the same time
+   *  — no tab switching. Unlocks after clearing Floor 50. */
+  showBothActions: boolean;
+  /** True once the "this option is now available" tutorial modal has been
+   *  shown to this wallet. Prevents re-firing on every home visit. */
+  showBothActionsTutorialSeen: boolean;
 }
 
 const KEY = () => scopedKey("stat-battler.settings.v1");
@@ -29,7 +37,13 @@ const DEFAULTS: Settings = {
   sfxOn: true,
   bgmOn: true,
   devUnlockClass: false,
+  showBothActions: false,
+  showBothActionsTutorialSeen: false,
 };
+
+/** Floor a player must clear before the "show both action groups" toggle
+ *  becomes available in Settings. */
+export const SHOW_BOTH_ACTIONS_UNLOCK_FLOOR = 50;
 
 export function loadSettings(): Settings {
   try {
@@ -104,6 +118,25 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
               <span class="volume-value" id="setting-bgm-volume-value">${Math.round(getBgmVolume() * 100)}</span>
             </div>
           </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">Combat</span>
+          ${(() => {
+            const unlocked = getMaxCleared() >= SHOW_BOTH_ACTIONS_UNLOCK_FLOOR;
+            const lockedHint = `🔒 Unlocks after clearing Floor ${SHOW_BOTH_ACTIONS_UNLOCK_FLOOR}.`;
+            return `
+              <label class="toggle ${unlocked ? "" : "toggle-locked"}">
+                <input type="checkbox" id="setting-show-both-actions" ${s.showBothActions ? "checked" : ""} ${unlocked ? "" : "disabled"} />
+                <span>Show basic actions + skills side by side</span>
+              </label>
+              <span class="setting-hint">
+                ${unlocked
+                  ? "When on, every unit's action bar shows BOTH the basic actions (Idle / Attack / Guard) and its skills at once — no tab switching during fights."
+                  : lockedHint}
+              </span>
+            `;
+          })()}
         </div>
 
         <div class="setting-row">
@@ -244,6 +277,12 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       sfxOn: !!root.querySelector<HTMLInputElement>("#setting-sfx")?.checked,
       bgmOn: !!root.querySelector<HTMLInputElement>("#setting-bgm")?.checked,
       devUnlockClass: !!root.querySelector<HTMLInputElement>("#setting-dev-class")?.checked,
+      // Locked checkboxes can't be toggled by the user, so a disabled-input
+      // value safely falls back to the existing setting.
+      showBothActions: getMaxCleared() >= SHOW_BOTH_ACTIONS_UNLOCK_FLOOR
+        ? !!root.querySelector<HTMLInputElement>("#setting-show-both-actions")?.checked
+        : s.showBothActions,
+      showBothActionsTutorialSeen: s.showBothActionsTutorialSeen,
     };
     saveSettings(next);
     if (finalName === newName) onClose();
@@ -610,6 +649,33 @@ export function topBarHtml(title: string, withBack: boolean): string {
       <div></div>
     </div>
   `;
+}
+
+/** One-time tutorial announcing the "show basic + skills side by side"
+ *  toggle. Fires the first time the wallet has cleared Floor 50 AND hasn't
+ *  yet seen the tutorial. Idempotent — re-calling after dismissal is a
+ *  no-op. Safe to call from the floor-50 victory path AND the home-screen
+ *  safety net (catches players who cleared 50 before this build shipped). */
+export async function maybeShowActionBarTutorial(): Promise<void> {
+  const s = loadSettings();
+  if (s.showBothActionsTutorialSeen) return;
+  if (getMaxCleared() < SHOW_BOTH_ACTIONS_UNLOCK_FLOOR) return;
+  // Mark seen BEFORE the await so a fast double-call (e.g. floor-50 hook
+  // racing with home safety-net) can't double-fire. The actual alert is
+  // shown regardless of whether it succeeds.
+  saveSettings({ ...s, showBothActionsTutorialSeen: true });
+  await alertModal({
+    kind: "success",
+    title: "✨ Battle UI Option Unlocked",
+    message: `You've cleared <strong>Floor ${SHOW_BOTH_ACTIONS_UNLOCK_FLOOR}</strong>!<br><br>
+      A new option is now available in <strong>Settings → Combat</strong>:
+      <em>"Show basic actions + skills side by side."</em><br><br>
+      Turn it on and every unit's action bar will show its
+      <strong>basic actions (Idle / Attack / Guard)</strong> AND its
+      <strong>skills</strong> at the same time — no more tab switching
+      mid-fight.<br><br>
+      Off by default; flip it on whenever you want.`,
+  });
 }
 
 function formatHrs(ms: number): string {

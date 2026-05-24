@@ -7,6 +7,7 @@ import { portraitInner, capeHtml } from "../units/art";
 import { runCheatCheck } from "../core/cheatCheck";
 import { confirmModal } from "./confirmModal";
 import { getBattleSpeed, setBattleSpeed, isFastForwardAllowed, FAST_FORWARD_MAX_STAGE, BattleSpeed } from "../core/battleSpeed";
+import { loadSettings } from "./settings";
 
 const BASE_SKILL_IDS = new Set(["idle", "basic_attack", "guard"]);
 type ActionTab = "basic" | "skills";
@@ -744,8 +745,33 @@ function unitRowHtml(c: Combatant): string {
     return `<button class="${cls}" data-unit-id="${escapeAttr(c.id)}" data-skill="${escapeAttr(id)}" ${disabled ? "disabled" : ""}><span class="skill-label">${escapeHtml(skill.name)}</span>${cost}${hp}${cdBadge}${tip}</button>`;
   };
 
-  const visibleIds = tab === "basic" ? basicIds : skillIds;
-  const buttons = visibleIds.map(renderButton).join("");
+  // "Show both" mode (Settings → Combat, unlocks after Floor 50): render
+  // basic actions AND skills together with a divider, and hide the tabs
+  // entirely. Silence still forces basics-only since skills don't function
+  // — falling back to the tabbed UI in that case keeps the disabled-skill
+  // affordance consistent.
+  const showBoth = loadSettings().showBothActions && !silenced;
+  let buttons: string;
+  let tabsHtml: string;
+  if (showBoth) {
+    const basicHtml = basicIds.map(renderButton).join("");
+    const skillHtml = skillIds.map(renderButton).join("");
+    // Render with an inline divider so the two groups read as distinct
+    // (mirrors the original tabbed split visually). Divider is purely
+    // decorative — pointer-events:none in CSS.
+    const divider = basicHtml && skillHtml ? `<span class="unit-actions-divider" aria-hidden="true"></span>` : "";
+    buttons = `${basicHtml}${divider}${skillHtml}`;
+    tabsHtml = "";
+  } else {
+    const visibleIds = tab === "basic" ? basicIds : skillIds;
+    buttons = visibleIds.map(renderButton).join("");
+    tabsHtml = `
+      <div class="unit-action-tabs">
+        <button class="action-tab ${tab === "basic" ? "active" : ""}" data-tab-unit="${escapeAttr(c.id)}" data-tab="basic" type="button">Basic</button>
+        <button class="action-tab ${tab === "skills" ? "active" : ""} ${silenced ? "tab-disabled" : ""}" data-tab-unit="${escapeAttr(c.id)}" data-tab="skills" type="button">Skills</button>
+      </div>
+    `;
+  }
   const dead = !c.alive ? "dead" : "";
   const effectChips = renderEffectChips(c);
   return `
@@ -761,11 +787,8 @@ function unitRowHtml(c: Combatant): string {
       <div class="unit-atb">
         <div class="bar atb"><div class="fill" style="width:${(c.gauge / ATB_FULL) * 100}%"></div></div>
       </div>
-      <div class="unit-action-tabs">
-        <button class="action-tab ${tab === "basic" ? "active" : ""}" data-tab-unit="${escapeAttr(c.id)}" data-tab="basic" type="button">Basic</button>
-        <button class="action-tab ${tab === "skills" ? "active" : ""} ${silenced ? "tab-disabled" : ""}" data-tab-unit="${escapeAttr(c.id)}" data-tab="skills" type="button">Skills</button>
-      </div>
-      <div class="unit-actions">${buttons}</div>
+      ${tabsHtml}
+      <div class="unit-actions ${showBoth ? "unit-actions-both" : ""}">${buttons}</div>
     </div>
   `;
 }

@@ -826,6 +826,9 @@ function showHome(): void {
   if (getEnergy() <= 0) {
     void import("./ui/firstEnergyOffer").then(m => m.maybeShowFirstEnergyOffer()).catch(() => undefined);
   }
+  // Safety-net for the action-bar toggle tutorial — catches wallets that
+  // cleared Floor 50 before this build deployed. Idempotent once dismissed.
+  void import("./ui/settings").then(m => m.maybeShowActionBarTutorial()).catch(() => undefined);
 }
 
 function onHomeAction(a: HomeAction): void {
@@ -1326,6 +1329,12 @@ function frame(t: number): void {
         // collide with the first-energy offer.)
         if (cleared === 30) {
           void import("./ui/floor20Offer").then(m => m.maybeShowFloor20Offer()).catch(() => undefined);
+        }
+        // First Floor-50 clear: unlocks the "show basic + skills side by
+        // side" toggle in Settings. The tutorial helper is idempotent so a
+        // second clear (replay) won't refire it.
+        if (cleared === 50) {
+          void import("./ui/settings").then(m => m.maybeShowActionBarTutorial()).catch(() => undefined);
         }
         // One-time floor-200 energy offer — fires the first time the wallet
         // clears floor 200 (server-side recordFloorModeClear has just marked
