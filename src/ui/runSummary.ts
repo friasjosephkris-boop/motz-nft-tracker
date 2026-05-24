@@ -2,10 +2,11 @@
 // Triggered after a run ends (victory or defeat). Shows per-unit damage / kills /
 // XP gained, the active daily multiplier, and a one-click path back to Home.
 
-import { PLAYER_ROSTER } from "../units/roster";
+import { PLAYER_ROSTER, StageEnemyDef } from "../units/roster";
 import { portraitInner, capeHtml } from "../units/art";
 import { getProgress } from "../core/progress";
 import { getCachedDailyMultiplier } from "../core/daily";
+import { stageTooltipHtml } from "./stageSelect";
 
 export interface RunSummaryUnit {
   templateId: string;
@@ -61,6 +62,10 @@ export interface RunSummaryActions {
   onNextFloor?: () => void;
   /** Label override; defaults to "Next Floor". */
   nextFloorLabel?: string;
+  /** When provided alongside onNextFloor, the Next Floor button gains the
+   *  same hover-tooltip preview (enemies, levels, resists) shown on the
+   *  campaign tile — lets players plan their next fight before pressing. */
+  nextStage?: StageEnemyDef;
   /** If provided, render a "Replay Floor" button. Lets the player re-fight
    *  the same floor (consumes energy again, no leaderboard impact since
    *  campaign floors aren't ranked). Use it for the same-floor restart UX
@@ -144,7 +149,11 @@ export function renderRunSummary(root: HTMLElement, summary: RunSummary, onClose
           ${summary.battleLog && summary.battleLog.length > 0 ? `<button class="ghost-btn" id="rs-log" type="button">Review Battle Log</button>` : ""}
           <button class="ghost-btn" id="rs-home" type="button">Home</button>
           ${actions.onReplayFloor ? `<button class="ghost-btn" id="rs-replay" type="button">↻ Replay Floor</button>` : ""}
-          ${actions.onNextFloor ? `<button class="confirm-btn" id="rs-next" type="button">${escapeHtml(actions.nextFloorLabel ?? "Next Floor")}</button>` : ""}
+          ${actions.onNextFloor
+            ? (actions.nextStage
+                ? `<span class="rs-next-wrap"><button class="confirm-btn" id="rs-next" type="button">${escapeHtml(actions.nextFloorLabel ?? "Next Floor")}</button>${stageTooltipHtml(actions.nextStage)}</span>`
+                : `<button class="confirm-btn" id="rs-next" type="button">${escapeHtml(actions.nextFloorLabel ?? "Next Floor")}</button>`)
+            : ""}
         </div>
       </div>
     </div>

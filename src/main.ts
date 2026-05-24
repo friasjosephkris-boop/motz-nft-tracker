@@ -692,6 +692,7 @@ async function showRunSummary(outcome: "victory" | "defeat", floorsCleared: numb
         renderRunSummary(root!, summary, showHome, {
           onNextFloor: async () => { await advanceToNextFloor(nextStageId, partyForRetry); },
           nextFloorLabel: `Next Floor → ${nextStage.name}`,
+          nextStage,
           onReplayFloor: replayAction,
         });
         return;

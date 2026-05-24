@@ -2335,6 +2335,25 @@ body:has(.battle) {
 .stage-tile.unlocked:focus-visible .stage-tooltip {
   opacity: 1;
 }
+
+/* Run-summary "Next Floor" button reuses the same stage tooltip. The button
+   itself has overflow:hidden for its shimmer, so the tooltip lives in a
+   sibling wrapper. The action row sits at the bottom of the summary modal,
+   so the tooltip flips ABOVE the button instead of below — otherwise it'd
+   hang off the modal floor. */
+.rs-next-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.rs-next-wrap .stage-tooltip {
+  top: auto;
+  bottom: calc(100% + 8px);
+  z-index: 200;
+}
+.rs-next-wrap:hover .stage-tooltip,
+.rs-next-wrap:focus-within .stage-tooltip {
+  opacity: 1;
+}
 .stt-head {
   display: flex;
   justify-content: space-between;

@@ -322,7 +322,10 @@ function stageTileHtml(s: StageEnemyDef, energy: number, maxCleared: number): st
   `;
 }
 
-function stageTooltipHtml(s: StageEnemyDef): string {
+/** Build the floor-detail tooltip (enemies, levels, resist tags). Exported so
+ *  other surfaces — currently the victory popup's "Next Floor" button — can
+ *  show the same preview a player gets when hovering the campaign tile. */
+export function stageTooltipHtml(s: StageEnemyDef): string {
   // Floors 100+ override enemy resists with a per-floor randomized profile
   // (see resistProfileForFloor in roster.ts). Show that instead of the
   // template's intrinsic resist so players can plan their party correctly.
