@@ -61,7 +61,41 @@ function makeLimiter(max: number) {
 const gqlLimiter = makeLimiter(6);
 const rpcLimiter = makeLimiter(10);
 
-// One raw HTTP attempt — no retry, no concurrency gate.
+// Circuit breaker: when Sky Mavis's daily quota is exhausted, every call
+// 429s. Without short-circuiting, a 300-NFT load would retry 900 × 6 times
+// (~37 min) before giving up. Once we've seen N consecutive 429s with NO
+// successful call in between, trip the breaker and fail subsequent calls
+// instantly with a clear "quota exhausted" error.
+//
+// The breaker resets automatically after BREAKER_COOLDOWN_MS so the next
+// load attempt gets a fresh probe — handy when quota resets mid-session.
+class QuotaExhaustedError extends Error {
+  constructor() {
+    super(
+      "Sky Mavis API quota exhausted. Try again later (typically resets on a rolling 24h window).",
+    );
+    this.name = "QuotaExhaustedError";
+  }
+}
+class RetryableError extends Error {}
+
+let consecutive429s = 0;
+let gqlBreakerTrippedAt = 0;
+const BREAKER_TRIP_THRESHOLD = 5;
+const BREAKER_COOLDOWN_MS = 60_000;
+
+function isBreakerTripped(): boolean {
+  if (!gqlBreakerTrippedAt) return false;
+  if (Date.now() - gqlBreakerTrippedAt > BREAKER_COOLDOWN_MS) {
+    // Cooldown elapsed — auto-reset so the next load can re-probe the API.
+    gqlBreakerTrippedAt = 0;
+    consecutive429s = 0;
+    return false;
+  }
+  return true;
+}
+
+// One raw HTTP attempt — no retry, no concurrency gate. Updates breaker.
 async function gqlFetch<T>(
   query: string,
   variables: Record<string, unknown>,
@@ -73,6 +107,10 @@ async function gqlFetch<T>(
     cache: "no-store",
   });
   if (res.status === 429) {
+    consecutive429s++;
+    if (consecutive429s >= BREAKER_TRIP_THRESHOLD) {
+      gqlBreakerTrippedAt = Date.now();
+    }
     const txt = await res.text().catch(() => "");
     throw new RetryableError(
       `Marketplace GraphQL 429 (rate-limited): ${txt.slice(0, 200)}`,
@@ -89,6 +127,8 @@ async function gqlFetch<T>(
     );
   }
   if (!json.data) throw new Error("Marketplace GraphQL: empty data");
+  // Successful call — reset breaker counter so isolated 429s don't trip it.
+  consecutive429s = 0;
   return json.data;
 }
 
@@ -98,9 +138,11 @@ async function gql<T>(
   query: string,
   variables: Record<string, unknown>,
 ): Promise<T> {
+  if (isBreakerTripped()) throw new QuotaExhaustedError();
   let lastErr: unknown;
   const MAX_ATTEMPTS = 6;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    if (isBreakerTripped()) throw new QuotaExhaustedError();
     await gqlLimiter.acquire();
     try {
       return await gqlFetch<T>(query, variables);
@@ -125,8 +167,6 @@ async function gql<T>(
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
-
-class RetryableError extends Error {}
 
 export type HoldingToken = {
   tokenId: string;
