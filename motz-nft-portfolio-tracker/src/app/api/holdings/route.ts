@@ -5,6 +5,7 @@ import {
   HoldingToken,
   listHoldings,
   lastAcquisition,
+  lastAcquisitionVerified,
   lastBuyerSale,
   weiToRon,
   blockTimestampForTx,
@@ -110,12 +111,20 @@ export async function GET(req: NextRequest) {
       ...TRACKED_COLLECTIONS.map((c) => listHoldings(address, c.address)),
     ]);
 
-    // Per-token marketplace acquisition lookup (fast path).
+    // Per-token marketplace acquisition lookup. Uses ownership verification:
+    // if cached transferHistory's most recent event is "transfer TO this
+    // wallet", no later transfer can have happened (the wallet still owns it)
+    // so the API call is skipped. Cold cache or ownership mismatch falls
+    // through to a full fetch.
     const marketAcqsPerCollection = await Promise.all(
       tokensPerCollection.map((tokens, ci) =>
         Promise.all(
           tokens.map((t) =>
-            lastAcquisition(TRACKED_COLLECTIONS[ci].address, t.tokenId),
+            lastAcquisitionVerified(
+              TRACKED_COLLECTIONS[ci].address,
+              t.tokenId,
+              address,
+            ),
           ),
         ),
       ),
@@ -193,7 +202,14 @@ export async function GET(req: NextRequest) {
 
     // For each detected staking deposit, verify the staking contract STILL
     // holds the token (user may have since unstaked + sold/transferred).
-    type StakedToken = { contract: string; tokenId: string };
+    // We also record the staking contract that currently holds the token so
+    // lastAcquisitionVerified() can prove cache freshness via the "last
+    // transfer event was to this staking contract" check.
+    type StakedToken = {
+      contract: string;
+      tokenId: string;
+      stakingContract: string;
+    };
     // ownerOf throws on persistent failure — we let that bubble up so the
     // user sees an error instead of a silently-incomplete portfolio.
     const stakedChecks = await Promise.all(
@@ -205,9 +221,14 @@ export async function GET(req: NextRequest) {
     const stakedByContract = new Map<string, StakedToken[]>();
     for (const { d, currentOwner } of stakedChecks) {
       const expected = stakingByContract.get(d.contract);
-      if (!expected || !expected.has(currentOwner.toLowerCase())) continue;
+      const stakingLc = currentOwner.toLowerCase();
+      if (!expected || !expected.has(stakingLc)) continue;
       const arr = stakedByContract.get(d.contract) ?? [];
-      arr.push({ contract: d.contract, tokenId: d.tokenId });
+      arr.push({
+        contract: d.contract,
+        tokenId: d.tokenId,
+        stakingContract: stakingLc,
+      });
       stakedByContract.set(d.contract, arr);
     }
 
@@ -228,9 +249,14 @@ export async function GET(req: NextRequest) {
           tokenMetadata(s.contract, s.tokenId).then((meta) => {
             if (meta) stakedMetadata.set(key, meta);
           }),
-          lastAcquisition(s.contract, s.tokenId).then((acq) => {
-            if (acq) stakedMarketAcq.set(key, acq);
-          }),
+          // Ownership-verified: cached history is fresh if its most recent
+          // event is "transfer TO this staking contract" (and the staking
+          // contract still has it, which we confirmed via ownerOf above).
+          lastAcquisitionVerified(s.contract, s.tokenId, s.stakingContract).then(
+            (acq) => {
+              if (acq) stakedMarketAcq.set(key, acq);
+            },
+          ),
         ];
       }),
     );

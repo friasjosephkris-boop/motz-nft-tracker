@@ -1,5 +1,7 @@
 import "server-only";
 import dns from "node:dns";
+import fs from "node:fs";
+import path from "node:path";
 
 // Some Windows + Node 24 setups (this one included) get ECONNRESET when the
 // AAAA record is preferred. Force IPv4 lookups first for outbound fetches.
@@ -505,6 +507,85 @@ type TransferRow = {
   paymentToken: string;
 };
 
+// ---------------------------------------------------------------------------
+// Disk persistence for token-history caches.
+//
+// Two-layer pattern matching CryptoCompare's RON/USD cache:
+//   - SNAPSHOT_PATH: bundled snapshot (committed to git, ships with build)
+//   - LOCAL_CACHE_PATH: gitignored write-through cache populated at runtime
+//
+// Why this is safe: NFT transferHistory is append-only on-chain. Once we
+// cache a token's history, the only thing that can change is "new transfers
+// added on top." We detect that via ownership verification in
+// lastAcquisitionVerified() — if the cache's most recent event sent the
+// token to the address we expect to currently own it, no later transfer
+// can exist.
+// ---------------------------------------------------------------------------
+const MKT_SNAPSHOT_PATH = path.join(
+  process.cwd(),
+  "src",
+  "data",
+  "marketplace-history.json",
+);
+const MKT_LOCAL_CACHE_PATH = path.join(
+  process.cwd(),
+  "data",
+  "marketplace-history.json",
+);
+
+type MktDiskRecord = {
+  /** Computed acquisition event (most-recent transfer, classified). */
+  a: AcquisitionEvent | null;
+  /** Raw transferHistory rows used by lastBuyerSale(). */
+  r: TransferRow[];
+};
+
+function seedMarketplaceCacheFromDisk(): void {
+  for (const p of [MKT_SNAPSHOT_PATH, MKT_LOCAL_CACHE_PATH]) {
+    try {
+      if (!fs.existsSync(p)) continue;
+      const raw = fs.readFileSync(p, "utf8");
+      const obj = JSON.parse(raw) as Record<string, MktDiskRecord>;
+      let n = 0;
+      const now = Date.now();
+      for (const [k, v] of Object.entries(obj)) {
+        if (!v || !Array.isArray(v.r)) continue;
+        // Local cache (loaded second) overrides snapshot — it's newer.
+        transferHistoryCache.set(k, { rows: v.r, at: now });
+        lastAcquisitionCache.set(k, { value: v.a ?? null, at: now });
+        n++;
+      }
+      if (n > 0) {
+        console.log(
+          `[marketplace] seeded ${n} token histories from ${path.basename(p)}`,
+        );
+      }
+    } catch {
+      // Corrupt cache shouldn't break startup — silently fall through.
+    }
+  }
+}
+seedMarketplaceCacheFromDisk();
+
+let mktPersistTimer: NodeJS.Timeout | null = null;
+function persistMarketplaceCacheSoon(): void {
+  if (mktPersistTimer) return;
+  mktPersistTimer = setTimeout(() => {
+    mktPersistTimer = null;
+    try {
+      fs.mkdirSync(path.dirname(MKT_LOCAL_CACHE_PATH), { recursive: true });
+      const obj: Record<string, MktDiskRecord> = {};
+      for (const [k, entry] of transferHistoryCache) {
+        const acq = lastAcquisitionCache.get(k)?.value ?? null;
+        obj[k] = { a: acq, r: entry.rows };
+      }
+      fs.writeFileSync(MKT_LOCAL_CACHE_PATH, JSON.stringify(obj));
+    } catch {
+      // Read-only filesystem on Vercel runtime — silently skip.
+    }
+  }, 2000);
+}
+
 export async function lastAcquisition(
   contract: string,
   tokenId: string,
@@ -514,7 +595,53 @@ export async function lastAcquisition(
   if (cached && Date.now() - cached.at < LAST_ACQ_TTL_MS) return cached.value;
   const value = await lastAcquisitionImpl(contract, tokenId);
   lastAcquisitionCache.set(key, { value, at: Date.now() });
+  persistMarketplaceCacheSoon();
   return value;
+}
+
+/**
+ * Ownership-verified lastAcquisition. Skips the API call when the cached
+ * transferHistory's most recent event sent the token to `expectedRecipient`
+ * — at that point no later transfer can exist (the recipient must still
+ * hold it for us to be asking about it).
+ *
+ * Use this when you already know who currently owns the token (e.g. the
+ * wallet returned from listHoldings, or the staking contract that holds a
+ * deposited token). The miss path falls through to a normal fetch.
+ *
+ * For a 300-NFT wallet on warm-cache reload this turns ~300 GraphQL calls
+ * into 0.
+ */
+export async function lastAcquisitionVerified(
+  contract: string,
+  tokenId: string,
+  expectedRecipient: string,
+): Promise<AcquisitionEvent | null> {
+  const key = `${contract.toLowerCase()}:${tokenId}`;
+  const histCached = transferHistoryCache.get(key);
+  const acqCached = lastAcquisitionCache.get(key);
+  if (histCached && acqCached && histCached.rows.length > 0) {
+    // Locate the most-recent row by timestamp — the API doesn't guarantee
+    // order, so don't trust positional indexing.
+    let latestTo: string | null = null;
+    let latestTs = -1;
+    for (const r of histCached.rows) {
+      const ts = Number(r.timestamp) || 0;
+      if (ts > latestTs) {
+        latestTs = ts;
+        latestTo = r.to;
+      }
+    }
+    if (
+      latestTo &&
+      latestTo.toLowerCase() === expectedRecipient.toLowerCase()
+    ) {
+      // Ownership match — cache verified fresh. Zero API calls.
+      return acqCached.value;
+    }
+  }
+  // Cache miss OR ownership mismatch — fall through to full fetch.
+  return lastAcquisition(contract, tokenId);
 }
 
 async function lastAcquisitionImpl(
@@ -558,9 +685,11 @@ async function lastAcquisitionImpl(
     tokenId,
   });
   const rows = data.erc721Token?.transferHistory?.results ?? [];
-  // Cache raw rows for lastBuyerSale() so it never needs a second fetch.
+  // Cache raw rows for lastBuyerSale() so it never needs a second fetch,
+  // and schedule a debounced disk write (no-op on read-only filesystems).
   const key = `${contract.toLowerCase()}:${tokenId}`;
   transferHistoryCache.set(key, { rows, at: Date.now() });
+  persistMarketplaceCacheSoon();
   if (rows.length === 0) return null;
 
   // Most recent transfer wins, regardless of type — the holder's cost basis
