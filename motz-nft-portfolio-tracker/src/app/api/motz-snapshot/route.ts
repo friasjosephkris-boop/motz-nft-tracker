@@ -29,6 +29,10 @@ export type MotzSnapshot = {
   collections: TaggedCollectionHoldings[];
   currentRonUsd: number | null;
   walletCount: number;
+  /** Per-wallet failures from the most recent refresh. Empty when all
+   * configured wallets loaded successfully. Snapshot is still written
+   * with whatever did load — partial > nothing. */
+  failures?: { input: string; error: string }[];
 };
 
 function readSnapshot(): MotzSnapshot | null {
@@ -62,42 +66,69 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
       ).join("");
       const byContract = new Map<string, TaggedCollectionHoldings>();
       const resolved: string[] = [];
+      const failures: { input: string; error: string }[] = [];
       let currentRonUsd: number | null = null;
       // Sequential — same reason as Load Combined: per-wallet shares a
       // server-side rate limiter, running in parallel just trips the breaker.
-      for (const w of MOTZ_WALLETS) {
-        const url =
-          `${origin}/api/holdings?address=${encodeURIComponent(w)}` +
-          transferrerParams;
-        const r = await fetch(url, { cache: "no-store" });
-        const j = (await r.json()) as ApiResponse | { error: string };
-        if (!r.ok || "error" in j) {
-          throw new Error(
-            `Snapshot refresh failed for ${w}: ` +
-              ("error" in j ? j.error : `HTTP ${r.status}`),
-          );
-        }
-        const data = j as ApiResponse;
-        resolved.push(data.address);
-        if (data.currentRonUsd != null) currentRonUsd = data.currentRonUsd;
-        for (const c of data.collections) {
-          const existing = byContract.get(c.contract);
-          const taggedRows: TaggedHoldingRow[] = c.rows.map((row) => ({
-            ...row,
-            walletTag: data.address,
-          }));
-          if (existing) {
-            existing.rows.push(...taggedRows);
-          } else {
-            byContract.set(c.contract, {
-              contract: c.contract,
-              name: c.name,
-              symbol: c.symbol,
-              slug: c.slug,
-              rows: taggedRows,
-            });
+      // We catch per-wallet failures (so one rate-limited wallet doesn't
+      // wipe out the whole snapshot) and pause briefly between wallets so
+      // the breaker can drain its 60s cooldown if it tripped.
+      const BETWEEN_WALLET_MS = 5000;
+      for (let i = 0; i < MOTZ_WALLETS.length; i++) {
+        const w = MOTZ_WALLETS[i];
+        try {
+          const url =
+            `${origin}/api/holdings?address=${encodeURIComponent(w)}` +
+            transferrerParams;
+          const r = await fetch(url, { cache: "no-store" });
+          const j = (await r.json()) as ApiResponse | { error: string };
+          if (!r.ok || "error" in j) {
+            throw new Error(
+              "error" in j ? j.error : `HTTP ${r.status}`,
+            );
           }
+          const data = j as ApiResponse;
+          resolved.push(data.address);
+          if (data.currentRonUsd != null) currentRonUsd = data.currentRonUsd;
+          for (const c of data.collections) {
+            const existing = byContract.get(c.contract);
+            const taggedRows: TaggedHoldingRow[] = c.rows.map((row) => ({
+              ...row,
+              walletTag: data.address,
+            }));
+            if (existing) {
+              existing.rows.push(...taggedRows);
+            } else {
+              byContract.set(c.contract, {
+                contract: c.contract,
+                name: c.name,
+                symbol: c.symbol,
+                slug: c.slug,
+                rows: taggedRows,
+              });
+            }
+          }
+        } catch (err) {
+          console.warn(
+            `[motz-snapshot] wallet ${w} failed; continuing:`,
+            (err as Error).message,
+          );
+          failures.push({ input: w, error: (err as Error).message });
         }
+        // Cool-down between wallets — gives the gqlLimiter / breaker
+        // breathing room before slamming Sky Mavis with the next wallet's
+        // userActivities pagination.
+        if (i < MOTZ_WALLETS.length - 1) {
+          await new Promise((r) => setTimeout(r, BETWEEN_WALLET_MS));
+        }
+      }
+      // If literally nothing loaded, surface the failure (no point writing
+      // an empty snapshot over a previously-good one).
+      if (resolved.length === 0) {
+        const detail = failures.map((f) => `${f.input}: ${f.error}`).join("; ");
+        throw new Error(
+          `All ${MOTZ_WALLETS.length} MoTZ wallets failed to load: ${detail}`,
+        );
       }
       const snap: MotzSnapshot = {
         generatedAt: Date.now(),
@@ -106,6 +137,7 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
         collections: [...byContract.values()],
         currentRonUsd,
         walletCount: resolved.length,
+        failures,
       };
       writeSnapshot(snap);
       return snap;

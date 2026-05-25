@@ -19,6 +19,7 @@ type SnapshotResponse = {
   currentRonUsd: number | null;
   walletCount: number;
   stale: boolean;
+  failures?: { input: string; error: string }[];
   error?: string;
 };
 
@@ -125,6 +126,20 @@ export function MotzDashboardView() {
       {error && (
         <div className="rounded-md border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300 whitespace-pre-wrap break-words">
           {error}
+        </div>
+      )}
+
+      {snap?.failures && snap.failures.length > 0 && (
+        <div className="rounded-md border border-amber-900/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-200 whitespace-pre-wrap break-words">
+          <div className="font-mono text-[11px] uppercase tracking-wider text-amber-300 mb-1">
+            Partial snapshot — {snap.failures.length} of {snap.walletAddresses.length} wallets failed
+          </div>
+          {snap.failures.map((f) => (
+            <div key={f.input} className="text-xs">
+              <span className="font-mono text-amber-100">{f.input}</span>:{" "}
+              {f.error}
+            </div>
+          ))}
         </div>
       )}
 
