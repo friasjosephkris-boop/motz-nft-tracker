@@ -44,6 +44,34 @@ export async function adminGrantServerEnergy(delta: number): Promise<number | nu
   } catch { return null; }
 }
 
+/** Admin only: grant bRON vouchers to the caller's own wallet (server enforces
+ *  admin gate AND that the grant target is the caller — there's no `target`
+ *  param, so a non-admin can't redirect this). Used for shop UI testing.
+ *  Returns the updated voucher counts, or null on network / auth failure. */
+export async function adminGrantSampleVouchers(
+  v: { t1?: number; t2?: number; t3?: number; t4?: number; t5?: number },
+): Promise<{ t1: number; t2: number; t3: number; t4: number; t5: number } | null> {
+  const tok = token();
+  if (!tok) return null;
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_grant_vouchers", ...v }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json() as { ok?: boolean; vouchers?: { t1?: number; t2?: number; t3?: number; t4?: number; t5?: number } };
+    if (!data.ok || !data.vouchers) return null;
+    return {
+      t1: data.vouchers.t1 ?? 0,
+      t2: data.vouchers.t2 ?? 0,
+      t3: data.vouchers.t3 ?? 0,
+      t4: data.vouchers.t4 ?? 0,
+      t5: data.vouchers.t5 ?? 0,
+    };
+  } catch { return null; }
+}
+
 /** Admin only: fill server energy to MAX. Returns the new balance. */
 export async function adminFillServerEnergy(): Promise<number | null> {
   const tok = token();

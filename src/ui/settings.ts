@@ -4,7 +4,7 @@ import { getMaxCleared } from "../core/clears";
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -158,6 +158,14 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
               <button class="ghost-btn" id="admin-add-energy" type="button">+5 Energy</button>
               <button class="ghost-btn" id="admin-fill-energy" type="button">Refill Max</button>
             </div>
+            <div class="admin-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="admin-info">🎟 <strong>Grant Sample bRON Vouchers</strong> — pushes a mixed set to your own inventory so you can preview the voucher-pay path in the shop. Server enforces admin gate AND that the target is the caller, so no cross-wallet grant is possible.</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button class="ghost-btn" id="admin-grant-vouchers-small" type="button" style="border-color:#9bcfff;color:#cce4ff;">🎟 +Small (3×t1, 2×t2, 1×t3)</button>
+                <button class="ghost-btn" id="admin-grant-vouchers-mixed" type="button" style="border-color:#9bcfff;color:#cce4ff;">🎟 +Mixed (5 of each)</button>
+                <button class="ghost-btn" id="admin-grant-vouchers-big" type="button" style="border-color:#9bcfff;color:#cce4ff;">🎟 +Big (10×t4, 5×t5)</button>
+              </div>
+            </div>
             <label class="toggle">
               <input type="checkbox" id="setting-dev-class" ${s.devUnlockClass ? "checked" : ""} />
               <span>Allow class re-pick anytime</span>
@@ -303,6 +311,40 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       await alertModal({ kind: "warning", title: "Server Unreachable", message: "Filled energy <strong>locally only</strong> — this won't persist across reloads." });
     }
     onClose(); renderSettings(root, onClose);
+  });
+
+  // ---- Sample voucher grants (admin only, caller-only target) ----
+  // Three preset sizes so we can quickly seed inventory for shop-UI testing
+  // (voucher-pay buttons, change-credit math, sufficiency hints) without
+  // typing voucher counts in a prompt every time.
+  const grantVouchers = async (grant: { t1?: number; t2?: number; t3?: number; t4?: number; t5?: number }, label: string): Promise<void> => {
+    const result = await adminGrantSampleVouchers(grant);
+    if (!result) {
+      await alertModal({ kind: "error", title: "Grant Failed", message: "Couldn't reach the server (or admin gate rejected the request)." });
+      return;
+    }
+    const total =
+      result.t1 * 5 + result.t2 * 10 + result.t3 * 20 + result.t4 * 50 + result.t5 * 200;
+    await alertModal({
+      kind: "success",
+      title: `🎟 ${label} Granted`,
+      message: `Inventory now holds:<br>
+        • Tier 1 (5 bRON): <strong>${result.t1}</strong><br>
+        • Tier 2 (10 bRON): <strong>${result.t2}</strong><br>
+        • Tier 3 (20 bRON): <strong>${result.t3}</strong><br>
+        • Tier 4 (50 bRON): <strong>${result.t4}</strong><br>
+        • Tier 5 (200 bRON): <strong>${result.t5}</strong><br><br>
+        <strong>Total value: ${total} bRON.</strong> Open the Shop to test the voucher-pay buttons.`,
+    });
+  };
+  root.querySelector<HTMLButtonElement>("#admin-grant-vouchers-small")?.addEventListener("click", () => {
+    void grantVouchers({ t1: 3, t2: 2, t3: 1, t4: 0, t5: 0 }, "Small voucher set");
+  });
+  root.querySelector<HTMLButtonElement>("#admin-grant-vouchers-mixed")?.addEventListener("click", () => {
+    void grantVouchers({ t1: 5, t2: 5, t3: 5, t4: 5, t5: 5 }, "Mixed voucher set");
+  });
+  root.querySelector<HTMLButtonElement>("#admin-grant-vouchers-big")?.addEventListener("click", () => {
+    void grantVouchers({ t1: 0, t2: 0, t3: 0, t4: 10, t5: 5 }, "Big voucher set");
   });
   // ---- PRODUCTION wipe (main builds only) ----
   // Three-layer confirmation gauntlet. Each layer escalates the consequences
