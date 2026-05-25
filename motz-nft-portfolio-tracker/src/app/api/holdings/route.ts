@@ -455,6 +455,23 @@ async function buildCollectionHoldings(
         transferrerSale = acq;
       }
 
+      // Final fallback: if there is NO marketplace evidence at all for how
+      // the user got this token (no transferHistory rows, no userActivities
+      // Mint/Sale, no transferrer match) Sky Mavis has an indexing gap.
+      // For these cases — typically old batch sales/transfers like MotZ
+      // Coin #37 — treat the row as a mint and use the collection's mint
+      // price as cost basis. Genuine gifts still classify as "transfer"
+      // here because `acq` is populated with the transfer event.
+      if (
+        via === "transfer" &&
+        !acq &&
+        !userAcq &&
+        !transferrerAcq &&
+        !acqBuyerIsTransferrer
+      ) {
+        via = "mint";
+      }
+
       // Whether the "sale" classification came from the direct marketplace record
       // (acq) vs. the user's activity log (userAcq). In the latter case acq has
       // no price (its most recent event is a plain transfer), so we look up the
@@ -516,11 +533,15 @@ async function buildCollectionHoldings(
               ? weiToRon(buyerSaleAcq.priceWei)
               : via === "sale" && txNativeWei
                 ? weiToRon(txNativeWei)
-                : via === "mint"
-                  ? c.mintPriceRon
-                  : via === "transfer"
-                    ? 0
-                    : null;
+                : via === "sale"
+                  ? // Sale we couldn't price (batch buy, unindexed history)
+                    // — use mint price as the best available proxy.
+                    c.mintPriceRon
+                  : via === "mint"
+                    ? c.mintPriceRon
+                    : via === "transfer"
+                      ? 0
+                      : null;
       if (!acqTs && via === "mint") acqTs = mintTs;
 
       const ronUsdAtPurchase = acqTs ? await ronUsdAt(acqTs) : null;
@@ -603,7 +624,7 @@ async function buildCollectionHoldings(
         !transferrerAcq &&
         marketAcq?.source === "sale" &&
         transferrerAddrs.has(marketAcq.buyer?.toLowerCase() ?? "");
-      const via: "sale" | "mint" | "transfer" = marketSaleByUser
+      let via: "sale" | "mint" | "transfer" = marketSaleByUser
         ? "sale"
         : marketMintByUser
           ? "mint"
@@ -618,6 +639,22 @@ async function buildCollectionHoldings(
                   : stakedAcqBuyerIsTransferrer
                     ? "sale"
                     : "transfer";
+
+      // Final fallback: if there is NO marketplace evidence at all for how
+      // the user got this staked token (no transferHistory, no userActivities
+      // Mint/Sale, no transferrer match), Sky Mavis has an indexing gap —
+      // treat the row as a mint and use the collection's mint price as cost
+      // basis. Genuine "transfer in then staked" rows still classify as
+      // "transfer" because marketAcq is populated with a transfer event.
+      if (
+        via === "transfer" &&
+        !marketAcq &&
+        !userAcq &&
+        !transferrerAcq &&
+        !stakedAcqBuyerIsTransferrer
+      ) {
+        via = "mint";
+      }
 
       // Timestamp + tx hash: prefer marketplace's record (has exact sale tx),
       // then user activity. For "transfer" rows we have no source event.
@@ -657,11 +694,15 @@ async function buildCollectionHoldings(
           ? weiToRon(marketAcq.priceWei)
           : transferrerSaleAcq
             ? weiToRon(transferrerSaleAcq.priceWei)
-            : via === "mint"
-              ? c.mintPriceRon
-              : via === "transfer"
-                ? 0
-                : null;
+            : via === "sale"
+              ? // Sale we couldn't price (batch buy / unindexed history) —
+                // fall back to mint price as the best available proxy.
+                c.mintPriceRon
+              : via === "mint"
+                ? c.mintPriceRon
+                : via === "transfer"
+                  ? 0
+                  : null;
       const costUsd =
         via === "transfer"
           ? 0
