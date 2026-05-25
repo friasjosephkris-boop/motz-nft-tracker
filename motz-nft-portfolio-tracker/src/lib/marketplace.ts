@@ -1059,22 +1059,54 @@ export async function blockTimestampForTx(
 }
 
 /**
- * Returns the native-RON value (in wei, as a decimal string) sent with a
- * marketplace sale transaction. For RON-denominated sales, this equals the
- * purchase price paid by the buyer.
+ * Returns the native-RON purchase price (decimal wei string) for a
+ * SINGLE-NFT marketplace sale tx by reading tx.value.
  *
- * Reuses the eth_getTransactionByHash response already fetched by
- * blockTimestampForTx when both are needed for the same tx — zero extra calls.
+ * For RON-denominated sales, tx.value = price the buyer paid.
+ * For BATCH purchases (multiple NFTs in one tx) tx.value is the TOTAL
+ * across all NFTs — unusable as an individual price — so this returns
+ * null in that case. Batch detection is done via eth_getTransactionReceipt
+ * by counting ERC721 Transfer events from the given contract.
  */
-export async function txValueWei(txHash: string): Promise<string | null> {
-  if (txValueHexCache.has(txHash)) {
-    const hex = txValueHexCache.get(txHash)!;
-    if (!hex || hex === "0x" || hex === "0x0") return null;
-    return BigInt(hex).toString();
+export async function txSingleNftPrice(
+  txHash: string,
+  nftContract: string,
+): Promise<string | null> {
+  // 1. Get the tx value — if zero, bail immediately (no RON paid on-chain).
+  let hex = txValueHexCache.get(txHash);
+  if (hex === undefined) {
+    const tx = await fetchTxDetails(txHash);
+    hex = tx?.value ?? null;
+    txValueHexCache.set(txHash, hex);
   }
-  const tx = await fetchTxDetails(txHash);
-  const hex = tx?.value ?? null;
-  txValueHexCache.set(txHash, hex);
   if (!hex || hex === "0x" || hex === "0x0") return null;
+
+  // 2. Fetch the receipt and count how many NFTs from this contract were
+  //    transferred in the same tx. If > 1, it was a batch purchase and
+  //    tx.value is the aggregate price — return null to avoid wrong data.
+  await rpcLimiter.acquire();
+  let receiptLogs: Array<{ address: string; topics: string[] }> = [];
+  try {
+    const receipt = await rpcCallWithRetryInner<{
+      logs?: Array<{ address: string; topics: string[] }>;
+    }>(
+      { jsonrpc: "2.0", id: 1, method: "eth_getTransactionReceipt", params: [txHash] },
+      `txSingleNftPrice receipt ${txHash.slice(0, 10)}…`,
+    );
+    receiptLogs = receipt?.logs ?? [];
+  } finally {
+    rpcLimiter.release();
+  }
+
+  const contractLc = nftContract.toLowerCase();
+  const nftTransferCount = receiptLogs.filter(
+    (l) =>
+      l.topics[0] === TRANSFER_TOPIC &&
+      l.address.toLowerCase() === contractLc,
+  ).length;
+
+  // Only use tx.value if exactly one NFT from this contract was transferred.
+  if (nftTransferCount !== 1) return null;
+
   return BigInt(hex).toString();
 }

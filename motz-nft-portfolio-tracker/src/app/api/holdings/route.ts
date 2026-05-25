@@ -8,7 +8,7 @@ import {
   lastBuyerSale,
   weiToRon,
   blockTimestampForTx,
-  txValueWei,
+  txSingleNftPrice,
   floorPriceForTrait,
   userAcquisitionsFor,
   ownerOf,
@@ -470,14 +470,15 @@ async function buildCollectionHoldings(
 
       // Last-resort price fallback: if transferHistory.withPrice is missing
       // (older sales not indexed by the marketplace backend), read the native
-      // RON value from the sale transaction itself. Works for RON-denominated
-      // sales — blockTimestampForTx already fetched the tx so this is free.
+      // RON value from the sale transaction itself. Only works for single-NFT
+      // RON-denominated sales — for batch purchases tx.value is the total
+      // across all NFTs so txSingleNftPrice() returns null to avoid wrong data.
       const saleTxHash =
         via === "sale" && !saleFromDirectAcq && !transferrerSale && !buyerSaleAcq
           ? (userAcq?.txHash ?? null)
           : null;
       const txNativeWei = saleTxHash
-        ? await txValueWei(saleTxHash)
+        ? await txSingleNftPrice(saleTxHash, contractLc)
         : null;
 
       const costRon =
