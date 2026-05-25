@@ -361,13 +361,21 @@ async function buildCollectionHoldings(
       const userAcq = userAcqs.get(`${contractLc}:${t.tokenId}`);
       const userIsRecipient =
         !!acq && acq.buyer?.toLowerCase() === address.toLowerCase();
-      let via: "sale" | "mint" | "transfer" | null = acq
-        ? userIsRecipient
+      // Classification priority:
+      //  1. Most recent marketplace event was a sale/mint TO this user → use it.
+      //  2. userActivities has a Mint/Sale for this token → use it.
+      //     (Catches "bought → sent away → received back" — the most recent
+      //     marketplace event is a plain transfer, but the user's activity log
+      //     still has the original purchase.)
+      //  3. Fall back to "transfer" ($0 cost).
+      let via: "sale" | "mint" | "transfer" | null =
+        acq && userIsRecipient && acq.source !== "transfer"
           ? acq.source
-          : "transfer"
-        : userAcq
-          ? userAcq.source
-          : "transfer";
+          : userAcq
+            ? userAcq.source
+            : acq && !userIsRecipient
+              ? "transfer"
+              : "transfer";
 
       // Transferrer upgrade: if this row would be "transfer" but the transferrer
       // wallet has a Mint or Sale acquisition for this tokenId, use THAT as the
@@ -406,16 +414,27 @@ async function buildCollectionHoldings(
         transferrerSale = acq;
       }
 
+      // Whether the "sale" classification came from the direct marketplace record
+      // (acq) vs. the user's activity log (userAcq). In the latter case acq has
+      // no price (its most recent event is a plain transfer), so we cannot use
+      // acq.priceWei for cost — cost falls back to null (displayed as "—").
+      const saleFromDirectAcq =
+        via === "sale" &&
+        acq &&
+        acq.source === "sale" &&
+        userIsRecipient &&
+        !acqBuyerIsTransferrer;
+
       const costRon =
-        via === "sale" && acq && !acqBuyerIsTransferrer && userIsRecipient
-          ? weiToRon(acq.priceWei)
+        saleFromDirectAcq
+          ? weiToRon(acq!.priceWei)
           : via === "sale" && transferrerSale
             ? weiToRon(transferrerSale.priceWei)
             : via === "mint"
               ? c.mintPriceRon
               : via === "transfer"
                 ? 0
-                : null;
+                : null; // "sale" via userAcq only — price unknown, show "—"
 
       const relevantTxHash =
         via === "transfer"
