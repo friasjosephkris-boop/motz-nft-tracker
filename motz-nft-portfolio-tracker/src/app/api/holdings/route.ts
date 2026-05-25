@@ -112,17 +112,30 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Holdings + current RON price up front, in parallel across all collections.
+    // Holdings + current RON price up front, in parallel across all
+    // collections. Each listHoldings is wrapped in catch — if one collection
+    // fails (rate limit), the others can still load. The failing collection
+    // just shows zero tokens for this wallet.
     const [currentRonUsd, ...tokensPerCollection] = await Promise.all([
-      ronUsdNow(),
-      ...TRACKED_COLLECTIONS.map((c) => listHoldings(address, c.address)),
+      ronUsdNow().catch(() => null),
+      ...TRACKED_COLLECTIONS.map((c) =>
+        listHoldings(address, c.address).catch((err) => {
+          console.warn(
+            `[/api/holdings] listHoldings(${c.address}) for ${address} failed:`,
+            (err as Error).message,
+          );
+          return [];
+        }),
+      ),
     ]);
 
     // Per-token marketplace acquisition lookup. Uses ownership verification:
     // if cached transferHistory's most recent event is "transfer TO this
     // wallet", no later transfer can have happened (the wallet still owns it)
     // so the API call is skipped. Cold cache or ownership mismatch falls
-    // through to a full fetch.
+    // through to a full fetch. Per-token failures (e.g. one rate-limited
+    // call mid-load) return null so the row defaults to "transfer" rather
+    // than killing the whole load.
     const marketAcqsPerCollection = await Promise.all(
       tokensPerCollection.map((tokens, ci) =>
         Promise.all(
@@ -131,7 +144,13 @@ export async function GET(req: NextRequest) {
               TRACKED_COLLECTIONS[ci].address,
               t.tokenId,
               address,
-            ),
+            ).catch((err) => {
+              console.warn(
+                `[/api/holdings] lastAcquisition(${TRACKED_COLLECTIONS[ci].address}:${t.tokenId}) failed:`,
+                (err as Error).message,
+              );
+              return null;
+            }),
           ),
         ),
       ),
@@ -194,14 +213,38 @@ export async function GET(req: NextRequest) {
     );
 
     const [userAcqs, stakingDeposits, transferrerAcqs] = await Promise.all([
+      // Main wallet's Mint/Sale activity — used for cost-basis fallback when
+      // marketplace transferHistory is missing. If this fails (rate limit),
+      // cached transferHistory entries still provide classification, so
+      // failing gracefully here lets the rest of the load complete instead
+      // of dropping the whole portfolio.
       userAcquisitionsFor(
         address,
         TRACKED_COLLECTIONS.map((c) => c.address),
         sinceTs,
         200,
-      ),
+      ).catch((err) => {
+        console.warn(
+          `[/api/holdings] userAcquisitionsFor(${address}) failed; continuing without it:`,
+          (err as Error).message,
+        );
+        return new Map() as Awaited<ReturnType<typeof userAcquisitionsFor>>;
+      }),
+      // Staking-deposit detection. Failing means we won't show staked tokens
+      // as a separate "staked" row — they'll just be absent. Better than
+      // dropping the whole load.
       stakingByContract.size > 0
-        ? userStakingDepositsFor(address, stakingByContract, sinceTs, 200)
+        ? userStakingDepositsFor(address, stakingByContract, sinceTs, 200).catch(
+            (err) => {
+              console.warn(
+                `[/api/holdings] userStakingDepositsFor(${address}) failed; continuing without staked rows:`,
+                (err as Error).message,
+              );
+              return new Map() as Awaited<
+                ReturnType<typeof userStakingDepositsFor>
+              >;
+            },
+          )
         : Promise.resolve(new Map()),
       // For each transferrer wallet, walk THEIR Mint+Sale activity so we can
       // upgrade transferred rows. Merge them — first match wins per tokenId.
