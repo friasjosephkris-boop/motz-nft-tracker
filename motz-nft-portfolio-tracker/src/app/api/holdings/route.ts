@@ -5,6 +5,7 @@ import {
   HoldingToken,
   listHoldings,
   lastAcquisition,
+  lastBuyerSale,
   weiToRon,
   blockTimestampForTx,
   floorPriceForTrait,
@@ -416,8 +417,9 @@ async function buildCollectionHoldings(
 
       // Whether the "sale" classification came from the direct marketplace record
       // (acq) vs. the user's activity log (userAcq). In the latter case acq has
-      // no price (its most recent event is a plain transfer), so we cannot use
-      // acq.priceWei for cost — cost falls back to null (displayed as "—").
+      // no price (its most recent event is a plain transfer), so we look up the
+      // actual purchase via lastBuyerSale() which scans the cached transferHistory
+      // for the most recent sale where this address was the buyer.
       const saleFromDirectAcq =
         via === "sale" &&
         acq &&
@@ -425,16 +427,25 @@ async function buildCollectionHoldings(
         userIsRecipient &&
         !acqBuyerIsTransferrer;
 
+      // For "bought → sent away → received back" tokens: fetch the original
+      // purchase price from the cached transfer history.
+      const buyerSaleAcq =
+        via === "sale" && !saleFromDirectAcq && !transferrerSale
+          ? await lastBuyerSale(contractLc, t.tokenId, address)
+          : null;
+
       const costRon =
         saleFromDirectAcq
           ? weiToRon(acq!.priceWei)
           : via === "sale" && transferrerSale
             ? weiToRon(transferrerSale.priceWei)
-            : via === "mint"
-              ? c.mintPriceRon
-              : via === "transfer"
-                ? 0
-                : null; // "sale" via userAcq only — price unknown, show "—"
+            : via === "sale" && buyerSaleAcq
+              ? weiToRon(buyerSaleAcq.priceWei)
+              : via === "mint"
+                ? c.mintPriceRon
+                : via === "transfer"
+                  ? 0
+                  : null;
 
       const relevantTxHash =
         via === "transfer"
