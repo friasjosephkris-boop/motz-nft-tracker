@@ -111,19 +111,30 @@ export async function GET(req: NextRequest) {
     if (!transferrers.includes(addr)) transferrers.push(addr);
   }
 
+  // Collected internal failures — Sky Mavis rate limits caught at various
+  // depth levels. Surfaced in the response so callers (the MoTZ snapshot
+  // refresh, the Holder dashboard, etc.) can show which parts of the data
+  // are partial without throwing the whole load away.
+  const warnings: string[] = [];
+  function warn(label: string, err: unknown): void {
+    const msg = `${label}: ${(err as Error).message}`;
+    console.warn(`[/api/holdings] ${msg}`);
+    warnings.push(msg);
+  }
+
   try {
     // Holdings + current RON price up front, in parallel across all
     // collections. Each listHoldings is wrapped in catch — if one collection
     // fails (rate limit), the others can still load. The failing collection
     // just shows zero tokens for this wallet.
     const [currentRonUsd, ...tokensPerCollection] = await Promise.all([
-      ronUsdNow().catch(() => null),
+      ronUsdNow().catch((err) => {
+        warn("ronUsdNow", err);
+        return null;
+      }),
       ...TRACKED_COLLECTIONS.map((c) =>
         listHoldings(address, c.address).catch((err) => {
-          console.warn(
-            `[/api/holdings] listHoldings(${c.address}) for ${address} failed:`,
-            (err as Error).message,
-          );
+          warn(`listHoldings(${c.symbol})`, err);
           return [];
         }),
       ),
@@ -145,9 +156,9 @@ export async function GET(req: NextRequest) {
               t.tokenId,
               address,
             ).catch((err) => {
-              console.warn(
-                `[/api/holdings] lastAcquisition(${TRACKED_COLLECTIONS[ci].address}:${t.tokenId}) failed:`,
-                (err as Error).message,
+              warn(
+                `lastAcquisition(${TRACKED_COLLECTIONS[ci].symbol}:${t.tokenId})`,
+                err,
               );
               return null;
             }),
@@ -224,10 +235,7 @@ export async function GET(req: NextRequest) {
         sinceTs,
         200,
       ).catch((err) => {
-        console.warn(
-          `[/api/holdings] userAcquisitionsFor(${address}) failed; continuing without it:`,
-          (err as Error).message,
-        );
+        warn(`userAcquisitionsFor(${address})`, err);
         return new Map() as Awaited<ReturnType<typeof userAcquisitionsFor>>;
       }),
       // Staking-deposit detection. Failing means we won't show staked tokens
@@ -236,10 +244,7 @@ export async function GET(req: NextRequest) {
       stakingByContract.size > 0
         ? userStakingDepositsFor(address, stakingByContract, sinceTs, 200).catch(
             (err) => {
-              console.warn(
-                `[/api/holdings] userStakingDepositsFor(${address}) failed; continuing without staked rows:`,
-                (err as Error).message,
-              );
+              warn(`userStakingDepositsFor(${address})`, err);
               return new Map() as Awaited<
                 ReturnType<typeof userStakingDepositsFor>
               >;
@@ -263,10 +268,7 @@ export async function GET(req: NextRequest) {
                 200,
                 wantedKeys,
               ).catch((err) => {
-                console.warn(
-                  `[/api/holdings] transferrer scan for ${t} failed; continuing without it:`,
-                  (err as Error).message,
-                );
+                warn(`transferrer(${t})`, err);
                 return new Map() as Awaited<
                   ReturnType<typeof userAcquisitionsFor>
                 >;
@@ -423,6 +425,7 @@ export async function GET(req: NextRequest) {
       transferrers,
       currentRonUsd,
       collections,
+      warnings,
     });
   } catch (err) {
     console.error("[/api/holdings]", err);

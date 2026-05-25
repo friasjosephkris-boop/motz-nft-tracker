@@ -33,6 +33,10 @@ export type MotzSnapshot = {
    * configured wallets loaded successfully. Snapshot is still written
    * with whatever did load — partial > nothing. */
   failures?: { input: string; error: string }[];
+  /** Per-wallet partial loads: wallet responded successfully but with
+   * internal rate-limit catches that left some data incomplete. The
+   * tokens count + warnings detail what came through and what didn't. */
+  partials?: { input: string; tokens: number; warnings: string[] }[];
 };
 
 function readSnapshot(): MotzSnapshot | null {
@@ -67,6 +71,8 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
       const byContract = new Map<string, TaggedCollectionHoldings>();
       const resolved: string[] = [];
       const failures: { input: string; error: string }[] = [];
+      const partials: { input: string; tokens: number; warnings: string[] }[] =
+        [];
       let currentRonUsd: number | null = null;
       // Sequential — same reason as Load Combined: per-wallet shares a
       // server-side rate limiter, running in parallel just trips the breaker.
@@ -90,6 +96,21 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
           const data = j as ApiResponse;
           resolved.push(data.address);
           if (data.currentRonUsd != null) currentRonUsd = data.currentRonUsd;
+          const tokenCount = data.collections.reduce(
+            (s, c) => s + c.rows.length,
+            0,
+          );
+          // A wallet that responded successfully but loaded few/no tokens
+          // probably hit internal rate-limit catches mid-load. Flag it so
+          // the UI doesn't claim it as a "clean" success. Threshold: any
+          // wallet whose response carries warnings is treated as partial.
+          if (data.warnings && data.warnings.length > 0) {
+            partials.push({
+              input: w,
+              tokens: tokenCount,
+              warnings: data.warnings,
+            });
+          }
           for (const c of data.collections) {
             const existing = byContract.get(c.contract);
             const taggedRows: TaggedHoldingRow[] = c.rows.map((row) => ({
@@ -138,6 +159,7 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
         currentRonUsd,
         walletCount: resolved.length,
         failures,
+        partials,
       };
       writeSnapshot(snap);
       return snap;

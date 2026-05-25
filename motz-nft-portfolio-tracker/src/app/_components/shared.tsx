@@ -353,6 +353,9 @@ export type ApiResponse = {
   resolvedFrom?: string | null;
   currentRonUsd: number | null;
   collections: CollectionHoldings[];
+  /** Non-fatal failures encountered during the load (rate-limited
+   * enrichment calls, etc.). Empty when everything succeeded. */
+  warnings?: string[];
 };
 
 /** Retries a fetch up to `attempts` times with a fixed delay. onAttempt fires before each try (1-indexed). */

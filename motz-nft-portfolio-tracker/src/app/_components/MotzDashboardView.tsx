@@ -20,6 +20,7 @@ type SnapshotResponse = {
   walletCount: number;
   stale: boolean;
   failures?: { input: string; error: string }[];
+  partials?: { input: string; tokens: number; warnings: string[] }[];
   error?: string;
 };
 
@@ -129,45 +130,103 @@ export function MotzDashboardView() {
         </div>
       )}
 
-      {snap?.failures && snap.failures.length > 0 && (
-        <div className="rounded-md border border-amber-900/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-200 whitespace-pre-wrap break-words">
-          <div className="font-mono text-[11px] uppercase tracking-wider text-amber-300 mb-1">
-            Partial snapshot — {snap.failures.length} of {snap.walletAddresses.length} wallets failed
-          </div>
-          {snap.failures.map((f) => (
-            <div key={f.input} className="text-xs">
-              <span className="font-mono text-amber-100">{f.input}</span>:{" "}
-              {f.error}
+      {((snap?.failures && snap.failures.length > 0) ||
+        (snap?.partials && snap.partials.length > 0)) && (
+        <div className="rounded-md border border-amber-900/60 bg-amber-950/30 px-4 py-3 text-sm text-amber-200 whitespace-pre-wrap break-words space-y-3">
+          {snap?.failures && snap.failures.length > 0 && (
+            <div>
+              <div className="font-mono text-[11px] uppercase tracking-wider text-amber-300 mb-1">
+                Failed — {snap.failures.length} of {snap.walletAddresses.length} wallets did not load
+              </div>
+              {snap.failures.map((f) => (
+                <div key={f.input} className="text-xs">
+                  <span className="font-mono text-amber-100">{f.input}</span>:{" "}
+                  {f.error}
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+          {snap?.partials && snap.partials.length > 0 && (
+            <div>
+              <div className="font-mono text-[11px] uppercase tracking-wider text-amber-300 mb-1">
+                Partial — {snap.partials.length} wallet(s) loaded with internal rate-limits
+              </div>
+              {snap.partials.map((p) => (
+                <details key={p.input} className="text-xs">
+                  <summary className="cursor-pointer hover:text-amber-50">
+                    <span className="font-mono text-amber-100">{p.input}</span>
+                    {" — "}
+                    <span className="font-mono">{p.tokens}</span> tokens loaded,{" "}
+                    <span className="font-mono">{p.warnings.length}</span>{" "}
+                    internal warning(s)
+                  </summary>
+                  <ul className="ml-4 mt-1 list-disc list-inside text-amber-300/80 space-y-0.5">
+                    {p.warnings.slice(0, 8).map((w, i) => (
+                      <li key={i} className="break-words">
+                        {w}
+                      </li>
+                    ))}
+                    {p.warnings.length > 8 && (
+                      <li className="italic">
+                        …{p.warnings.length - 8} more
+                      </li>
+                    )}
+                  </ul>
+                </details>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {snap && (
         <>
-          <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs text-zinc-400">
-            <div>
-              {snap.walletCount === 1 ? (
-                <>
-                  Showing{" "}
-                  <span className="font-mono text-zinc-200">
-                    {shortAddr(snap.resolvedAddresses[0])}
-                  </span>
-                </>
-              ) : (
-                <>
-                  Showing{" "}
-                  <span className="font-mono text-zinc-200">
-                    {snap.walletCount} wallets combined
-                  </span>{" "}
-                  —{" "}
-                  <span className="font-mono text-zinc-500">
-                    {snap.resolvedAddresses.map(shortAddr).join(" · ")}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
+          {(() => {
+            // Only count wallets that contributed at least one token —
+            // a "resolved" wallet with zero tokens means its load failed
+            // silently and shouldn't inflate the wallet count.
+            const tokensByWallet = new Map<string, number>();
+            for (const c of collections) {
+              for (const r of c.rows) {
+                if (!r.walletTag) continue;
+                tokensByWallet.set(
+                  r.walletTag,
+                  (tokensByWallet.get(r.walletTag) ?? 0) + 1,
+                );
+              }
+            }
+            const contributors = Array.from(tokensByWallet.keys());
+            return (
+              <div className="flex flex-wrap items-baseline justify-between gap-2 text-xs text-zinc-400">
+                <div>
+                  {contributors.length === 0 ? (
+                    <span className="font-mono text-zinc-200">
+                      No wallets contributed tokens
+                    </span>
+                  ) : contributors.length === 1 ? (
+                    <>
+                      Showing{" "}
+                      <span className="font-mono text-zinc-200">
+                        {shortAddr(contributors[0])}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Showing{" "}
+                      <span className="font-mono text-zinc-200">
+                        {contributors.length} wallet
+                        {contributors.length > 1 ? "s" : ""} combined
+                      </span>{" "}
+                      —{" "}
+                      <span className="font-mono text-zinc-500">
+                        {contributors.map(shortAddr).join(" · ")}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Stat label="NFTs held" value={String(totalCount)} />
