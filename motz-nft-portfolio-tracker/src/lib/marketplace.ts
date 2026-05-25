@@ -645,6 +645,10 @@ export function weiToRon(wei: string | bigint): number {
 }
 
 const blockTsCache = new Map<string, number>();
+// Cached tx value (native RON in hex) from eth_getTransactionByHash.
+// Populated as a free by-product of blockTimestampForTx — lets us recover
+// purchase price for sales where transferHistory.withPrice is missing.
+const txValueHexCache = new Map<string, string | null>();
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TRANSFER_TOPIC =
@@ -1010,23 +1014,35 @@ async function rpcCallWithRetryInner<T>(
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
-export async function blockTimestampForTx(
+async function fetchTxDetails(
   txHash: string,
-): Promise<number | null> {
-  if (blockTsCache.has(txHash)) return blockTsCache.get(txHash)!;
-  const tx = await rpcCallWithRetry<{ blockNumber?: string }>(
+): Promise<{ blockNumber: string; value: string | null } | null> {
+  return rpcCallWithRetry<{ blockNumber?: string; value?: string }>(
     {
       jsonrpc: "2.0",
       id: 1,
       method: "eth_getTransactionByHash",
       params: [txHash],
     },
-    `blockTimestampForTx tx ${txHash.slice(0, 10)}…`,
+    `fetchTxDetails ${txHash.slice(0, 10)}…`,
+  ).then((tx) =>
+    tx?.blockNumber
+      ? { blockNumber: tx.blockNumber, value: tx.value ?? null }
+      : null,
   );
-  if (!tx?.blockNumber) {
+}
+
+export async function blockTimestampForTx(
+  txHash: string,
+): Promise<number | null> {
+  if (blockTsCache.has(txHash)) return blockTsCache.get(txHash)!;
+  const tx = await fetchTxDetails(txHash);
+  if (!tx) {
     console.warn(`[marketplace] tx ${txHash} has no blockNumber`);
     return null;
   }
+  // Cache value as a free by-product so txValueWei() never needs a 2nd call.
+  if (!txValueHexCache.has(txHash)) txValueHexCache.set(txHash, tx.value);
   const blk = await rpcCallWithRetry<{ timestamp?: string }>(
     {
       jsonrpc: "2.0",
@@ -1040,4 +1056,25 @@ export async function blockTimestampForTx(
   const ts = parseInt(blk.timestamp, 16);
   blockTsCache.set(txHash, ts);
   return ts;
+}
+
+/**
+ * Returns the native-RON value (in wei, as a decimal string) sent with a
+ * marketplace sale transaction. For RON-denominated sales, this equals the
+ * purchase price paid by the buyer.
+ *
+ * Reuses the eth_getTransactionByHash response already fetched by
+ * blockTimestampForTx when both are needed for the same tx — zero extra calls.
+ */
+export async function txValueWei(txHash: string): Promise<string | null> {
+  if (txValueHexCache.has(txHash)) {
+    const hex = txValueHexCache.get(txHash)!;
+    if (!hex || hex === "0x" || hex === "0x0") return null;
+    return BigInt(hex).toString();
+  }
+  const tx = await fetchTxDetails(txHash);
+  const hex = tx?.value ?? null;
+  txValueHexCache.set(txHash, hex);
+  if (!hex || hex === "0x" || hex === "0x0") return null;
+  return BigInt(hex).toString();
 }

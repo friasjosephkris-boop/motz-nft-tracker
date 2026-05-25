@@ -8,6 +8,7 @@ import {
   lastBuyerSale,
   weiToRon,
   blockTimestampForTx,
+  txValueWei,
   floorPriceForTrait,
   userAcquisitionsFor,
   ownerOf,
@@ -447,19 +448,6 @@ async function buildCollectionHoldings(
           ? await lastBuyerSale(contractLc, t.tokenId, address)
           : null;
 
-      const costRon =
-        saleFromDirectAcq
-          ? weiToRon(acq!.priceWei)
-          : via === "sale" && transferrerSale
-            ? weiToRon(transferrerSale.priceWei)
-            : via === "sale" && buyerSaleAcq
-              ? weiToRon(buyerSaleAcq.priceWei)
-              : via === "mint"
-                ? c.mintPriceRon
-                : via === "transfer"
-                  ? 0
-                  : null;
-
       const relevantTxHash =
         via === "transfer"
           ? null
@@ -479,6 +467,33 @@ async function buildCollectionHoldings(
       if (relevantTxHash && !acqTs) {
         acqTs = (await blockTimestampForTx(relevantTxHash)) || 0;
       }
+
+      // Last-resort price fallback: if transferHistory.withPrice is missing
+      // (older sales not indexed by the marketplace backend), read the native
+      // RON value from the sale transaction itself. Works for RON-denominated
+      // sales — blockTimestampForTx already fetched the tx so this is free.
+      const saleTxHash =
+        via === "sale" && !saleFromDirectAcq && !transferrerSale && !buyerSaleAcq
+          ? (userAcq?.txHash ?? null)
+          : null;
+      const txNativeWei = saleTxHash
+        ? await txValueWei(saleTxHash)
+        : null;
+
+      const costRon =
+        saleFromDirectAcq
+          ? weiToRon(acq!.priceWei)
+          : via === "sale" && transferrerSale
+            ? weiToRon(transferrerSale.priceWei)
+            : via === "sale" && buyerSaleAcq
+              ? weiToRon(buyerSaleAcq.priceWei)
+              : via === "sale" && txNativeWei
+                ? weiToRon(txNativeWei)
+                : via === "mint"
+                  ? c.mintPriceRon
+                  : via === "transfer"
+                    ? 0
+                    : null;
       if (!acqTs && via === "mint") acqTs = mintTs;
 
       const ronUsdAtPurchase = acqTs ? await ronUsdAt(acqTs) : null;
