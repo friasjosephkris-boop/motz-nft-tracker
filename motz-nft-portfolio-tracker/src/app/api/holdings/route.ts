@@ -139,6 +139,17 @@ export async function GET(req: NextRequest) {
         );
       }
     }
+    // Build the set of owned token keys so transferrer scans can exit early
+    // once every held token has been classified (avoids scanning pages of
+    // unrelated activity when the transferrer wallet traded other collections).
+    const wantedKeys = new Set<string>();
+    for (let ci = 0; ci < TRACKED_COLLECTIONS.length; ci++) {
+      const contractLc = TRACKED_COLLECTIONS[ci].address.toLowerCase();
+      for (const t of tokensPerCollection[ci]) {
+        wantedKeys.add(`${contractLc}:${t.tokenId}`);
+      }
+    }
+
     const [userAcqs, stakingDeposits, transferrerAcqs] = await Promise.all([
       userAcquisitionsFor(
         address,
@@ -151,6 +162,7 @@ export async function GET(req: NextRequest) {
         : Promise.resolve(new Map()),
       // For each transferrer wallet, walk THEIR Mint+Sale activity so we can
       // upgrade transferred rows. Merge them — first match wins per tokenId.
+      // Pass wantedKeys so the scan exits as soon as all held tokens are found.
       transferrers.length > 0
         ? Promise.all(
             transferrers.map((t) =>
@@ -159,6 +171,7 @@ export async function GET(req: NextRequest) {
                 TRACKED_COLLECTIONS.map((c) => c.address),
                 sinceTs,
                 200,
+                wantedKeys,
               ),
             ),
           ).then((maps) => {
