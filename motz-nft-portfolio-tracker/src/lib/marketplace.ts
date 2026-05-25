@@ -70,9 +70,16 @@ const rpcLimiter = makeLimiter(10);
 // The breaker resets automatically after BREAKER_COOLDOWN_MS so the next
 // load attempt gets a fresh probe — handy when quota resets mid-session.
 class QuotaExhaustedError extends Error {
-  constructor() {
+  constructor(detail: string) {
+    // Surface the actual Sky Mavis response body so the user can see whether
+    // it's a per-day quota or per-second throttle (these are very different
+    // problems with very different fixes).
     super(
-      "Sky Mavis API quota exhausted. Try again later (typically resets on a rolling 24h window).",
+      detail
+        ? `Sky Mavis API rate-limited (breaker tripped): ${detail}. ` +
+          `If this is a per-second limit, wait ~30s and retry. If a daily ` +
+          `quota, wait for it to reset (rolling 24h window).`
+        : "Sky Mavis API rate-limited (breaker tripped). Try again later.",
     );
     this.name = "QuotaExhaustedError";
   }
@@ -80,8 +87,13 @@ class QuotaExhaustedError extends Error {
 class RetryableError extends Error {}
 
 let consecutive429s = 0;
+let lastQuotaMessage = "";
 let gqlBreakerTrippedAt = 0;
-const BREAKER_TRIP_THRESHOLD = 5;
+// Threshold tuned for our 6-way concurrency: a single round of all-six
+// hitting 429 = 6 consecutive 429s, so a low threshold like 5 would trip on
+// any transient burst. ~25 means roughly 4 full rounds of every call failing
+// before we bail — strong evidence the API is genuinely refusing us.
+const BREAKER_TRIP_THRESHOLD = 25;
 const BREAKER_COOLDOWN_MS = 60_000;
 
 function isBreakerTripped(): boolean {
@@ -90,6 +102,7 @@ function isBreakerTripped(): boolean {
     // Cooldown elapsed — auto-reset so the next load can re-probe the API.
     gqlBreakerTrippedAt = 0;
     consecutive429s = 0;
+    lastQuotaMessage = "";
     return false;
   }
   return true;
@@ -108,10 +121,14 @@ async function gqlFetch<T>(
   });
   if (res.status === 429) {
     consecutive429s++;
+    const txt = await res.text().catch(() => "");
+    // Stash the latest 429 body — used in the QuotaExhaustedError message
+    // so users see the actual Sky Mavis response (per-day vs per-second
+    // throttle is the same status code with different bodies).
+    lastQuotaMessage = txt.replace(/\s+/g, " ").trim().slice(0, 240);
     if (consecutive429s >= BREAKER_TRIP_THRESHOLD) {
       gqlBreakerTrippedAt = Date.now();
     }
-    const txt = await res.text().catch(() => "");
     throw new RetryableError(
       `Marketplace GraphQL 429 (rate-limited): ${txt.slice(0, 200)}`,
     );
@@ -127,8 +144,10 @@ async function gqlFetch<T>(
     );
   }
   if (!json.data) throw new Error("Marketplace GraphQL: empty data");
-  // Successful call — reset breaker counter so isolated 429s don't trip it.
+  // Successful call — reset breaker counter and stale 429 message so
+  // isolated 429s don't trip the breaker or leak old text into errors.
   consecutive429s = 0;
+  lastQuotaMessage = "";
   return json.data;
 }
 
@@ -138,11 +157,11 @@ async function gql<T>(
   query: string,
   variables: Record<string, unknown>,
 ): Promise<T> {
-  if (isBreakerTripped()) throw new QuotaExhaustedError();
+  if (isBreakerTripped()) throw new QuotaExhaustedError(lastQuotaMessage);
   let lastErr: unknown;
   const MAX_ATTEMPTS = 6;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    if (isBreakerTripped()) throw new QuotaExhaustedError();
+    if (isBreakerTripped()) throw new QuotaExhaustedError(lastQuotaMessage);
     await gqlLimiter.acquire();
     try {
       return await gqlFetch<T>(query, variables);
