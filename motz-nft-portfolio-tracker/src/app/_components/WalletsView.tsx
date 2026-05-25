@@ -327,7 +327,11 @@ export function WalletsView({
             disabled={loading}
             className="btn-primary"
           >
-            {loading ? "Loading…" : "Load combined"}
+            {loading
+              ? "Loading…"
+              : cleaned.length === 1
+                ? "Load wallet"
+                : "Load combined"}
           </button>
           <button
             onClick={addWalletRow}
