@@ -168,7 +168,7 @@ export function renderCodex(root: HTMLElement, onBack: () => void): void {
 
         <section class="codex-section" id="codex-vouchers">
           <h2 class="codex-h2">💰 bRON Vouchers</h2>
-          <p class="codex-intro">A rare drop from enemy kills. Vouchers stack in your Inventory by tier; spend them in the Shop or redeem at end of season at 1 bRON = 1 RON.</p>
+          <p class="codex-intro">A rare drop from enemy kills. Vouchers stack in your Inventory by tier; spend them in the Shop or redeem at end of season at 1 bRON = 1 RON. <em>(End-of-season redemption is not redeemable during the first playtest.)</em></p>
           <div class="codex-effects">
             ${effectRow("⚪", "Tier 1", "buff", "1 in 1,000 drop chance per kill — 5 bRON each.")}
             ${effectRow("🔵", "Tier 2", "buff", "1 in 5,000 drop chance per kill — 10 bRON each.")}

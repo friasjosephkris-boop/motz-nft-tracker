@@ -149,7 +149,7 @@ function ronVouchersSectionHtml(v: { t1?: number; t2?: number; t3?: number; t4?:
     <div class="inv-section">
       <div class="inv-section-title">
         bRON Vouchers
-        <span class="inv-section-aside">Total value: <strong>${totalRon.toLocaleString()}</strong> bRON · Redeem at end of season</span>
+        <span class="inv-section-aside">Total value: <strong>${totalRon.toLocaleString()}</strong> bRON · Redeem at end of season <em class="inv-section-aside-note">(not redeemable on first playtest)</em></span>
       </div>
       <div class="inv-voucher-grid">${cards}</div>
     </div>

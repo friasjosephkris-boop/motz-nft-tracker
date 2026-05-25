@@ -6940,6 +6940,15 @@ body:has(.battle) {
   text-transform: none;
 }
 .inv-section-aside strong { color: var(--gold-bright); }
+/* Playtest disclaimer appended to the bRON-redemption line — quieter than
+   the rest so the gold total still leads the eye. */
+.inv-section-aside-note {
+  margin-left: 6px;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--motz-warning, #ffc24a);
+  opacity: 0.85;
+}
 .inv-voucher-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
