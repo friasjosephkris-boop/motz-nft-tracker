@@ -93,7 +93,12 @@ export function WalletsView({
   }
 
   const cleaned = addresses.map((a) => a.trim()).filter(Boolean);
-  const cleanedTransferrers = transferrers.map((a) => a.trim()).filter(Boolean);
+  // Holder mode never uses transferrers — they're a project-owner feature.
+  // Even if state somehow contains values, ignore them so the API call
+  // doesn't accidentally pull in MoTZ-side transferrer scans.
+  const cleanedTransferrers = holderMode
+    ? []
+    : transferrers.map((a) => a.trim()).filter(Boolean);
 
   async function loadAll() {
     // Case-insensitive dedupe on input.
@@ -246,43 +251,51 @@ export function WalletsView({
         </h2>
         <p className="text-xs text-zinc-500">{subtitle}</p>
 
-        <div className="rounded-md border border-white/10 bg-white/[0.02] p-3 space-y-2">
-          <div className="flex items-baseline justify-between gap-2">
-            <label className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--winner-gold)]">
-              Transferrer wallets (optional)
-            </label>
-            <span className="text-[11px] text-zinc-500">
-              Upgrades transferred-in rows to the transferrer&apos;s mint/sale cost basis
-            </span>
-          </div>
-          {transferrers.map((v, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <input
-                value={v}
-                onChange={(e) => updateTransferrer(i, e.target.value)}
-                placeholder="0x… or RNS"
-                disabled={loading}
-                className="flex-1 rounded-md bg-black/40 border border-white/10 px-3 py-2 font-mono text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[color:var(--winner-gold)] focus:ring-1 focus:ring-[color:var(--winner-gold)]/40"
-              />
-              <button
-                onClick={() => removeTransferrerRow(i)}
-                disabled={loading || (transferrers.length === 1 && !v)}
-                title="Remove this transferrer"
-                className="h-9 w-9 rounded-md border border-white/10 bg-white/5 text-zinc-400 hover:border-[color:var(--motz-red)]/40 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Remove transferrer"
-              >
-                −
-              </button>
+        {/* Transferrer UI is only meaningful for the project-owner view —
+            it lets you specify upstream wallets that minted/bought tokens
+            before transferring them to you, so the load can recover the
+            real cost basis. Holders viewing their own wallet shouldn't have
+            this option: their non-mint/non-sale NFTs stay as transfers
+            with $0 cost regardless. */}
+        {!holderMode && (
+          <div className="rounded-md border border-white/10 bg-white/[0.02] p-3 space-y-2">
+            <div className="flex items-baseline justify-between gap-2">
+              <label className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--winner-gold)]">
+                Transferrer wallets (optional)
+              </label>
+              <span className="text-[11px] text-zinc-500">
+                Upgrades transferred-in rows to the transferrer&apos;s mint/sale cost basis
+              </span>
             </div>
-          ))}
-          <button
-            onClick={addTransferrerRow}
-            disabled={loading}
-            className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--winner-gold)] hover:text-zinc-100 disabled:opacity-40"
-          >
-            + Add another transferrer
-          </button>
-        </div>
+            {transferrers.map((v, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={v}
+                  onChange={(e) => updateTransferrer(i, e.target.value)}
+                  placeholder="0x… or RNS"
+                  disabled={loading}
+                  className="flex-1 rounded-md bg-black/40 border border-white/10 px-3 py-2 font-mono text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[color:var(--winner-gold)] focus:ring-1 focus:ring-[color:var(--winner-gold)]/40"
+                />
+                <button
+                  onClick={() => removeTransferrerRow(i)}
+                  disabled={loading || (transferrers.length === 1 && !v)}
+                  title="Remove this transferrer"
+                  className="h-9 w-9 rounded-md border border-white/10 bg-white/5 text-zinc-400 hover:border-[color:var(--motz-red)]/40 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  aria-label="Remove transferrer"
+                >
+                  −
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={addTransferrerRow}
+              disabled={loading}
+              className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--winner-gold)] hover:text-zinc-100 disabled:opacity-40"
+            >
+              + Add another transferrer
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           {addresses.map((v, i) => (
