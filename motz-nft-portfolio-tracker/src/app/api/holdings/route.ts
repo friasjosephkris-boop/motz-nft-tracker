@@ -459,9 +459,13 @@ async function buildCollectionHoldings(
       // the user got this token (no transferHistory rows, no userActivities
       // Mint/Sale, no transferrer match) Sky Mavis has an indexing gap.
       // For these cases — typically old batch sales/transfers like MotZ
-      // Coin #37 — treat the row as a mint and use the collection's mint
-      // price as cost basis. Genuine gifts still classify as "transfer"
-      // here because `acq` is populated with the transfer event.
+      // Coin #37 — we know the user got it somehow but can't tell exactly
+      // how. Classify as "sale" (UI shows ACQUIRED, not MINTED — they did
+      // NOT mint it themselves) and use mint price as a cost-basis estimate.
+      // The "MINT PRICE" subtitle on the cost column already conveys that
+      // the cost is an estimate. Genuine gifts still classify as "transfer"
+      // because `acq` is populated with a transfer event.
+      let noEvidenceFallback = false;
       if (
         via === "transfer" &&
         !acq &&
@@ -469,7 +473,8 @@ async function buildCollectionHoldings(
         !transferrerAcq &&
         !acqBuyerIsTransferrer
       ) {
-        via = "mint";
+        via = "sale";
+        noEvidenceFallback = true;
       }
 
       // Whether the "sale" classification came from the direct marketplace record
@@ -542,7 +547,12 @@ async function buildCollectionHoldings(
                     : via === "transfer"
                       ? 0
                       : null;
-      if (!acqTs && via === "mint") acqTs = mintTs;
+      // Mint-date timestamp fallback. Applies to:
+      //   - actual mints (via === "mint")
+      //   - no-evidence fallback rows (no real tx hash available; cost is
+      //     mint price so pairing it with the mint-date RON/USD ratio
+      //     yields a coherent — if estimated — USD cost)
+      if (!acqTs && (via === "mint" || noEvidenceFallback)) acqTs = mintTs;
 
       const ronUsdAtPurchase = acqTs ? await ronUsdAt(acqTs) : null;
       const costUsd =
@@ -642,10 +652,12 @@ async function buildCollectionHoldings(
 
       // Final fallback: if there is NO marketplace evidence at all for how
       // the user got this staked token (no transferHistory, no userActivities
-      // Mint/Sale, no transferrer match), Sky Mavis has an indexing gap —
-      // treat the row as a mint and use the collection's mint price as cost
-      // basis. Genuine "transfer in then staked" rows still classify as
-      // "transfer" because marketAcq is populated with a transfer event.
+      // Mint/Sale, no transferrer match), classify as "sale" (UI shows
+      // ACQUIRED — they did NOT mint it themselves) and use mint price as
+      // a cost-basis estimate. The "MINT PRICE" cost subtitle conveys it's
+      // an estimate. Genuine "transferred in then staked" rows still
+      // classify as "transfer" since marketAcq has a transfer event.
+      let stakedNoEvidenceFallback = false;
       if (
         via === "transfer" &&
         !marketAcq &&
@@ -653,7 +665,8 @@ async function buildCollectionHoldings(
         !transferrerAcq &&
         !stakedAcqBuyerIsTransferrer
       ) {
-        via = "mint";
+        via = "sale";
+        stakedNoEvidenceFallback = true;
       }
 
       // Timestamp + tx hash: prefer marketplace's record (has exact sale tx),
@@ -677,7 +690,9 @@ async function buildCollectionHoldings(
       if (acqTxHash && !acqTs) {
         acqTs = (await blockTimestampForTx(acqTxHash)) || 0;
       }
-      if (!acqTs && via === "mint") acqTs = mintTs;
+      // Mint-date timestamp fallback for actual mints OR no-evidence
+      // fallback rows (so the USD cost calc has a coherent RON/USD ratio).
+      if (!acqTs && (via === "mint" || stakedNoEvidenceFallback)) acqTs = mintTs;
       const ronUsdAtPurchase = acqTs ? await ronUsdAt(acqTs) : null;
 
       // For transferrer-sourced "sale" rows, the marketplace's last sale on
