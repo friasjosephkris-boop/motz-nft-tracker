@@ -23,6 +23,9 @@ export function WalletsView({
   transferrers,
   setTransferrers,
   onLoaded,
+  holderMode = false,
+  title = "Connect wallets",
+  subtitle = "Paste Ronin addresses (0x…) or RNS. Blanks are skipped. Add as many as you need.",
 }: {
   addresses: string[];
   setAddresses: (v: string[]) => void;
@@ -30,6 +33,16 @@ export function WalletsView({
   setTransferrers: (v: string[]) => void;
   /** Called when combined load finishes — payload is rendered on the Dashboard tab. */
   onLoaded: (payload: LoadedPortfolio) => void;
+  /**
+   * Holder mode passes ?holderMode=true to /api/holdings so non-mint/non-sale
+   * tokens stay classified as "transfer" with $0 cost (no mint-price proxy).
+   * The Holder's Wallet tab uses this — visitors viewing their own portfolios
+   * shouldn't get a fake positive cost basis for transferred-in airdrops.
+   */
+  holderMode?: boolean;
+  /** Override the section header for re-skinned variants of this view. */
+  title?: string;
+  subtitle?: string;
 }) {
   const [statuses, setStatuses] = useState<WalletStatus[]>(
     addresses.map(() => ({ state: "idle" })),
@@ -114,6 +127,7 @@ export function WalletsView({
     const transferrerParams = cleanedTransferrers
       .map((t) => `&transferrer=${encodeURIComponent(t)}`)
       .join("");
+    const holderParam = holderMode ? "&holderMode=true" : "";
     const results: Array<{
       idx: number;
       input: string;
@@ -123,7 +137,7 @@ export function WalletsView({
     for (const { idx, input } of unique) {
       try {
         const j = await retryFetch<ApiResponse>(
-          `/api/holdings?address=${encodeURIComponent(input)}${transferrerParams}`,
+          `/api/holdings?address=${encodeURIComponent(input)}${transferrerParams}${holderParam}`,
           3,
           5000,
           (attempt) => {
@@ -228,11 +242,9 @@ export function WalletsView({
     <div className="space-y-8">
       <section className="glass-card p-6 space-y-3">
         <h2 className="font-display text-lg font-semibold text-zinc-100">
-          Connect wallets
+          {title}
         </h2>
-        <p className="text-xs text-zinc-500">
-          Paste Ronin addresses (0x…) or RNS. Blanks are skipped. Add as many as you need.
-        </p>
+        <p className="text-xs text-zinc-500">{subtitle}</p>
 
         <div className="rounded-md border border-white/10 bg-white/[0.02] p-3 space-y-2">
           <div className="flex items-baseline justify-between gap-2">

@@ -8,43 +8,9 @@ import { TabNav, type TabId } from "./_components/TabNav";
 import { DashboardView } from "./_components/DashboardView";
 import { WalletsView } from "./_components/WalletsView";
 import { PnlView } from "./_components/PnlView";
+import { MotzDashboardView } from "./_components/MotzDashboardView";
+import { MotzWalletView } from "./_components/MotzWalletView";
 import type { TaggedCollectionHoldings } from "./_components/shared";
-
-// Initial wallet/transferrer values used on first load when no
-// localStorage entry exists. Once the user edits, their changes persist
-// to localStorage and override these.
-const DEFAULT_WALLETS = [
-  "markofthezeal.ron",
-  "masterofcoin.ron",
-  "0x27f4cea185af16f6cf784359e203e0125bea4ffb",
-  "motzvault.ron",
-  "",
-];
-const DEFAULT_TRANSFERRERS = [
-  "markofthezeal.ron",
-  "masterofcoin.ron",
-  "0x27f4cea185af16f6cf784359e203e0125bea4ffb",
-  "motzvault.ron",
-  "0xb7ea94f09f680eb246d3cfcf47d9b4b8acdf23be",
-  "0xf885cc3880dfac0d4a7abb4a9d4cf772ad6bbcf7",
-];
-const WALLETS_LS_KEY = "motz:walletAddresses";
-const TRANSFERRERS_LS_KEY = "motz:transferrers";
-
-function readStringArray(key: string, fallback: string[]): string[] {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return fallback;
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.every((s) => typeof s === "string")) {
-      return parsed;
-    }
-  } catch {
-    /* ignore corrupted entry */
-  }
-  return fallback;
-}
 
 export type LoadedPortfolio = {
   collections: TaggedCollectionHoldings[];
@@ -64,45 +30,58 @@ const RainbowConnectButton = dynamic(
 const hasWalletConnectProject =
   !!process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
+// Holder-side form persists to localStorage so visitors don't lose input
+// across tab switches / reloads. The MoTZ-side data is server-cached and
+// has no input fields, so nothing to persist there.
+const HOLDER_WALLETS_LS_KEY = "motz:holder:walletAddresses";
+const HOLDER_TRANSFERRERS_LS_KEY = "motz:holder:transferrers";
+
+function readStringArray(key: string, fallback: string[]): string[] {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.every((s) => typeof s === "string")) {
+      return parsed;
+    }
+  } catch {
+    /* ignore corrupted entry */
+  }
+  return fallback;
+}
+
 export default function Home() {
-  const [tab, setTab] = useState<TabId>("dashboard");
-  // Lifted so loaded data + inputs persist across tab switches. Both lists
-  // grow dynamically via "+ Add" buttons (no hard cap). The defaults
-  // pre-populate the form on first visit; localStorage takes over once the
-  // user edits anything.
-  const [walletAddresses, setWalletAddresses] = useState<string[]>(
-    DEFAULT_WALLETS,
-  );
-  const [transferrers, setTransferrers] = useState<string[]>(
-    DEFAULT_TRANSFERRERS,
+  const [tab, setTab] = useState<TabId>("motz-dashboard");
+
+  // Holder-side state (visitor input + loaded portfolio).
+  const [holderWalletAddresses, setHolderWalletAddresses] = useState<string[]>([
+    "",
+  ]);
+  const [holderTransferrers, setHolderTransferrers] = useState<string[]>([""]);
+  const [holderLoaded, setHolderLoaded] = useState<LoadedPortfolio | null>(
+    null,
   );
 
-  // Hydrate from localStorage on mount (skipped during SSR so the initial
-  // server render uses the defaults and there's no hydration mismatch).
+  // Hydrate holder form state from localStorage on mount.
   useEffect(() => {
-    setWalletAddresses(readStringArray(WALLETS_LS_KEY, DEFAULT_WALLETS));
-    setTransferrers(readStringArray(TRANSFERRERS_LS_KEY, DEFAULT_TRANSFERRERS));
+    setHolderWalletAddresses(readStringArray(HOLDER_WALLETS_LS_KEY, [""]));
+    setHolderTransferrers(readStringArray(HOLDER_TRANSFERRERS_LS_KEY, [""]));
   }, []);
-
-  // Persist changes back to localStorage.
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(
-      WALLETS_LS_KEY,
-      JSON.stringify(walletAddresses),
+      HOLDER_WALLETS_LS_KEY,
+      JSON.stringify(holderWalletAddresses),
     );
-  }, [walletAddresses]);
+  }, [holderWalletAddresses]);
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(
-      TRANSFERRERS_LS_KEY,
-      JSON.stringify(transferrers),
+      HOLDER_TRANSFERRERS_LS_KEY,
+      JSON.stringify(holderTransferrers),
     );
-  }, [transferrers]);
-  // The single source of truth for what the Dashboard renders. Either tab
-  // can write here: Dashboard from its own single-address load, Wallets from
-  // its combined load (after which we auto-switch to Dashboard).
-  const [loaded, setLoaded] = useState<LoadedPortfolio | null>(null);
+  }, [holderTransferrers]);
 
   return (
     <div className="relative z-10 flex flex-1 flex-col">
@@ -127,26 +106,54 @@ export default function Home() {
 
       <TabNav active={tab} onChange={setTab} />
 
-      {/* Render all three views always — toggle via CSS so loaded data
-          persists across tab switches. */}
+      {/* All 6 views render concurrently but only one is visible at a time
+          (CSS toggle). Keeps loaded state / fetched snapshots resident
+          across tab switches without re-mounting. */}
       <main className="relative flex-1 px-8 py-8 max-w-[1200px] w-full mx-auto">
-        <div className={tab === "dashboard" ? "" : "hidden"}>
-          <DashboardView loaded={loaded} setLoaded={setLoaded} />
+        {/* MoTZ side — read-only project snapshot. */}
+        <div className={tab === "motz-dashboard" ? "" : "hidden"}>
+          <MotzDashboardView />
         </div>
-        <div className={tab === "wallets" ? "" : "hidden"}>
-          <WalletsView
-            addresses={walletAddresses}
-            setAddresses={setWalletAddresses}
-            transferrers={transferrers}
-            setTransferrers={setTransferrers}
-            onLoaded={(payload) => {
-              setLoaded(payload);
-              setTab("dashboard");
-            }}
+        <div className={tab === "motz-pnl" ? "" : "hidden"}>
+          <PnlView
+            addresses={[]}
+            titleOverride="MoTZ PnL Chart"
+            subtitleOverride="Project P&L over time. Auto-refreshes with the MoTZ Dashboard snapshot."
           />
         </div>
-        <div className={tab === "pnl" ? "" : "hidden"}>
-          <PnlView addresses={walletAddresses} />
+        <div className={tab === "motz-wallet" ? "" : "hidden"}>
+          <MotzWalletView />
+        </div>
+
+        {/* Holder side — visitor's own input. */}
+        <div className={tab === "holder-dashboard" ? "" : "hidden"}>
+          <DashboardView
+            loaded={holderLoaded}
+            setLoaded={setHolderLoaded}
+            holderMode
+          />
+        </div>
+        <div className={tab === "holder-pnl" ? "" : "hidden"}>
+          <PnlView
+            addresses={holderWalletAddresses}
+            titleOverride="Holder's PnL Chart"
+            subtitleOverride="Your P&L over time, reconstructed from on-chain history."
+          />
+        </div>
+        <div className={tab === "holder-wallet" ? "" : "hidden"}>
+          <WalletsView
+            addresses={holderWalletAddresses}
+            setAddresses={setHolderWalletAddresses}
+            transferrers={holderTransferrers}
+            setTransferrers={setHolderTransferrers}
+            onLoaded={(payload) => {
+              setHolderLoaded(payload);
+              setTab("holder-dashboard");
+            }}
+            holderMode
+            title="Holder's Wallets"
+            subtitle="Paste your Ronin address(es) or RNS. Anything you didn't mint or buy stays as a transfer with $0 cost."
+          />
         </div>
       </main>
 

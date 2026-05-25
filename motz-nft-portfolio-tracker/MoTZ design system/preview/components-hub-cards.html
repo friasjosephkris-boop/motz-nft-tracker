@@ -1,0 +1,319 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MoTZ Hub Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --motz-red: #FF2A55;
+    --gold: #FBBF24;
+    --purple: #7000FF;
+    --purple-soft: #A855F7;
+    --void: #0F0518;
+    --ink: #050108;
+    --text: #F5F5F4;
+    --muted: #A8A29E;
+    --dim: #78716C;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 56px 48px;
+    background:
+      radial-gradient(ellipse 800px 500px at 20% 10%, rgba(255,42,85,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 85% 90%, rgba(112,0,255,0.10), transparent 60%),
+      linear-gradient(180deg, #0a0314 0%, var(--void) 50%, var(--ink) 100%);
+    min-height: 100vh;
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .grid-overlay {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  .wrap {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 0 auto;
+    display: grid; gap: 32px;
+  }
+  .row-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .row-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  /* ── Premium hub card ──────────────────────────────────────── */
+  .card {
+    position: relative;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    padding: 28px 28px 26px;
+    border-radius: 20px;
+    isolation: isolate;
+    overflow: hidden;
+    cursor: pointer;
+    background:
+      /* top sheen */
+      linear-gradient(180deg, rgba(255,255,255,0.07) 0%, transparent 30%),
+      /* base */
+      linear-gradient(180deg, #181028 0%, #0c0518 100%);
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      inset 0 0 0 1px rgba(255,255,255,0.02),
+      0 1px 0 rgba(0,0,0,0.5),
+      0 12px 28px rgba(0,0,0,0.42),
+      0 28px 60px rgba(0,0,0,0.38);
+    transition:
+      transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.35s ease,
+      border-color 0.35s ease;
+  }
+  /* top hairline accent */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 16px; right: 16px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.20), transparent);
+    opacity: 0.7;
+  }
+  /* corner glow that intensifies on hover */
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: -40% -20% auto auto;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--accent, rgba(255,42,85,0.35)), transparent 65%);
+    filter: blur(28px);
+    opacity: 0.25;
+    transition: opacity 0.4s ease, transform 0.6s ease;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.14);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 1px 0 rgba(0,0,0,0.5),
+      0 18px 38px rgba(0,0,0,0.48),
+      0 36px 80px rgba(0,0,0,0.42),
+      0 0 0 1px var(--accent-line, rgba(255,42,85,0.20));
+  }
+  .card:hover::after {
+    opacity: 0.65;
+    transform: scale(1.1);
+  }
+
+  /* ── Per-accent variants ───────────────────────────────────── */
+  .card.red    { --accent: rgba(255,42,85,0.40); --accent-line: rgba(255,42,85,0.22); }
+  .card.gold   { --accent: rgba(251,191,36,0.38); --accent-line: rgba(251,191,36,0.22); }
+  .card.purple { --accent: rgba(168,85,247,0.40); --accent-line: rgba(168,85,247,0.22); }
+
+  /* ── Icon plate ────────────────────────────────────────────── */
+  .ic {
+    position: relative;
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+    color: var(--ic-fg, #fff);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 60%),
+      var(--ic-bg, linear-gradient(180deg, #FF3D63, #C71840));
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.30),
+      inset 0 -1px 0 rgba(0,0,0,0.30),
+      0 8px 18px var(--ic-shadow, rgba(255,42,85,0.40)),
+      0 2px 0 rgba(0,0,0,0.35);
+  }
+  .ic svg { width: 26px; height: 26px; }
+  .ic.red    { --ic-bg: linear-gradient(180deg, #FF5A78 0%, #FF2A55 50%, #C71840 100%); --ic-shadow: rgba(255,42,85,0.40); }
+  .ic.gold   { --ic-bg: linear-gradient(180deg, #FFD970 0%, #FBBF24 50%, #B8860B 100%); --ic-shadow: rgba(251,191,36,0.40); --ic-fg: #2A1A00; }
+  .ic.purple { --ic-bg: linear-gradient(180deg, #C084FC 0%, #A855F7 50%, #7E22CE 100%); --ic-shadow: rgba(168,85,247,0.42); }
+
+  /* arrow chip top-right */
+  .ar {
+    position: absolute;
+    top: 22px; right: 22px;
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.10);
+    color: var(--muted);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: all 0.25s ease;
+  }
+  .ar svg { width: 14px; height: 14px; }
+  .card:hover .ar {
+    color: #fff;
+    border-color: rgba(255,255,255,0.18);
+    background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+    transform: translate(2px, -2px);
+  }
+
+  .card h3 {
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+    color: #fff;
+  }
+  .card p {
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.55;
+    font-family: 'Inter', system-ui, sans-serif;
+    max-width: 92%;
+  }
+
+  /* meta row at the bottom */
+  .meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+  }
+  .meta .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--meta-dot, #22C55E);
+    box-shadow: 0 0 8px var(--meta-dot, #22C55E);
+  }
+  .meta.live { --meta-dot: #22C55E; color: #86EFAC; }
+  .meta.live .dot { animation: pulse 2s infinite; }
+  .meta.gold { --meta-dot: #FBBF24; color: #FFE8A6; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .meta .sep { opacity: 0.3; }
+</style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  <div class="wrap">
+
+    <section>
+      <div class="row-label">Hub destinations</div>
+      <div class="grid">
+
+        <a class="card gold" href="#">
+          <div class="ic gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21V8l9-5 9 5v13"/><path d="M9 21V12h6v9"/><path d="M3 21h18"/>
+            </svg>
+          </div>
+          <span class="ar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          </span>
+          <h3>Homeland</h3>
+          <p>Data-driven gaming trackers, Ronin-specific tools, and live guild analytics.</p>
+          <div class="meta gold">
+            <span class="dot"></span>
+            <span>Ronin · Trackers</span>
+            <span class="sep">·</span>
+            <span>v2.4</span>
+          </div>
+        </a>
+
+        <a class="card red" href="#">
+          <div class="ic red">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+            </svg>
+          </div>
+          <span class="ar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          </span>
+          <h3>Discord</h3>
+          <p>The heart of MoTZ. Strategy, vibes, and 2,800+ legends grinding daily.</p>
+          <div class="meta live">
+            <span class="dot"></span>
+            <span>2,847 online</span>
+            <span class="sep">·</span>
+            <span>Live now</span>
+          </div>
+        </a>
+
+        <a class="card purple" href="#">
+          <div class="ic purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"/>
+              <line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/>
+              <circle cx="15" cy="11" r="1"/><circle cx="18" cy="13" r="1"/>
+            </svg>
+          </div>
+          <span class="ar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          </span>
+          <h3>Moki Manager</h3>
+          <p>Utility and asset management for Moku. Track your Mokis, cards, and rarity.</p>
+          <div class="meta">
+            <span class="dot" style="--meta-dot:#A855F7"></span>
+            <span>Season 1</span>
+            <span class="sep">·</span>
+            <span>520 Genesis</span>
+          </div>
+        </a>
+
+        <a class="card gold" href="#">
+          <div class="ic gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7v10M9 9h4.5a2 2 0 0 1 0 4H9M9 13h5a2 2 0 0 1 0 4H9"/>
+            </svg>
+          </div>
+          <span class="ar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+          </span>
+          <h3>NFTs &amp; Vault</h3>
+          <p>Founders Coins, Vault Keys, tier breakdowns, and how to participate in MoTZ.</p>
+          <div class="meta gold">
+            <span class="dot"></span>
+            <span>800 Founders</span>
+            <span class="sep">·</span>
+            <span>3 Tiers</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>

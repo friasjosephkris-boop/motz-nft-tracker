@@ -1,0 +1,357 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Ego — The Mascot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --motz-red: #FF2A55;
+    --gold: #FBBF24;
+    --purple: #7000FF;
+    --purple-soft: #A855F7;
+    --void: #0F0518;
+    --ink: #050108;
+    --text: #F5F5F4;
+    --muted: #A8A29E;
+    --dim: #78716C;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 56px 48px;
+    background:
+      radial-gradient(ellipse 900px 600px at 25% 20%, rgba(255,42,85,0.18), transparent 60%),
+      radial-gradient(ellipse 800px 600px at 80% 85%, rgba(112,0,255,0.16), transparent 60%),
+      linear-gradient(180deg, #0a0314 0%, var(--void) 50%, var(--ink) 100%);
+    min-height: 100vh;
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .grid-overlay {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  .wrap {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 0 auto;
+    display: grid; gap: 36px;
+  }
+  .row-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .row-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
+  }
+
+  /* ── Hero portrait ────────────────────────────────────────── */
+  .hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    padding: 48px 48px 48px 40px;
+    border-radius: 28px;
+    overflow: hidden;
+    isolation: isolate;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.05), transparent 30%),
+      linear-gradient(180deg, #1a0e2e 0%, #0c0518 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      0 1px 0 rgba(0,0,0,0.5),
+      0 28px 80px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(255,42,85,0.10);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: -50% -10% auto auto;
+    width: 700px; height: 700px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,42,85,0.40), transparent 60%);
+    filter: blur(40px);
+    z-index: -1;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: auto auto -40% -10%;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168,85,247,0.30), transparent 60%);
+    filter: blur(40px);
+    z-index: -1;
+  }
+
+  .portrait {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 24px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255,42,85,0.6), transparent 70%),
+      radial-gradient(circle at 70% 80%, rgba(112,0,255,0.5), transparent 70%),
+      #150828;
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      inset 0 0 80px rgba(0,0,0,0.4),
+      0 30px 60px rgba(0,0,0,0.5);
+  }
+  .portrait img {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: center 38%;
+    filter: drop-shadow(0 20px 40px rgba(0,0,0,0.4));
+  }
+  /* corner brackets */
+  .portrait .br {
+    position: absolute;
+    width: 32px; height: 32px;
+    border: 2px solid var(--gold);
+    opacity: 0.85;
+  }
+  .portrait .tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; }
+  .portrait .tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; }
+  .portrait .bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; }
+  .portrait .br2 { bottom: 14px; right: 14px; border-left: 0; border-top: 0; }
+  .portrait .stamp {
+    position: absolute;
+    bottom: 18px; left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold);
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(251,191,36,0.45);
+    backdrop-filter: blur(8px);
+  }
+
+  .meta-block .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 14px;
+  }
+  .meta-block h1 {
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 88px;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    margin: 0 0 14px;
+    background: linear-gradient(135deg, #fff 0%, #FFD970 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .meta-block .subtitle {
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 22px;
+    color: var(--motz-red);
+    margin: 0 0 18px;
+    letter-spacing: 0.005em;
+  }
+  .meta-block .desc {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 420px;
+    margin: 0 0 24px;
+  }
+
+  .specs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    max-width: 440px;
+  }
+  .spec {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .spec .k {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 4px;
+  }
+  .spec .v {
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: #fff;
+  }
+
+  /* ── Variants strip ───────────────────────────────────────── */
+  .variants {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .vcard {
+    position: relative;
+    aspect-ratio: 4/5;
+    border-radius: 18px;
+    overflow: hidden;
+    isolation: isolate;
+    background:
+      radial-gradient(circle at 30% 25%, rgba(255,42,85,0.45), transparent 65%),
+      radial-gradient(circle at 70% 80%, rgba(112,0,255,0.30), transparent 65%),
+      #120724;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      inset 0 0 60px rgba(0,0,0,0.4),
+      0 12px 28px rgba(0,0,0,0.42);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+  }
+  .vcard:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      0 20px 40px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(251,191,36,0.30);
+  }
+  .vcard img {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .vcard .fade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 50%, rgba(15,5,24,0.88) 100%);
+  }
+  .vcard .label {
+    position: absolute;
+    left: 14px; right: 14px; bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .vcard .name {
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 17px;
+    color: #fff;
+    letter-spacing: -0.005em;
+  }
+  .vcard .role {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(251,191,36,0.10);
+    border: 1px solid rgba(251,191,36,0.30);
+  }
+  .vcard .num {
+    position: absolute;
+    top: 12px; left: 14px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.20em;
+    color: rgba(255,255,255,0.55);
+  }
+</style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  <div class="wrap">
+
+    <section>
+      <div class="row-label">Hero portrait</div>
+      <div class="hero">
+        <div class="portrait">
+          <img src="../assets/mascot/ego-loader-3.jpg" alt="Ego close-up">
+          <span class="br tl"></span>
+          <span class="br tr"></span>
+          <span class="br bl"></span>
+          <span class="br br2"></span>
+          <span class="stamp">Mark of The Zeal · 001</span>
+        </div>
+
+        <div class="meta-block">
+          <div class="eyebrow">The Mascot · Since Day Zero</div>
+          <h1>EGO</h1>
+          <div class="subtitle">The Narrator. The Vibe. The Soul.</div>
+          <div class="specs">
+            <div class="spec"><div class="k">Persona</div><div class="v">Confident · Playful</div></div>
+            <div class="spec"><div class="k">Color anchor</div><div class="v">MoTZ Crimson</div></div>
+            <div class="spec"><div class="k">Voice</div><div class="v">Sharp · Mischievous</div></div>
+            <div class="spec"><div class="k">Use cases</div><div class="v">Hero · Loaders · Ads</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="row-label">Personality lineup</div>
+      <div class="variants">
+        <div class="vcard">
+          <img src="../assets/mascot/ego-closeup.jpg" alt="Ego lazy">
+          <div class="fade"></div>
+          <div class="num">01</div>
+          <div class="label"><span class="name">Lazy</span><span class="role">Mood</span></div>
+        </div>
+        <div class="vcard">
+          <img src="../assets/mascot/ego-loader-1.jpg" alt="Ego top hat">
+          <div class="fade"></div>
+          <div class="num">02</div>
+          <div class="label"><span class="name">The Showman</span><span class="role">Campaign</span></div>
+        </div>
+        <div class="vcard">
+          <img src="../assets/mascot/ego-loader-2.jpg" alt="Ego salute">
+          <div class="fade"></div>
+          <div class="num">03</div>
+          <div class="label"><span class="name">The Recruit</span><span class="role">Squad</span></div>
+        </div>
+        <div class="vcard">
+          <img src="../assets/mascot/ego-loader-4.jpg" alt="Ego with companions">
+          <div class="fade"></div>
+          <div class="num">04</div>
+          <div class="label"><span class="name">The Explorer</span><span class="role">Lore</span></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MoTZ Chips &amp; Badges</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --motz-red: #FF2A55;
+    --gold: #FBBF24;
+    --purple: #7000FF;
+    --purple-soft: #A855F7;
+    --green: #22C55E;
+    --void: #0F0518;
+    --ink: #050108;
+    --text: #F5F5F4;
+    --muted: #A8A29E;
+    --dim: #78716C;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 56px 48px;
+    background:
+      radial-gradient(ellipse 800px 500px at 20% 10%, rgba(255,42,85,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 85% 90%, rgba(112,0,255,0.10), transparent 60%),
+      linear-gradient(180deg, #0a0314 0%, var(--void) 50%, var(--ink) 100%);
+    min-height: 100vh;
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .grid-overlay {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+  .wrap {
+    position: relative; z-index: 1;
+    max-width: 1100px; margin: 0 auto;
+    display: grid; gap: 36px;
+  }
+  .row-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px; font-weight: 500;
+    letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .row-label::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  /* ── Base chip ─────────────────────────────────────────────── */
+  .chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px 7px 12px;
+    border-radius: 999px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.005em;
+    line-height: 1;
+    isolation: isolate;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  }
+  .chip .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .chip .ico {
+    width: 13px; height: 13px;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .chip .ico svg { width: 100%; height: 100%; }
+
+  /* Default · neutral glass */
+  .chip-default {
+    color: #CFBEE4;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      0 1px 0 rgba(0,0,0,0.4),
+      0 4px 14px rgba(0,0,0,0.25);
+  }
+  .chip-default .dot {
+    background: var(--motz-red);
+    box-shadow: 0 0 8px rgba(255,42,85,0.6);
+  }
+
+  /* Crimson · accent */
+  .chip-red {
+    color: #FFB8C6;
+    background:
+      linear-gradient(180deg, rgba(255,42,85,0.18), rgba(255,42,85,0.06));
+    border: 1px solid rgba(255,42,85,0.35);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      0 1px 0 rgba(0,0,0,0.4),
+      0 4px 14px rgba(255,42,85,0.18);
+  }
+  .chip-red .dot { background: var(--motz-red); box-shadow: 0 0 8px rgba(255,42,85,0.8); }
+
+  /* Purple · ecosystem */
+  .chip-purple {
+    color: #E9D5FF;
+    background:
+      linear-gradient(180deg, rgba(168,85,247,0.18), rgba(112,0,255,0.06));
+    border: 1px solid rgba(168,85,247,0.35);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      0 1px 0 rgba(0,0,0,0.4),
+      0 4px 14px rgba(112,0,255,0.18);
+  }
+  .chip-purple .dot { background: var(--purple-soft); box-shadow: 0 0 8px rgba(168,85,247,0.8); }
+
+  /* Gold · ranked / premium */
+  .chip-gold {
+    color: #FFE8A6;
+    background:
+      linear-gradient(180deg, rgba(251,191,36,0.20), rgba(251,191,36,0.06));
+    border: 1px solid rgba(251,191,36,0.45);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.18),
+      0 1px 0 rgba(0,0,0,0.4),
+      0 4px 14px rgba(251,191,36,0.22);
+  }
+  .chip-gold .dot { background: var(--gold); box-shadow: 0 0 8px rgba(251,191,36,0.85); }
+
+  /* Live · status with pulse */
+  .chip-live {
+    color: #86EFAC;
+    background:
+      linear-gradient(180deg, rgba(34,197,94,0.18), rgba(34,197,94,0.06));
+    border: 1px solid rgba(34,197,94,0.40);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      0 1px 0 rgba(0,0,0,0.4),
+      0 4px 14px rgba(34,197,94,0.20);
+  }
+  .chip-live .dot {
+    background: var(--green);
+    box-shadow: 0 0 0 0 rgba(34,197,94,0.6);
+    animation: pulse-ring 2s infinite;
+  }
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+    70%  { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+    100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+  }
+
+  /* Solid gold · premium ranked badge */
+  .chip-solid-gold {
+    color: #2A1A00;
+    font-weight: 700;
+    font-family: 'Fredoka', system-ui, sans-serif;
+    letter-spacing: 0.02em;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 50%),
+      linear-gradient(180deg, #FFD970 0%, var(--gold) 45%, #E59700 100%);
+    border: 1px solid rgba(120,60,0,0.25);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.7),
+      inset 0 -1px 0 rgba(120,60,0,0.30),
+      0 1px 0 rgba(255,255,255,0.10),
+      0 4px 12px rgba(251,191,36,0.30),
+      0 8px 22px rgba(251,191,36,0.25);
+  }
+  .chip-solid-gold .ico { color: #2A1A00; }
+
+  /* Solid red · primary action chip */
+  .chip-solid-red {
+    color: #fff;
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-weight: 600;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0) 45%),
+      linear-gradient(180deg, #FF3D63 0%, var(--motz-red) 50%, #C71840 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.32),
+      inset 0 -1px 0 rgba(0,0,0,0.25),
+      0 4px 12px rgba(255,42,85,0.30),
+      0 8px 22px rgba(255,42,85,0.25);
+  }
+
+  /* Outline · stroke accent */
+  .chip-outline {
+    color: var(--motz-red);
+    background: transparent;
+    border: 1.5px solid rgba(255,42,85,0.55);
+    box-shadow: inset 0 0 0 1px rgba(255,42,85,0.04);
+  }
+
+  /* Mono · data label */
+  .chip-mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.10);
+    padding: 6px 10px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  /* Tier badge · square-ish, sharp */
+  .badge-tier {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px 6px 6px;
+    border-radius: 8px;
+    font-family: 'Fredoka', system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .badge-tier .pip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .badge-tier.t1 { color: #FFE8A6; }
+  .badge-tier.t1 .pip {
+    background: linear-gradient(180deg, #FFD970, #E59700);
+    color: #2A1A00;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(251,191,36,0.4);
+  }
+  .badge-tier.t2 { color: #E9D5FF; }
+  .badge-tier.t2 .pip {
+    background: linear-gradient(180deg, #C084FC, #7E22CE);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 6px rgba(168,85,247,0.4);
+  }
+  .badge-tier.t3 { color: #FFB8C6; }
+  .badge-tier.t3 .pip {
+    background: linear-gradient(180deg, #FF6B85, #C71840);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 6px rgba(255,42,85,0.4);
+  }
+
+  /* Number badge · count */
+  .badge-num {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 5px 5px 12px;
+    border-radius: 999px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07);
+    line-height: 1;
+  }
+  .badge-num .count {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 700;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, #FF3D63, #C71840);
+    color: #fff;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 6px rgba(255,42,85,0.4);
+  }
+  .badge-num.gold .count {
+    background: linear-gradient(180deg, #FFD970, #E59700);
+    color: #2A1A00;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(251,191,36,0.4);
+  }
+
+  /* Sheen on hover for solid chips */
+  .chip-solid-gold, .chip-solid-red {
+    cursor: pointer;
+  }
+  .chip-solid-gold::after, .chip-solid-red::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.22) 45%, transparent 60%);
+    transform: translateX(-120%);
+    transition: transform 0.7s ease;
+    pointer-events: none;
+  }
+  .chip-solid-gold:hover::after, .chip-solid-red:hover::after { transform: translateX(120%); }
+</style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  <div class="wrap">
+
+    <section>
+      <div class="row-label">Tonal chips</div>
+      <div class="row">
+        <span class="chip chip-default"><span class="dot"></span>Tactical Clarity</span>
+        <span class="chip chip-red"><span class="dot"></span>Guild Energy</span>
+        <span class="chip chip-purple"><span class="dot"></span>Ronin Ecosystem</span>
+        <span class="chip chip-gold"><span class="dot"></span>Top Holder</span>
+        <span class="chip chip-live"><span class="dot"></span>Season 1 Live</span>
+      </div>
+    </section>
+
+    <section>
+      <div class="row-label">Solid &amp; outline</div>
+      <div class="row">
+        <span class="chip chip-solid-gold">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 1l2.6 7.6h8l-6.5 4.7 2.5 7.7L12 16.3 5.4 21l2.5-7.7L1.4 8.6h8z"/></svg></span>
+          #1 Moki Holder
+        </span>
+        <span class="chip chip-solid-red">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+          Mint Vault Keys
+        </span>
+        <span class="chip chip-outline">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+          Read Manifesto
+        </span>
+        <span class="chip chip-mono">RONIN · MAINNET</span>
+        <span class="chip chip-mono">v2.4.0</span>
+      </div>
+    </section>
+
+    <section>
+      <div class="row-label">Tier badges</div>
+      <div class="row">
+        <span class="badge-tier t1"><span class="pip">T1</span>Founders Coin</span>
+        <span class="badge-tier t2"><span class="pip">T2</span>Vault Key</span>
+        <span class="badge-tier t3"><span class="pip">T3</span>Squad Member</span>
+      </div>
+    </section>
+
+    <section>
+      <div class="row-label">Counters &amp; status</div>
+      <div class="row">
+        <span class="badge-num">Squad<span class="count">2.8k</span></span>
+        <span class="badge-num gold">Founders<span class="count">800</span></span>
+        <span class="chip chip-live"><span class="dot"></span>Live now · 142 watching</span>
+        <span class="chip chip-default" style="color:#A8A29E"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Closes in 14h</span>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>

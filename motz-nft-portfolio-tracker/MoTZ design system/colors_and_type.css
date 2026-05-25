@@ -1,0 +1,161 @@
+/* ============================================================
+   MoTZ Design System — colors_and_type.css
+   Source: kyrohmotz/motz-toolkit (public/brand.html, ui-guide.html, index.html)
+   Brand kit cross-reference: MoTZ Brand Guide v1.1 (2026)
+   ============================================================ */
+
+/* ---- Webfont stack ----
+   The official brand brief calls for YOURMATE (display) and Roc Grotesk (body).
+   The shipping codebase uses Fredoka + Inter (free Google Fonts) as a working
+   substitute. We follow the codebase as the source of truth and FLAG the
+   substitution in README. Provide YOURMATE/Roc Grotesk .woff2 in /fonts and
+   uncomment the @font-face blocks below to swap in the official faces.
+*/
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* @font-face {
+  font-family: 'Yourmate';
+  src: url('/fonts/Yourmate.woff2') format('woff2');
+  font-weight: 400 800; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Roc Grotesk';
+  src: url('/fonts/RocGrotesk.woff2') format('woff2');
+  font-weight: 400 700; font-style: normal; font-display: swap;
+} */
+
+:root {
+  /* ============== BRAND COLORS — Primary ============== */
+  --motz-red:        #FF2A55;   /* signature / primary action */
+  --motz-red-deep:   #D91A45;   /* hover / button gradient end */
+  --winner-gold:     #FBBF24;   /* achievement / rewards */
+  --winner-gold-deep:#F59E0B;   /* gold gradient end */
+  --electric-purple: #7000FF;   /* energy / secondary */
+  --electric-purple-deep:#5A00D6;
+  --void-black:      #0F0518;   /* background / void mode */
+  --mavis-blue:      #0E7DE9;   /* secondary info (rare use) */
+
+  /* ============== Surfaces (glassmorphic on dark) ============== */
+  --surface:         rgba(255, 255, 255, 0.03);
+  --surface-hover:   rgba(255, 255, 255, 0.06);
+  --surface-strong:  rgba(255, 255, 255, 0.08);
+  --glass:           rgba(255, 255, 255, 0.05);
+  --glass-border:    rgba(255, 255, 255, 0.08);
+  --glass-border-hi: rgba(255, 255, 255, 0.15);
+
+  /* Layered backgrounds (from ui-guide.html) */
+  --bg-base:  #0F0518;
+  --bg-s1:    #180B26;
+  --bg-s2:    #221133;
+  --bg-elev:  #2B1640;
+  --border-sub:    #3A2155;
+  --border-strong: #55307A;
+
+  /* ============== Text ============== */
+  --text-primary: #F5F5F4;
+  --text-muted:   #A8A29E;
+  --text-dim:     #78716C;
+  --text-accent:  #F8EEFF;   /* purple-tinted variant */
+
+  /* ============== Semantic ============== */
+  --ok:   #2FD27A;
+  --warn: #FFB020;
+  --err:  #FF5A6B;
+  --info: #4DA3FF;
+
+  /* ============== Gradients ============== */
+  --grad-primary:   linear-gradient(135deg, #FF2A55 0%, #7000FF 100%);
+  --grad-button:    linear-gradient(135deg, #FF2A55 0%, #D91A45 100%);
+  --grad-gold:      linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  --grad-purple:    linear-gradient(135deg, #7000FF 0%, #5A00D6 100%);
+  --grad-text:      linear-gradient(135deg, #FF2A55 0%, #7000FF 100%);
+  --grad-surface:   linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+  --grad-glow-page: radial-gradient(circle at 80% 0%, rgba(122,92,255,0.16), transparent 40%),
+                    radial-gradient(circle at 0% 100%, rgba(45,226,230,0.12), transparent 40%);
+
+  /* ============== Radii ============== */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+
+  /* ============== Spacing scale ============== */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* ============== Shadows ============== */
+  --sh-card:     0 8px 26px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05);
+  --sh-lift:     0 16px 48px rgba(0,0,0,0.46), 0 0 30px rgba(255,42,85,0.12);
+  --sh-cta:      0 4px 24px rgba(255,42,85,0.25);
+  --sh-cta-hi:   0 8px 32px rgba(255,42,85,0.35);
+  --sh-gold:     0 12px 30px rgba(251,191,36,0.40);
+  --sh-glow-red: 0 0 30px rgba(255,42,85,0.50);
+  --sh-glow-gold:0 0 20px rgba(251,191,36,0.50);
+
+  /* ============== Type — families ============== */
+  --font-display: 'Fredoka', 'Yourmate', system-ui, sans-serif;  /* big headlines, all-caps energy */
+  --font-heading: 'Fredoka', 'Yourmate', system-ui, sans-serif;
+  --font-body:    'Inter', 'Roc Grotesk', system-ui, sans-serif;
+  --font-ui:      'Onest', 'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* ============== Type — semantic ============== */
+  --t-h1-size: 36px; --t-h1-line: 48px; --t-h1-weight: 700;
+  --t-h2-size: 30px; --t-h2-line: 36px; --t-h2-weight: 700;
+  --t-h3-size: 24px; --t-h3-line: 32px; --t-h3-weight: 600;
+  --t-h4-size: 20px; --t-h4-line: 28px; --t-h4-weight: 500;
+  --t-body-lg-size: 18px; --t-body-lg-line: 28px;
+  --t-body-size:    16px; --t-body-line:    24px;
+  --t-caption-size: 14px; --t-caption-line: 20px;
+  --t-overline-size:12px; --t-overline-line:16px; --t-overline-track: 0.10em;
+  --t-mono-size:    13px; --t-mono-line:    20px;
+
+  /* ============== Motion ============== */
+  --ease-out:  cubic-bezier(.2, .7, .2, 1);
+  --ease-back: cubic-bezier(.34, 1.56, .64, 1);
+  --dur-fast:  120ms;
+  --dur:       200ms;
+  --dur-slow:  240ms;
+  --dur-hero:  400ms;
+}
+
+/* ============== Element defaults ============== */
+html, body { background: var(--void-black); color: var(--text-primary); }
+body { font-family: var(--font-body); font-size: var(--t-body-size); line-height: var(--t-body-line); }
+
+h1, h2, h3, h4, .font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+}
+h1 { font-size: var(--t-h1-size); line-height: var(--t-h1-line); font-weight: var(--t-h1-weight); }
+h2 { font-size: var(--t-h2-size); line-height: var(--t-h2-line); font-weight: var(--t-h2-weight); }
+h3 { font-size: var(--t-h3-size); line-height: var(--t-h3-line); font-weight: var(--t-h3-weight); }
+h4 { font-size: var(--t-h4-size); line-height: var(--t-h4-line); font-weight: var(--t-h4-weight); }
+
+.text-gradient {
+  background: var(--grad-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.text-glow-gold {
+  color: var(--winner-gold);
+  text-shadow: 0 0 20px rgba(251,191,36,0.5), 0 0 40px rgba(251,191,36,0.2);
+}
+
+.overline {
+  font-family: var(--font-mono);
+  font-size: var(--t-overline-size);
+  letter-spacing: var(--t-overline-track);
+  text-transform: uppercase;
+  color: var(--text-dim);
+}

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MoTZ — Website UI Kit</title>
+<link rel="icon" href="../../assets/logos/motz-favicon.png">
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--void-black);color:var(--text-primary);font-family:var(--font-body);min-height:100vh;overflow-x:hidden}
+.bg-glow{position:fixed;width:600px;height:600px;border-radius:50%;filter:blur(150px);opacity:0.15;pointer-events:none;z-index:0}
+.bg-glow-red{background:var(--motz-red);top:-200px;left:-100px}
+.bg-glow-purple{background:var(--electric-purple);bottom:-200px;right:-100px}
+.bg-glow-gold{background:var(--winner-gold);top:50%;left:50%;transform:translate(-50%,-50%);opacity:0.05;width:800px;height:800px}
+.grid-pattern{position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.container{max-width:1200px;margin:0 auto;padding:0 24px;position:relative;z-index:1}
+
+.nav{padding:20px 0;display:flex;align-items:center;justify-content:space-between}
+.nav-logo img{height:36px;width:auto}
+.nav-links{display:flex;gap:8px}
+.nav-links a{color:var(--text-muted);text-decoration:none;font-size:14px;font-weight:500;padding:8px 16px;border-radius:8px;transition:all .2s;cursor:pointer}
+.nav-links a:hover{color:var(--text-primary);background:var(--surface-hover)}
+
+.hero{text-align:center;padding:64px 0 40px}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(255,42,85,0.1),rgba(112,0,255,0.1));border:1px solid rgba(255,42,85,0.2);padding:6px 16px;border-radius:100px;font-size:13px;font-weight:500;color:var(--motz-red);margin-bottom:24px}
+.hero-badge .dot{width:6px;height:6px;background:var(--motz-red);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.hero h1{font-family:var(--font-display);font-size:clamp(2.5rem,6vw,4.5rem);font-weight:700;line-height:1.1;margin-bottom:20px;letter-spacing:-0.01em}
+.hero h1 .gradient{background:var(--grad-text);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.hero p{font-size:18px;color:#C4BBB6;max-width:600px;margin:0 auto 32px;line-height:1.65}
+.hero-buttons{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:12px;font-family:var(--font-display);font-size:16px;font-weight:600;text-decoration:none;transition:all .25s var(--ease-out);cursor:pointer;border:none}
+.btn-primary{background:var(--grad-button);color:#fff;box-shadow:var(--sh-cta)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:var(--sh-cta-hi)}
+.btn-glass{background:var(--glass);color:var(--text-primary);border:1px solid var(--glass-border);backdrop-filter:blur(12px)}
+.btn-glass:hover{background:var(--surface-hover);border-color:rgba(255,255,255,0.15);transform:translateY(-2px)}
+.btn-gold{background:var(--grad-gold);color:var(--void-black)}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:var(--sh-gold)}
+
+.ego-float{margin:-12px auto 0;text-align:center}
+.ego-float img{width:240px;height:auto;filter:drop-shadow(0 20px 40px rgba(255,42,85,0.25));animation:float 4s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+.stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;padding:36px 0;border-top:1px solid rgba(255,255,255,0.05);border-bottom:1px solid rgba(255,255,255,0.05);margin:36px 0}
+.stat{text-align:center}
+.stat-value{font-family:var(--font-display);font-size:2rem;font-weight:700;background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.stat-label{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);margin-top:4px;text-transform:uppercase;letter-spacing:0.18em}
+
+.section-title{text-align:center;margin-bottom:36px}
+.section-title h2{font-family:var(--font-display);font-size:2rem;font-weight:700;margin-bottom:8px}
+.section-title p{color:var(--text-muted);font-size:16px}
+
+.hub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:64px}
+.hub-card{background:var(--grad-surface);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:28px;text-decoration:none;color:var(--text-primary);transition:all .24s var(--ease-out);position:relative;overflow:hidden;box-shadow:var(--sh-card);cursor:pointer}
+.hub-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--motz-red),var(--winner-gold),transparent);opacity:0;transition:opacity .24s}
+.hub-card::after{content:'';position:absolute;inset:-40% -20% auto auto;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(112,0,255,0.22),transparent 68%);filter:blur(18px);opacity:0;transition:opacity .24s;pointer-events:none}
+.hub-card:hover{background:linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03));border-color:rgba(251,191,36,0.32);transform:translateY(-4px) scale(1.01);box-shadow:var(--sh-lift)}
+.hub-card:hover::before,.hub-card:hover::after{opacity:1}
+.hub-card-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px}
+.hub-card-icon.red{background:rgba(255,42,85,0.10)}
+.hub-card-icon.gold{background:rgba(251,191,36,0.10)}
+.hub-card-icon.purple{background:rgba(112,0,255,0.10)}
+.hub-card h3{font-family:var(--font-display);font-size:18px;font-weight:600;margin-bottom:8px}
+.hub-card p{font-size:14px;color:var(--text-muted);line-height:1.5}
+.hub-card .arrow{position:absolute;top:28px;right:28px;color:var(--text-dim);transition:all .3s;font-size:18px}
+.hub-card:hover .arrow{color:var(--motz-red);transform:translate(4px,-4px)}
+
+.games-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:64px}
+.game-card{background:linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.10);border-radius:16px;padding:24px;text-align:center;transition:all .24s var(--ease-out);box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+.game-card:hover{transform:translateY(-4px);border-color:rgba(112,0,255,0.3);box-shadow:0 14px 44px rgba(0,0,0,0.42),0 0 24px rgba(112,0,255,0.15)}
+.game-card img{width:64px;height:64px;object-fit:contain;margin-bottom:10px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3))}
+.game-card .emoji{font-size:40px;margin-bottom:10px}
+.game-card h3{font-family:var(--font-display);font-size:16px;font-weight:600;margin-bottom:6px}
+.game-card p{font-size:13px;color:var(--text-dim)}
+.game-card .tag{display:inline-block;margin-top:12px;padding:4px 10px;border-radius:6px;font-family:var(--font-mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em}
+.tag-active{background:rgba(34,197,94,0.10);color:#22C55E}
+.tag-upcoming{background:rgba(251,191,36,0.10);color:var(--winner-gold)}
+
+footer{border-top:1px solid rgba(255,255,255,0.05);padding:36px 0;text-align:center}
+.footer-socials{display:flex;justify-content:center;gap:14px;margin-bottom:18px}
+.footer-socials a{width:44px;height:44px;border-radius:12px;background:var(--surface);border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;color:var(--text-muted);text-decoration:none;font-size:18px;transition:all .2s;cursor:pointer}
+.footer-socials a:hover{background:var(--surface-hover);color:var(--text-primary);transform:translateY(-2px)}
+.footer-text{color:var(--text-dim);font-size:13px}
+.footer-text .heart{color:var(--motz-red)}
+
+/* Connect-wallet modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(8,2,16,0.7);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:50;animation:fade .2s var(--ease-out)}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{background:linear-gradient(180deg,#1a0a2a,#120618);border:1px solid var(--glass-border-hi);border-radius:18px;padding:28px;width:min(420px,90vw);box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 40px rgba(255,42,85,0.15)}
+.modal h3{font-family:var(--font-display);font-size:22px;margin-bottom:6px}
+.modal p{color:var(--text-muted);font-size:14px;margin-bottom:18px}
+.wallet-list{display:flex;flex-direction:column;gap:10px}
+.wallet-row{display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface);border:1px solid var(--glass-border);border-radius:12px;cursor:pointer;transition:all .15s var(--ease-out);font-family:var(--font-display);font-weight:600}
+.wallet-row:hover{background:var(--surface-hover);border-color:rgba(251,191,36,0.32);transform:translateX(2px)}
+.wallet-row .ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,42,85,0.15);font-size:18px}
+.modal .close{margin-top:14px;background:transparent;border:0;color:var(--text-dim);font-family:var(--font-mono);font-size:12px;letter-spacing:0.18em;text-transform:uppercase;cursor:pointer;width:100%;padding:10px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;z-index:60;padding:14px 18px;background:rgba(15,5,24,0.92);border:1px solid var(--glass-border-hi);border-radius:12px;backdrop-filter:blur(12px);font-family:var(--font-mono);font-size:13px;color:#2FD27A;display:flex;align-items:center;gap:10px;box-shadow:0 12px 30px rgba(0,0,0,0.5);animation:slide .3s var(--ease-back)}
+@keyframes slide{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.toast .dot{width:8px;height:8px;border-radius:50%;background:#2FD27A;box-shadow:0 0 10px #2FD27A}
+
+@media (max-width:768px){.hero{padding:48px 0 32px}.nav-links{display:none}.stats-bar{grid-template-columns:repeat(2,1fr)}.ego-float img{width:160px}}
+</style>
+</head>
+<body>
+<div class="bg-glow bg-glow-red"></div>
+<div class="bg-glow bg-glow-purple"></div>
+<div class="bg-glow bg-glow-gold"></div>
+<div class="grid-pattern"></div>
+
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel">
+function App(){
+  const [walletOpen, setWalletOpen] = React.useState(false);
+  const [connected, setConnected] = React.useState(null);
+  const [toast, setToast] = React.useState(null);
+
+  const connect = (name) => {
+    setWalletOpen(false);
+    setConnected(name);
+    setToast(`Wallet connected · ${name}`);
+    setTimeout(()=>setToast(null), 3200);
+  };
+
+  const visit = (name) => {
+    setToast(`Loading ${name}…`);
+    setTimeout(()=>setToast(null), 2200);
+  };
+
+  return (
+    <>
+      <div className="container">
+        <Nav />
+      </div>
+
+      <div className="container">
+        <section className="hero">
+          <HeroBadge>Season 1 Live · 2,800+ Legends</HeroBadge>
+          <h1>The next powerhouse <span className="gradient">guild on Ronin.</span></h1>
+          <p>We play, we win, we build — together. Mokis, vault keys, championship runs and the squad that makes it all hit different.</p>
+          <div className="hero-buttons">
+            <Btn kind="primary" onClick={()=>setWalletOpen(true)}>
+              {connected ? `Connected · ${connected}` : '⚡ Connect Wallet'}
+            </Btn>
+            <Btn kind="glass" onClick={()=>visit('Discord')}>💬 Join Discord</Btn>
+          </div>
+        </section>
+        <EgoFloat />
+
+        <div className="stats-bar">
+          <StatBlock label="Legends" value="2,800+" />
+          <StatBlock label="Kingdoms Staked" value="1,250" />
+          <StatBlock label="Guild Glory" value="1.45M" />
+          <StatBlock label="Guild Rank" value="#1" />
+        </div>
+      </div>
+
+      <div className="container">
+        <SectionTitle title="Guild Hub" sub="Everything you need, one click away." />
+        <div className="hub-grid">
+          <HubCard icon="🏰" tint="gold" title="Homeland" body="Data-driven gaming trackers, Ronin tools, guild analytics." onClick={()=>visit('Homeland')} />
+          <HubCard icon="🎮" tint="purple" title="Moki Manager" body="Utility and asset management for Moku. Track your Mokis." onClick={()=>visit('Moki Manager')} />
+          <HubCard icon="💬" tint="red" title="Discord" body="The heart of MoTZ. Strategy, vibes, and 2,800+ legends grinding daily." onClick={()=>visit('Discord')} />
+          <HubCard icon="🪙" tint="gold" title="NFTs & Vault" body="Founders Coins, Vault Keys, tier breakdowns, and how to participate." onClick={()=>visit('NFTs')} />
+          <HubCard icon="⛵" tint="purple" title="MoTZ Voyages" body="Gamified staking for Founders Coins & Vault Keys. Earn on the journey." onClick={()=>visit('Voyages')} />
+          <HubCard icon="⚔️" tint="gold" title="Cambria Economy" body="Live market data, rarity explorer, wealth leaderboard, lookup." onClick={()=>visit('Cambria')} />
+          <HubCard icon="🤝" tint="red" title="P2P Trade Tool" body="Secure Ronin OTC swaps with escrow rooms, offers, and on-chain settlement." onClick={()=>visit('Trade')} />
+          <HubCard icon="🎨" tint="purple" title="Brand Guide" body="Colors, type, logos, Ego — the full MoTZ design system." onClick={()=>visit('Brand')} />
+        </div>
+
+        <SectionTitle title="Games We Dominate" sub="MoTZ competes at the highest level across the Ronin ecosystem and beyond." />
+        <div className="games-grid">
+          <GameCard img="../../assets/imagery/cambria-character.png" title="Cambria" sub="Duel Arena & Islands" tag="Active" tagKind="active" />
+          <GameCard title="Moku" sub="#1 Moki Holder" tag="Season 1 Live" tagKind="active" />
+          <GameCard img="../../assets/imagery/fableborne-character.png" title="Fableborne" sub="Rank 1 Guild" tag="Active" tagKind="active" />
+          <GameCard title="Axie Homeland" sub="3,000+ Plots" tag="Active" tagKind="active" />
+        </div>
+      </div>
+
+      <div className="container">
+        <Footer />
+      </div>
+
+      {walletOpen && (
+        <div className="modal-backdrop" onClick={()=>setWalletOpen(false)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <h3>Connect Wallet</h3>
+            <p>Pick your weapon, fam. We'll get you geared up in seconds.</p>
+            <div className="wallet-list">
+              <div className="wallet-row" onClick={()=>connect('Ronin')}><div className="ico">🦊</div>Ronin Wallet</div>
+              <div className="wallet-row" onClick={()=>connect('MetaMask')}><div className="ico" style={{background:'rgba(251,191,36,0.15)'}}>🟠</div>MetaMask</div>
+              <div className="wallet-row" onClick={()=>connect('WalletConnect')}><div className="ico" style={{background:'rgba(112,0,255,0.15)'}}>🔗</div>WalletConnect</div>
+            </div>
+            <button className="close" onClick={()=>setWalletOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {toast && <div className="toast"><span className="dot"></span>{toast}</div>}
+    </>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

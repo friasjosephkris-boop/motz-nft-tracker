@@ -81,6 +81,13 @@ export async function GET(req: NextRequest) {
   }
   const { address, resolvedFrom } = resolvedAddr;
 
+  // Holder mode: anything that isn't a confirmed mint or sale stays
+  // classified as "transfer" with $0 cost (no mint-price fallback). Used by
+  // the public Holder's Dashboard where we don't want to over-state PnL.
+  const holderMode =
+    req.nextUrl.searchParams.get("holderMode") === "true" ||
+    req.nextUrl.searchParams.get("holderMode") === "1";
+
   // Optional transferrer wallets: ANY number of upstream wallets that may
   // have originally minted/bought tokens before transferring them to the
   // searched address. When set, rows that would otherwise be "transferred"
@@ -362,6 +369,7 @@ export async function GET(req: NextRequest) {
           stakedMarketAcq,
           transferrerAcqs,
           transferrerAddrs,
+          holderMode,
         );
       }),
     );
@@ -422,6 +430,13 @@ async function buildCollectionHoldings(
    * transferrer "sale" and use the recorded price as the cost basis.
    */
   transferrerAddrs: Set<string> = new Set(),
+  /**
+   * Holder mode disables the "no-evidence" fallback that turns unknown
+   * transfers into "sale @ mint price". For the public Holder dashboard,
+   * we keep unknowns as plain transfers ($0 cost), so PnL stays accurate
+   * for users who received NFTs as gifts/airdrops/transfers.
+   */
+  holderMode: boolean = false,
 ): Promise<CollectionHoldings> {
   const mintTs = Math.floor(Date.parse(`${c.mintDate}T00:00:00Z`) / 1000);
   const contractLc = c.address.toLowerCase();
@@ -505,6 +520,7 @@ async function buildCollectionHoldings(
       // because `acq` is populated with a transfer event.
       let noEvidenceFallback = false;
       if (
+        !holderMode &&
         via === "transfer" &&
         !acq &&
         !userAcq &&
@@ -697,6 +713,7 @@ async function buildCollectionHoldings(
       // classify as "transfer" since marketAcq has a transfer event.
       let stakedNoEvidenceFallback = false;
       if (
+        !holderMode &&
         via === "transfer" &&
         !marketAcq &&
         !userAcq &&
