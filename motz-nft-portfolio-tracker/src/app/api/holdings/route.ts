@@ -198,7 +198,11 @@ export async function GET(req: NextRequest) {
         : Promise.resolve(new Map()),
       // For each transferrer wallet, walk THEIR Mint+Sale activity so we can
       // upgrade transferred rows. Merge them — first match wins per tokenId.
-      // Pass wantedKeys so the scan exits as soon as all held tokens are found.
+      // Pass wantedKeys so the scan exits as soon as all held tokens are
+      // found. This scan is OPTIONAL enrichment — if it fails (e.g. Sky
+      // Mavis rate-limit), swallow the error and continue with an empty
+      // map. Without it, transferred-in rows fall through to the no-evidence
+      // fallback (mint-price proxy) instead of failing the whole load.
       transferrers.length > 0
         ? Promise.all(
             transferrers.map((t) =>
@@ -208,7 +212,15 @@ export async function GET(req: NextRequest) {
                 sinceTs,
                 200,
                 wantedKeys,
-              ),
+              ).catch((err) => {
+                console.warn(
+                  `[/api/holdings] transferrer scan for ${t} failed; continuing without it:`,
+                  (err as Error).message,
+                );
+                return new Map() as Awaited<
+                  ReturnType<typeof userAcquisitionsFor>
+                >;
+              }),
             ),
           ).then((maps) => {
             const merged: Awaited<
