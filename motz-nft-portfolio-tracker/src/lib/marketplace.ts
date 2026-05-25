@@ -54,11 +54,14 @@ function makeLimiter(max: number) {
     },
   };
 }
-// 6 concurrent GraphQL calls: 3× speedup over the old cap of 2, while
-// staying comfortably within Sky Mavis's authenticated-endpoint limits.
-// 10 concurrent RPC calls: separate pool so eth_call / eth_getTransaction
-// never starve (or are starved by) marketplace GraphQL calls.
-const gqlLimiter = makeLimiter(6);
+// 3 concurrent GraphQL calls: tuned to stay under Sky Mavis's strict
+// per-second rate limit. 6-way concurrency was tripping 429s repeatedly
+// even with backoff because the burst rate exceeded their throttle. 3 is
+// still 1.5× the original 2 and gives roughly the same throughput once
+// 429 retries are factored in. 10 concurrent RPC calls: separate pool so
+// eth_call / eth_getTransaction never starve (or are starved by) marketplace
+// GraphQL calls.
+const gqlLimiter = makeLimiter(3);
 const rpcLimiter = makeLimiter(10);
 
 // Circuit breaker: when Sky Mavis's daily quota is exhausted, every call
@@ -159,7 +162,7 @@ async function gql<T>(
 ): Promise<T> {
   if (isBreakerTripped()) throw new QuotaExhaustedError(lastQuotaMessage);
   let lastErr: unknown;
-  const MAX_ATTEMPTS = 6;
+  const MAX_ATTEMPTS = 8;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     if (isBreakerTripped()) throw new QuotaExhaustedError(lastQuotaMessage);
     await gqlLimiter.acquire();
@@ -178,10 +181,13 @@ async function gql<T>(
       gqlLimiter.release();
     }
     if (attempt < MAX_ATTEMPTS - 1) {
-      // Exponential backoff with jitter: 0.5s, 1s, 2s, 4s, 8s.
-      // Slot is FREE during this sleep so other queued calls can proceed.
-      const base = 500 * 2 ** attempt;
-      await new Promise((r) => setTimeout(r, base + Math.random() * 250));
+      // Exponential backoff with jitter, capped at 30s. Series:
+      // 1.5s, 3s, 6s, 12s, 24s, 30s, 30s. Slot is FREE during this sleep
+      // so other queued calls can proceed. Longer base than before
+      // because Sky Mavis's per-second rate limit is stricter than we
+      // originally tuned for.
+      const base = Math.min(1500 * 2 ** attempt, 30_000);
+      await new Promise((r) => setTimeout(r, base + Math.random() * 500));
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
