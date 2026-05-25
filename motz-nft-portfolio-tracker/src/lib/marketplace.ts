@@ -567,23 +567,47 @@ function seedMarketplaceCacheFromDisk(): void {
 }
 seedMarketplaceCacheFromDisk();
 
+// Persist strategy: write to disk on whichever happens first —
+//   - 500ms of inactivity since the last update (trailing-edge debounce), OR
+//   - every 25 cache updates (force flush so big loads can't lose progress
+//     to a dev-server hot-reload that happens before the next debounce fires)
+// Reads the full cache each time; cheap even at thousands of tokens.
 let mktPersistTimer: NodeJS.Timeout | null = null;
+let mktPendingUpdates = 0;
+const MKT_PERSIST_DEBOUNCE_MS = 500;
+const MKT_PERSIST_FORCE_EVERY = 25;
+
+function flushMarketplaceCache(): void {
+  if (mktPersistTimer) {
+    clearTimeout(mktPersistTimer);
+    mktPersistTimer = null;
+  }
+  mktPendingUpdates = 0;
+  try {
+    fs.mkdirSync(path.dirname(MKT_LOCAL_CACHE_PATH), { recursive: true });
+    const obj: Record<string, MktDiskRecord> = {};
+    for (const [k, entry] of transferHistoryCache) {
+      const acq = lastAcquisitionCache.get(k)?.value ?? null;
+      obj[k] = { a: acq, r: entry.rows };
+    }
+    fs.writeFileSync(MKT_LOCAL_CACHE_PATH, JSON.stringify(obj));
+  } catch {
+    // Read-only filesystem on Vercel runtime — silently skip.
+  }
+}
+
 function persistMarketplaceCacheSoon(): void {
+  mktPendingUpdates++;
+  // Force flush every N updates so a long load can't lose its tail to a
+  // hot-reload that interrupts the debounce window.
+  if (mktPendingUpdates >= MKT_PERSIST_FORCE_EVERY) {
+    flushMarketplaceCache();
+    return;
+  }
   if (mktPersistTimer) return;
   mktPersistTimer = setTimeout(() => {
-    mktPersistTimer = null;
-    try {
-      fs.mkdirSync(path.dirname(MKT_LOCAL_CACHE_PATH), { recursive: true });
-      const obj: Record<string, MktDiskRecord> = {};
-      for (const [k, entry] of transferHistoryCache) {
-        const acq = lastAcquisitionCache.get(k)?.value ?? null;
-        obj[k] = { a: acq, r: entry.rows };
-      }
-      fs.writeFileSync(MKT_LOCAL_CACHE_PATH, JSON.stringify(obj));
-    } catch {
-      // Read-only filesystem on Vercel runtime — silently skip.
-    }
-  }, 2000);
+    flushMarketplaceCache();
+  }, MKT_PERSIST_DEBOUNCE_MS);
 }
 
 export async function lastAcquisition(
