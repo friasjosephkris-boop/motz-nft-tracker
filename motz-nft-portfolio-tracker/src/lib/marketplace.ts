@@ -37,31 +37,51 @@ function headers() {
 // Concurrency limiters — two separate pools so RPC calls (ownerOf,
 // blockTimestampForTx) never starve GraphQL calls and vice-versa.
 //
-// GraphQL: 8 concurrent — Sky Mavis authenticated endpoint handles this well.
-// RPC:     10 concurrent — separate pool for eth_call / eth_getTransaction.
-function makeLimiter(max: number) {
+// makeLimiter takes a max-concurrent count AND an optional minIntervalMs.
+// When set, every release waits at least that many ms before handing the
+// slot off, so the API's per-second rate isn't exceeded even when calls
+// complete quickly (e.g. on 429s where each cycle is short).
+function makeLimiter(max: number, minIntervalMs = 0) {
   let inFlight = 0;
   const waiters: Array<() => void> = [];
+  let nextReleaseEligibleAt = 0;
   return {
     async acquire() {
-      if (inFlight < max) { inFlight++; return; }
+      if (inFlight < max) {
+        inFlight++;
+        return;
+      }
       await new Promise<void>((r) => waiters.push(r));
       inFlight++;
     },
     release() {
       inFlight--;
-      waiters.shift()?.();
+      const next = waiters.shift();
+      if (!next) return;
+      if (minIntervalMs <= 0) {
+        next();
+        return;
+      }
+      const now = Date.now();
+      const delay = Math.max(0, nextReleaseEligibleAt - now);
+      nextReleaseEligibleAt = (now + delay) + minIntervalMs;
+      if (delay > 0) {
+        setTimeout(next, delay);
+      } else {
+        next();
+      }
     },
   };
 }
-// 3 concurrent GraphQL calls: tuned to stay under Sky Mavis's strict
-// per-second rate limit. 6-way concurrency was tripping 429s repeatedly
-// even with backoff because the burst rate exceeded their throttle. 3 is
-// still 1.5× the original 2 and gives roughly the same throughput once
-// 429 retries are factored in. 10 concurrent RPC calls: separate pool so
-// eth_call / eth_getTransaction never starve (or are starved by) marketplace
-// GraphQL calls.
-const gqlLimiter = makeLimiter(3);
+// 2 concurrent GraphQL calls + 150ms minimum gap between subsequent calls.
+// Caps our effective rate at ~13 req/sec under steady-state, which is well
+// under most Sky Mavis tier limits while still parallelising meaningful
+// amounts of work. The 150ms gap matters most when calls fail FAST (429s
+// return in <100ms) — without it we'd cycle slots 50× per second and trip
+// the per-second cap instantly.
+// 10 concurrent RPC calls (no gap): separate pool, no rate-limit issues
+// observed on Sky Mavis's archive RPC endpoint.
+const gqlLimiter = makeLimiter(2, 150);
 const rpcLimiter = makeLimiter(10);
 
 // Circuit breaker: when Sky Mavis's daily quota is exhausted, every call
