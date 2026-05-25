@@ -160,6 +160,32 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Kick off floor-price lookups for OWNED token traits NOW, running in
+    // parallel with the heavy userActivities pagination below. This pulls
+    // floor queries to the front of the load while Sky Mavis quota is still
+    // fresh — otherwise pagination eats the budget and floor calls fail.
+    // Staked tokens' traits get filled in later (depends on staking results).
+    const floorByCollectionAndTrait = new Map<
+      string,
+      Map<string, number | null>
+    >();
+    const ownedFloorPromise = Promise.all(
+      TRACKED_COLLECTIONS.map(async (c, ci) => {
+        const contractLc = c.address.toLowerCase();
+        const ownedTraits = tokensPerCollection[ci]
+          .map((t) => t.attributes?.[c.traitName]?.[0])
+          .filter((v): v is string => !!v);
+        const distinct = Array.from(new Set(ownedTraits));
+        const m = new Map<string, number | null>();
+        await Promise.all(
+          distinct.map(async (v) => {
+            m.set(v, await floorPriceForTrait(c.address, c.traitName, v));
+          }),
+        );
+        floorByCollectionAndTrait.set(contractLc, m);
+      }),
+    );
+
     const [userAcqs, stakingDeposits, transferrerAcqs] = await Promise.all([
       userAcquisitionsFor(
         address,
@@ -261,35 +287,35 @@ export async function GET(req: NextRequest) {
       }),
     );
 
-    // Rarity floor lookup, parallel per collection × distinct trait value.
-    // Include staked tokens' rarities so their floor is filled too.
-    const floorByCollectionAndTrait = new Map<string, Map<string, number | null>>();
+    // Await the floor queries we kicked off earlier (parallel with all the
+    // userActivities work), then top up with any traits that ONLY appear on
+    // staked tokens (most of the time these are already covered by owned).
+    await ownedFloorPromise;
     await Promise.all(
-      TRACKED_COLLECTIONS.map(async (c, ci) => {
+      TRACKED_COLLECTIONS.map(async (c) => {
         const contractLc = c.address.toLowerCase();
-        const ownedTraits = tokensPerCollection[ci].map(
-          (t) => t.attributes?.[c.traitName]?.[0],
-        );
-        const stakedTraits = (stakedByContract.get(contractLc) ?? []).map(
-          (s) =>
-            stakedMetadata.get(`${contractLc}:${s.tokenId}`)?.attributes?.[
-              c.traitName
-            ]?.[0],
-        );
-        const distinct = Array.from(
-          new Set(
-            [...ownedTraits, ...stakedTraits].filter(
-              (v): v is string => !!v,
-            ),
-          ),
-        );
-        const m = new Map<string, number | null>();
+        const stakedTraits = (stakedByContract.get(contractLc) ?? [])
+          .map(
+            (s) =>
+              stakedMetadata.get(`${contractLc}:${s.tokenId}`)?.attributes?.[
+                c.traitName
+              ]?.[0],
+          )
+          .filter((v): v is string => !!v);
+        const existing =
+          floorByCollectionAndTrait.get(contractLc) ??
+          new Map<string, number | null>();
+        const missing = stakedTraits.filter((v) => !existing.has(v));
+        if (missing.length === 0) {
+          floorByCollectionAndTrait.set(contractLc, existing);
+          return;
+        }
         await Promise.all(
-          distinct.map(async (v) => {
-            m.set(v, await floorPriceForTrait(c.address, c.traitName, v));
+          Array.from(new Set(missing)).map(async (v) => {
+            existing.set(v, await floorPriceForTrait(c.address, c.traitName, v));
           }),
         );
-        floorByCollectionAndTrait.set(contractLc, m);
+        floorByCollectionAndTrait.set(contractLc, existing);
       }),
     );
 

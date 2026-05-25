@@ -265,12 +265,74 @@ export async function listHoldings(
  * e.g. floorPriceForTrait(contract, "Rarity", "Common").
  * Returns null if no active listing matches.
  */
-// Per-collection-trait floor price cache with TTL. Floors don't move minute
-// to minute, so caching cheaply for a few minutes saves us from rate limits
-// on rapid re-loads and the occasional 429.
+// Per-collection-trait floor price cache. Disk-persisted with a "fresh TTL"
+// and "stale-while-rate-limited" strategy:
+//   - within FLOOR_FRESH_TTL_MS → return cached value, no API call
+//   - older than that → try to refresh, but if Sky Mavis 429s or the breaker
+//     is tripped, return the STALE cached value rather than null
+// This means once we've fetched a floor once, the UI keeps showing a price
+// across rate-limit outages instead of "—".
 const floorCache = new Map<string, { value: number; at: number }>();
 const inflightFloor = new Map<string, Promise<number | null>>();
-const FLOOR_TTL_MS = 5 * 60 * 1000;
+const FLOOR_FRESH_TTL_MS = 5 * 60 * 1000;
+
+const FLOOR_SNAPSHOT_PATH = path.join(
+  process.cwd(),
+  "src",
+  "data",
+  "floor-cache.json",
+);
+const FLOOR_LOCAL_CACHE_PATH = path.join(
+  process.cwd(),
+  "data",
+  "floor-cache.json",
+);
+
+type FloorDiskRecord = { v: number; at: number };
+
+function seedFloorCacheFromDisk(): void {
+  for (const p of [FLOOR_SNAPSHOT_PATH, FLOOR_LOCAL_CACHE_PATH]) {
+    try {
+      if (!fs.existsSync(p)) continue;
+      const obj = JSON.parse(fs.readFileSync(p, "utf8")) as Record<
+        string,
+        FloorDiskRecord
+      >;
+      let n = 0;
+      for (const [k, v] of Object.entries(obj)) {
+        if (!v || typeof v.v !== "number") continue;
+        floorCache.set(k, { value: v.v, at: v.at ?? Date.now() });
+        n++;
+      }
+      if (n > 0) {
+        console.log(
+          `[marketplace] seeded ${n} floor entries from ${path.basename(p)}`,
+        );
+      }
+    } catch {
+      // Corrupt cache shouldn't break startup.
+    }
+  }
+}
+seedFloorCacheFromDisk();
+
+let floorPersistTimer: NodeJS.Timeout | null = null;
+function persistFloorCacheSoon(): void {
+  if (floorPersistTimer) return;
+  floorPersistTimer = setTimeout(() => {
+    floorPersistTimer = null;
+    try {
+      fs.mkdirSync(path.dirname(FLOOR_LOCAL_CACHE_PATH), { recursive: true });
+      const obj: Record<string, FloorDiskRecord> = {};
+      for (const [k, entry] of floorCache) {
+        obj[k] = { v: entry.value, at: entry.at };
+      }
+      fs.writeFileSync(FLOOR_LOCAL_CACHE_PATH, JSON.stringify(obj));
+    } catch {
+      // Read-only filesystem on Vercel — silently skip.
+    }
+  }, 1000);
+}
 
 export async function floorPriceForTrait(
   contract: string,
@@ -279,14 +341,22 @@ export async function floorPriceForTrait(
 ): Promise<number | null> {
   const key = `${contract.toLowerCase()}|${traitName}|${traitValue}`;
   const cached = floorCache.get(key);
-  if (cached && Date.now() - cached.at < FLOOR_TTL_MS) return cached.value;
+  // Fresh cache hit — no API call.
+  if (cached && Date.now() - cached.at < FLOOR_FRESH_TTL_MS) return cached.value;
   const inflight = inflightFloor.get(key);
   if (inflight) return inflight;
 
   const promise = floorPriceForTraitImpl(contract, traitName, traitValue).then(
     (v) => {
-      if (v != null) floorCache.set(key, { value: v, at: Date.now() });
-      return v;
+      if (v != null) {
+        floorCache.set(key, { value: v, at: Date.now() });
+        persistFloorCacheSoon();
+        return v;
+      }
+      // Fetch returned null (no listing or rate-limit). Fall back to the
+      // stale cached value if we have one — better to show last-known
+      // floor than "—" when the API is just transiently unavailable.
+      return cached?.value ?? null;
     },
   );
   inflightFloor.set(key, promise);
