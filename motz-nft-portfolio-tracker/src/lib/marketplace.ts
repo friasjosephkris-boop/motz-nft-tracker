@@ -52,55 +52,56 @@ function makeLimiter(max: number) {
     },
   };
 }
-const gqlLimiter = makeLimiter(8);
+// 6 concurrent GraphQL calls: 3× speedup over the old cap of 2, while
+// staying comfortably within Sky Mavis's authenticated-endpoint limits.
+// 10 concurrent RPC calls: separate pool so eth_call / eth_getTransaction
+// never starve (or are starved by) marketplace GraphQL calls.
+const gqlLimiter = makeLimiter(6);
 const rpcLimiter = makeLimiter(10);
 
+// One raw HTTP attempt — no retry, no concurrency gate.
+async function gqlFetch<T>(
+  query: string,
+  variables: Record<string, unknown>,
+): Promise<T> {
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({ query, variables }),
+    cache: "no-store",
+  });
+  if (res.status === 429) {
+    const txt = await res.text().catch(() => "");
+    throw new RetryableError(
+      `Marketplace GraphQL 429 (rate-limited): ${txt.slice(0, 200)}`,
+    );
+  }
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(`Marketplace GraphQL ${res.status}: ${txt.slice(0, 300)}`);
+  }
+  const json = (await res.json()) as { data?: T; errors?: unknown };
+  if (json.errors) {
+    throw new Error(
+      `Marketplace GraphQL errors: ${JSON.stringify(json.errors).slice(0, 400)}`,
+    );
+  }
+  if (!json.data) throw new Error("Marketplace GraphQL: empty data");
+  return json.data;
+}
+
+// Retry wrapper: acquires a concurrency slot per attempt and RELEASES it
+// before sleeping so rate-limited requests don't hold slots during backoff.
 async function gql<T>(
   query: string,
   variables: Record<string, unknown>,
 ): Promise<T> {
-  await gqlLimiter.acquire();
-  try {
-    return await gqlInner<T>(query, variables);
-  } finally {
-    gqlLimiter.release();
-  }
-}
-
-async function gqlInner<T>(
-  query: string,
-  variables: Record<string, unknown>,
-): Promise<T> {
-  // Retry with exponential backoff. Treats 429 (rate limit) and ECONNRESET as
-  // retryable; 4xx other than 429 fails fast.
   let lastErr: unknown;
   const MAX_ATTEMPTS = 6;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    await gqlLimiter.acquire();
     try {
-      const res = await fetch(ENDPOINT, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ query, variables }),
-        cache: "no-store",
-      });
-      if (res.status === 429) {
-        const txt = await res.text().catch(() => "");
-        throw new RetryableError(
-          `Marketplace GraphQL 429 (rate-limited): ${txt.slice(0, 200)}`,
-        );
-      }
-      if (!res.ok) {
-        const txt = await res.text().catch(() => "");
-        throw new Error(`Marketplace GraphQL ${res.status}: ${txt.slice(0, 300)}`);
-      }
-      const json = (await res.json()) as { data?: T; errors?: unknown };
-      if (json.errors) {
-        throw new Error(
-          `Marketplace GraphQL errors: ${JSON.stringify(json.errors).slice(0, 400)}`,
-        );
-      }
-      if (!json.data) throw new Error("Marketplace GraphQL: empty data");
-      return json.data;
+      return await gqlFetch<T>(query, variables);
     } catch (err) {
       lastErr = err;
       const isRetryable =
@@ -109,12 +110,15 @@ async function gqlInner<T>(
         (err as Error)?.message?.includes("ECONNRESET") ||
         (err as Error)?.message?.includes("fetch failed");
       if (!isRetryable) break;
-      if (attempt < MAX_ATTEMPTS - 1) {
-        // Exponential backoff with jitter: 0.5s, 1s, 2s, 4s, 8s.
-        const base = 500 * 2 ** attempt;
-        const jitter = Math.random() * 250;
-        await new Promise((r) => setTimeout(r, base + jitter));
-      }
+      // fall through to sleep — slot already released by finally
+    } finally {
+      gqlLimiter.release();
+    }
+    if (attempt < MAX_ATTEMPTS - 1) {
+      // Exponential backoff with jitter: 0.5s, 1s, 2s, 4s, 8s.
+      // Slot is FREE during this sleep so other queued calls can proceed.
+      const base = 500 * 2 ** attempt;
+      await new Promise((r) => setTimeout(r, base + Math.random() * 250));
     }
   }
   throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
