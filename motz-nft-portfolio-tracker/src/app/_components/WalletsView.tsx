@@ -106,45 +106,54 @@ export function WalletsView({
     }));
     setStatuses(initStatuses);
 
-    const results = await Promise.all(
-      unique.map(async ({ idx, input }) => {
-        try {
-          const transferrerParams = cleanedTransferrers
-            .map((t) => `&transferrer=${encodeURIComponent(t)}`)
-            .join("");
-          const j = await retryFetch<ApiResponse>(
-            `/api/holdings?address=${encodeURIComponent(input)}${transferrerParams}`,
-            3,
-            5000,
-            (attempt) => {
-              setStatuses((prev) => {
-                const next = [...prev];
-                next[idx] = { state: "loading", attempt };
-                return next;
-              });
-            },
-          );
-          setStatuses((prev) => {
-            const next = [...prev];
-            next[idx] = { state: "ok", resolved: j.address };
-            return next;
-          });
-          return { idx, input, data: j as ApiResponse, error: null as null };
-        } catch (e) {
-          setStatuses((prev) => {
-            const next = [...prev];
-            next[idx] = { state: "error", message: (e as Error).message };
-            return next;
-          });
-          return {
-            idx,
-            input,
-            data: null,
-            error: (e as Error).message,
-          };
-        }
-      }),
-    );
+    // Process wallets SEQUENTIALLY (not Promise.all) so they don't all
+    // hammer Sky Mavis at once. Each /api/holdings request hits a shared
+    // server-side rate limiter + breaker; running 4 wallets × 6 transferrers
+    // in parallel instantly burned through the breaker threshold and every
+    // wallet failed. Sequential is slower but actually completes.
+    const transferrerParams = cleanedTransferrers
+      .map((t) => `&transferrer=${encodeURIComponent(t)}`)
+      .join("");
+    const results: Array<{
+      idx: number;
+      input: string;
+      data: ApiResponse | null;
+      error: string | null;
+    }> = [];
+    for (const { idx, input } of unique) {
+      try {
+        const j = await retryFetch<ApiResponse>(
+          `/api/holdings?address=${encodeURIComponent(input)}${transferrerParams}`,
+          3,
+          5000,
+          (attempt) => {
+            setStatuses((prev) => {
+              const next = [...prev];
+              next[idx] = { state: "loading", attempt };
+              return next;
+            });
+          },
+        );
+        setStatuses((prev) => {
+          const next = [...prev];
+          next[idx] = { state: "ok", resolved: j.address };
+          return next;
+        });
+        results.push({ idx, input, data: j as ApiResponse, error: null });
+      } catch (e) {
+        setStatuses((prev) => {
+          const next = [...prev];
+          next[idx] = { state: "error", message: (e as Error).message };
+          return next;
+        });
+        results.push({
+          idx,
+          input,
+          data: null,
+          error: (e as Error).message,
+        });
+      }
+    }
 
     // Surface per-wallet failures at the top of the form. Builds a single
     // visible banner so the user sees the real error (e.g. "Sky Mavis API
