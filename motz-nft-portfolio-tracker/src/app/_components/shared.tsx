@@ -93,12 +93,94 @@ function Chevron() {
   );
 }
 
+type SortKey = "tokenId" | "rarity" | "acquired" | "pnl";
+type SortDir = "asc" | "desc";
+
 export function CollectionSection({ c }: { c: TaggedCollectionHoldings }) {
   const [expanded, setExpanded] = useState(true);
+  const [sortKey, setSortKey] = useState<SortKey>("tokenId");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [rarityFilter, setRarityFilter] = useState<string>("all");
+  const [acquiredFilter, setAcquiredFilter] = useState<string>("all");
+
+  // Build the set of distinct rarities and acquired-via values present in
+  // this collection for the dropdown options.
+  const distinctRarities = Array.from(
+    new Set(
+      c.rows
+        .map((r) => r.rarityLabel ?? r.rarity ?? null)
+        .filter((v): v is string => !!v),
+    ),
+  ).sort();
+  const distinctAcquired = Array.from(
+    new Set(
+      c.rows
+        .map((r) => r.acquiredVia)
+        .filter((v): v is "sale" | "mint" | "transfer" => v != null),
+    ),
+  );
+
+  // Filter THEN sort. Filters narrow the set; sort orders what's left.
+  let view = c.rows;
+  if (rarityFilter !== "all") {
+    view = view.filter(
+      (r) => (r.rarityLabel ?? r.rarity) === rarityFilter,
+    );
+  }
+  if (acquiredFilter !== "all") {
+    view = view.filter((r) => r.acquiredVia === acquiredFilter);
+  }
+  view = [...view].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    switch (sortKey) {
+      case "tokenId":
+        return (Number(a.tokenId) - Number(b.tokenId)) * dir;
+      case "rarity": {
+        const ar = a.rarityLabel ?? a.rarity ?? "";
+        const br = b.rarityLabel ?? b.rarity ?? "";
+        return ar.localeCompare(br) * dir;
+      }
+      case "acquired": {
+        const at = a.acquiredAt ?? 0;
+        const bt = b.acquiredAt ?? 0;
+        return (at - bt) * dir;
+      }
+      case "pnl": {
+        // null pnl sorts to the bottom regardless of direction
+        const ap = a.pnlUsd;
+        const bp = b.pnlUsd;
+        if (ap == null && bp == null) return 0;
+        if (ap == null) return 1;
+        if (bp == null) return -1;
+        return (ap - bp) * dir;
+      }
+    }
+  });
+
   if (c.rows.length === 0) return null;
   const costUsd = c.rows.reduce((s, r) => s + (r.costUsd ?? 0), 0);
   const floorUsd = c.rows.reduce((s, r) => s + (r.floorUsd ?? 0), 0);
   const pnl = floorUsd - costUsd;
+
+  // Helper: when user clicks a sortable header, toggle direction if it's
+  // already the active sort, otherwise switch to that sort with asc.
+  function clickSort(k: SortKey) {
+    if (sortKey === k) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(k);
+      setSortDir("asc");
+    }
+  }
+  function sortIndicator(k: SortKey) {
+    if (sortKey !== k) return null;
+    return (
+      <span className="ml-1 text-[color:var(--motz-red)]">
+        {sortDir === "asc" ? "▲" : "▼"}
+      </span>
+    );
+  }
+
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -133,34 +215,171 @@ export function CollectionSection({ c }: { c: TaggedCollectionHoldings }) {
         </div>
       </div>
       {expanded && (
-        <div className="glass-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 text-xs uppercase tracking-wider text-zinc-400 font-mono">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium">Token</th>
-                  <th className="text-left px-4 py-3 font-medium">Rarity</th>
-                  <th className="text-left px-4 py-3 font-medium">Acquired</th>
-                  <th className="text-right px-4 py-3 font-medium">
-                    Cost (RON)
-                  </th>
-                  <th className="text-right px-4 py-3 font-medium">
-                    Cost (USD)
-                  </th>
-                  <th className="text-right px-4 py-3 font-medium">Floor</th>
-                  <th className="text-right px-4 py-3 font-medium">P&L</th>
-                </tr>
-              </thead>
-              <tbody>
-                {c.rows.map((r) => (
-                  <Row key={`${r.walletTag ?? ""}-${r.tokenId}`} r={r} />
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Filter bar */}
+          <div className="flex flex-wrap items-center gap-3 px-1">
+            {distinctRarities.length > 0 && (
+              <FilterDropdown
+                label="Rarity"
+                value={rarityFilter}
+                onChange={setRarityFilter}
+                options={[
+                  { value: "all", label: "All rarities" },
+                  ...distinctRarities.map((r) => ({ value: r, label: r })),
+                ]}
+              />
+            )}
+            {distinctAcquired.length > 0 && (
+              <FilterDropdown
+                label="Acquired"
+                value={acquiredFilter}
+                onChange={setAcquiredFilter}
+                options={[
+                  { value: "all", label: "All" },
+                  ...distinctAcquired.map((v) => ({
+                    value: v,
+                    label:
+                      v === "mint"
+                        ? "Minted"
+                        : v === "sale"
+                          ? "Acquired"
+                          : v === "transfer"
+                            ? "Transferred"
+                            : v,
+                  })),
+                ]}
+              />
+            )}
+            {(rarityFilter !== "all" || acquiredFilter !== "all") && (
+              <button
+                onClick={() => {
+                  setRarityFilter("all");
+                  setAcquiredFilter("all");
+                }}
+                className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 hover:text-[color:var(--motz-red)]"
+              >
+                Clear filters
+              </button>
+            )}
+            {view.length !== c.rows.length && (
+              <span className="font-mono text-[11px] text-zinc-500 ml-auto">
+                Showing {view.length} of {c.rows.length}
+              </span>
+            )}
           </div>
-        </div>
+
+          <div className="glass-card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-white/5 text-xs uppercase tracking-wider text-zinc-400 font-mono">
+                  <tr>
+                    <SortableHeader
+                      onClick={() => clickSort("tokenId")}
+                      align="left"
+                    >
+                      Token{sortIndicator("tokenId")}
+                    </SortableHeader>
+                    <SortableHeader
+                      onClick={() => clickSort("rarity")}
+                      align="left"
+                    >
+                      Rarity{sortIndicator("rarity")}
+                    </SortableHeader>
+                    <SortableHeader
+                      onClick={() => clickSort("acquired")}
+                      align="left"
+                    >
+                      Acquired{sortIndicator("acquired")}
+                    </SortableHeader>
+                    <th className="text-right px-4 py-3 font-medium">
+                      Cost (RON)
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium">
+                      Cost (USD)
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium">Floor</th>
+                    <SortableHeader
+                      onClick={() => clickSort("pnl")}
+                      align="right"
+                    >
+                      P&L{sortIndicator("pnl")}
+                    </SortableHeader>
+                  </tr>
+                </thead>
+                <tbody>
+                  {view.map((r) => (
+                    <Row key={`${r.walletTag ?? ""}-${r.tokenId}`} r={r} />
+                  ))}
+                  {view.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-4 py-8 text-center text-sm text-zinc-500"
+                      >
+                        No tokens match the current filters.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </section>
+  );
+}
+
+function SortableHeader({
+  children,
+  onClick,
+  align,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  align: "left" | "right";
+}) {
+  return (
+    <th
+      className={
+        "px-4 py-3 font-medium cursor-pointer select-none transition-colors hover:text-zinc-100 " +
+        (align === "right" ? "text-right" : "text-left")
+      }
+      onClick={onClick}
+    >
+      {children}
+    </th>
+  );
+}
+
+function FilterDropdown({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="flex items-center gap-2">
+      <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-md bg-black/40 border border-white/10 px-2 py-1 font-mono text-xs text-zinc-200 focus:outline-none focus:border-[color:var(--motz-red)] focus:ring-1 focus:ring-[color:var(--motz-red)]/40"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
