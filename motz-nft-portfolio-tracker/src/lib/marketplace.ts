@@ -266,7 +266,7 @@ export async function listHoldings(
   const seen = new Map<string, HoldingToken>();
   let maxTotal = 0;
   for (let page = 0; page < MAX_PAGES; page++) {
-    const data = await gql<R>(query, {
+    const data: R = await gql<R>(query, {
       owner: owner.toLowerCase(),
       tokenAddress: contract.toLowerCase(),
       from: page * PAGE_SIZE,
@@ -428,7 +428,7 @@ async function floorPriceForTraitImpl(
     };
   };
   try {
-    const data = await gql<R>(query, {
+    const data: R = await gql<R>(query, {
       tokenAddress: contract.toLowerCase(),
       criteria: [{ name: traitName, values: [traitValue] }],
     });
@@ -531,7 +531,7 @@ export async function userStakingDepositsFor(
     // Propagate persistent errors instead of silently returning partial
     // data — partial staking results are MUCH worse than a clean error
     // that the user can react to (reload).
-    const data = await gql<R>(query, {
+    const data: R = await gql<R>(query, {
       u: userLc,
       size: 30,
       filters: {
@@ -619,7 +619,7 @@ async function tokenMetadataImpl(
   `;
   type R = { erc721Token: HoldingToken | null };
   try {
-    const data = await gql<R>(query, {
+    const data: R = await gql<R>(query, {
       tokenAddress: contract.toLowerCase(),
       tokenId,
     });
@@ -859,7 +859,7 @@ async function lastAcquisitionImpl(
     } | null;
   };
 
-  const data = await gql<R>(query, {
+  const data: R = await gql<R>(query, {
     tokenAddress: contract.toLowerCase(),
     tokenId,
   });
@@ -1322,7 +1322,7 @@ export async function userAcquisitionsFor(
 
     // Propagate persistent errors (a partial cost-basis dataset would be
     // misleading — better to surface the failure so the caller can retry).
-    const data = await gql<R>(query, {
+    const data: R = await gql<R>(query, {
       u: userLc,
       size: 30,
       filters: {

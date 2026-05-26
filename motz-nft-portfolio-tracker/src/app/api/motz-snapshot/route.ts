@@ -15,8 +15,18 @@ export const dynamic = "force-dynamic";
 // recent combined-portfolio render for the MoTZ project wallets — served
 // as-is to any visitor of the MoTZ Dashboard / PnL tabs so they don't
 // trigger expensive load chains on every page view.
-const SNAPSHOT_PATH = path.join(
+// Two paths: writable local cache + bundled snapshot that ships with the
+// build. On Vercel the filesystem is read-only at runtime, so writes are
+// caught silently and reads fall through to the bundled snapshot. On
+// localhost both work; the local cache "wins" because it's newer.
+const SNAPSHOT_LOCAL_PATH = path.join(
   process.cwd(),
+  "data",
+  "motz-snapshot.json",
+);
+const SNAPSHOT_BUNDLED_PATH = path.join(
+  process.cwd(),
+  "src",
   "data",
   "motz-snapshot.json",
 );
@@ -40,17 +50,27 @@ export type MotzSnapshot = {
 };
 
 function readSnapshot(): MotzSnapshot | null {
-  try {
-    if (!fs.existsSync(SNAPSHOT_PATH)) return null;
-    return JSON.parse(fs.readFileSync(SNAPSHOT_PATH, "utf8")) as MotzSnapshot;
-  } catch {
-    return null;
+  // Prefer the local writable cache (newer); fall back to bundled snapshot.
+  for (const p of [SNAPSHOT_LOCAL_PATH, SNAPSHOT_BUNDLED_PATH]) {
+    try {
+      if (!fs.existsSync(p)) continue;
+      return JSON.parse(fs.readFileSync(p, "utf8")) as MotzSnapshot;
+    } catch {
+      // try next path
+    }
   }
+  return null;
 }
 
 function writeSnapshot(snap: MotzSnapshot): void {
-  fs.mkdirSync(path.dirname(SNAPSHOT_PATH), { recursive: true });
-  fs.writeFileSync(SNAPSHOT_PATH, JSON.stringify(snap));
+  try {
+    fs.mkdirSync(path.dirname(SNAPSHOT_LOCAL_PATH), { recursive: true });
+    fs.writeFileSync(SNAPSHOT_LOCAL_PATH, JSON.stringify(snap));
+  } catch {
+    // Read-only fs on Vercel runtime — silently skip. Bundled snapshot
+    // stays as the served data; updates require a redeploy with the
+    // regenerated src/data/motz-snapshot.json committed.
+  }
 }
 
 // In-flight guard: if a refresh is already running, return its promise so

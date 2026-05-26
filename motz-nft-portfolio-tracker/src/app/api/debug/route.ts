@@ -19,6 +19,6 @@ export async function GET(req: NextRequest) {
     address,
     contract: MOTZ_FOUNDERS_COIN.address,
     count: acqs.size,
-    items: Array.from(acqs.entries()).map(([k, v]) => ({ tokenId: k, ...v })),
+    items: Array.from(acqs.entries()).map(([k, v]) => ({ ...v, key: k })),
   });
 }
