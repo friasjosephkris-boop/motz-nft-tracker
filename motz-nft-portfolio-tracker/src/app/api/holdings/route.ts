@@ -251,40 +251,47 @@ export async function GET(req: NextRequest) {
             },
           )
         : Promise.resolve(new Map()),
-      // For each transferrer wallet, walk THEIR Mint+Sale activity so we can
-      // upgrade transferred rows. Merge them — first match wins per tokenId.
-      // Pass wantedKeys so the scan exits as soon as all held tokens are
-      // found. This scan is OPTIONAL enrichment — if it fails (e.g. Sky
-      // Mavis rate-limit), swallow the error and continue with an empty
-      // map. Without it, transferred-in rows fall through to the no-evidence
-      // fallback (mint-price proxy) instead of failing the whole load.
+      // For each transferrer wallet, walk THEIR Mint+Sale activity so we
+      // can upgrade transferred rows. Process SEQUENTIALLY with a small
+      // cooldown between each — running 6 transferrers in parallel was
+      // the actual root cause of the "Load Combined" rate-limit failures:
+      // 6 paginators competing for 2 gqlLimiter slots burst the API faster
+      // than its per-minute throttle allows, tripping the breaker even
+      // though single-wallet loads work fine.
+      //
+      // Each scan is wrapped in catch so one rate-limited transferrer
+      // doesn't kill the rest. Early-exit via wantedKeys further bounds
+      // each scan once all owned tokens are found.
       transferrers.length > 0
-        ? Promise.all(
-            transferrers.map((t) =>
-              userAcquisitionsFor(
-                t,
-                TRACKED_COLLECTIONS.map((c) => c.address),
-                sinceTs,
-                200,
-                wantedKeys,
-              ).catch((err) => {
-                warn(`transferrer(${t})`, err);
-                return new Map() as Awaited<
-                  ReturnType<typeof userAcquisitionsFor>
-                >;
-              }),
-            ),
-          ).then((maps) => {
+        ? (async () => {
             const merged: Awaited<
               ReturnType<typeof userAcquisitionsFor>
             > = new Map();
-            for (const m of maps) {
-              for (const [k, v] of m) {
-                if (!merged.has(k)) merged.set(k, v);
+            const TRANSFERRER_COOLDOWN_MS = 2000;
+            for (let ti = 0; ti < transferrers.length; ti++) {
+              const t = transferrers[ti];
+              try {
+                const m = await userAcquisitionsFor(
+                  t,
+                  TRACKED_COLLECTIONS.map((c) => c.address),
+                  sinceTs,
+                  200,
+                  wantedKeys,
+                );
+                for (const [k, v] of m) {
+                  if (!merged.has(k)) merged.set(k, v);
+                }
+              } catch (err) {
+                warn(`transferrer(${t})`, err);
+              }
+              if (ti < transferrers.length - 1) {
+                await new Promise((r) =>
+                  setTimeout(r, TRANSFERRER_COOLDOWN_MS),
+                );
               }
             }
             return merged;
-          })
+          })()
         : Promise.resolve(
             new Map() as Awaited<ReturnType<typeof userAcquisitionsFor>>,
           ),
