@@ -82,8 +82,50 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
       // shorter and later wallets start with a tripped breaker and bail
       // immediately. 60s is the worst-case full drain.
       const BETWEEN_WALLET_MS = 60_000;
-      for (let i = 0; i < MOTZ_WALLETS.length; i++) {
-        const w = MOTZ_WALLETS[i];
+
+      // Smart ordering: wallets that already have data in the previous
+      // snapshot go LAST. They're already preserved by the merge logic and
+      // tend to need less API (their tokens are cached). Wallets WITHOUT
+      // previous data go FIRST so they get a fresh, unburdened API budget.
+      // This biases each refresh toward filling in the missing wallets
+      // rather than re-loading already-cached ones.
+      const previousSnap = readSnapshot();
+      const previousTokensPerInput = new Map<string, number>();
+      if (previousSnap) {
+        const tokensByResolved = new Map<string, number>();
+        for (const c of previousSnap.collections) {
+          for (const r of c.rows) {
+            const t = r.walletTag ?? "";
+            tokensByResolved.set(t, (tokensByResolved.get(t) ?? 0) + 1);
+          }
+        }
+        for (let pi = 0; pi < previousSnap.walletAddresses.length; pi++) {
+          const input = previousSnap.walletAddresses[pi];
+          const resolvedAddr = previousSnap.resolvedAddresses[pi];
+          if (input && resolvedAddr) {
+            previousTokensPerInput.set(
+              input,
+              tokensByResolved.get(resolvedAddr) ?? 0,
+            );
+          }
+        }
+      }
+      const orderedWallets = [...MOTZ_WALLETS].sort((a, b) => {
+        // Ascending by previous token count — 0 tokens first, then small,
+        // then large. Ties keep MOTZ_WALLETS' original ordering.
+        const ac = previousTokensPerInput.get(a) ?? 0;
+        const bc = previousTokensPerInput.get(b) ?? 0;
+        return ac - bc;
+      });
+      console.log(
+        "[motz-snapshot] wallet order:",
+        orderedWallets
+          .map((w) => `${w}(${previousTokensPerInput.get(w) ?? 0})`)
+          .join(" → "),
+      );
+
+      for (let i = 0; i < orderedWallets.length; i++) {
+        const w = orderedWallets[i];
         try {
           const url =
             `${origin}/api/holdings?address=${encodeURIComponent(w)}` +
@@ -141,7 +183,7 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
         // Cool-down between wallets — gives the gqlLimiter / breaker
         // breathing room before slamming Sky Mavis with the next wallet's
         // userActivities pagination.
-        if (i < MOTZ_WALLETS.length - 1) {
+        if (i < orderedWallets.length - 1) {
           await new Promise((r) => setTimeout(r, BETWEEN_WALLET_MS));
         }
       }
