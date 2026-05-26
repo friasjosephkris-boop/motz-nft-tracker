@@ -371,6 +371,101 @@ body:has(.battle) {
     linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
     url("/floor 301-310.webp") center / cover no-repeat;
 }
+.battle[data-tier="311-320"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 311-320.webp") center / cover no-repeat;
+}
+.battle[data-tier="321-330"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 321-330.webp") center / cover no-repeat;
+}
+.battle[data-tier="331-340"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 331-340.webp") center / cover no-repeat;
+}
+.battle[data-tier="341-350"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 341-350.webp") center / cover no-repeat;
+}
+.battle[data-tier="351-360"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 351-360.webp") center / cover no-repeat;
+}
+.battle[data-tier="361-370"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 361-370.webp") center / cover no-repeat;
+}
+.battle[data-tier="371-380"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 371-380.webp") center / cover no-repeat;
+}
+.battle[data-tier="381-390"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 381-390.webp") center / cover no-repeat;
+}
+.battle[data-tier="391-400"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 391-400.webp") center / cover no-repeat;
+}
+.battle[data-tier="401-410"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 401-410.webp") center / cover no-repeat;
+}
+.battle[data-tier="411-420"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 411-420.webp") center / cover no-repeat;
+}
+.battle[data-tier="421-430"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 421-430.webp") center / cover no-repeat;
+}
+.battle[data-tier="431-440"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 431-440.webp") center / cover no-repeat;
+}
+.battle[data-tier="441-450"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 441-450.webp") center / cover no-repeat;
+}
+.battle[data-tier="451-460"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 451-460.webp") center / cover no-repeat;
+}
+.battle[data-tier="461-470"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 461-470.webp") center / cover no-repeat;
+}
+.battle[data-tier="471-480"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 471-480.webp") center / cover no-repeat;
+}
+.battle[data-tier="481-490"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 481-490.webp") center / cover no-repeat;
+}
+.battle[data-tier="491-500"] .battle-field {
+  background:
+    linear-gradient(180deg, rgba(6, 9, 30, 0.45) 0%, rgba(6, 9, 30, 0.7) 100%),
+    url("/floor 491-500.webp") center / cover no-repeat;
+}
 
 .battle-log-panel {
   position: absolute;
