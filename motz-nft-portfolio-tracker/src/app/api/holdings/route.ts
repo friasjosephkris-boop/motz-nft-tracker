@@ -367,6 +367,64 @@ export async function GET(req: NextRequest) {
       }),
     );
 
+    // Retry pass: any staked token whose lastAcquisition didn't make it
+    // into stakedMarketAcq (was rate-limited during the parallel batch
+    // above) gets a second chance, this time SEQUENTIALLY with a small
+    // delay. The catches above logged warnings but moved on; here we try
+    // to fill in the cost-basis data those tokens are missing.
+    //
+    // Most retries hit fast because the parallel batch already populated
+    // the disk cache for the SUCCESSFUL ones, so the breaker has had
+    // time to drain between when it tripped and when the retry-pass
+    // starts. Each retry that lands here was rate-limited the first
+    // time around — slowing them down dramatically improves success.
+    const stakedMissing = allStaked.filter(
+      (s) => !stakedMarketAcq.has(`${s.contract}:${s.tokenId}`),
+    );
+    if (stakedMissing.length > 0) {
+      console.log(
+        `[/api/holdings] retry pass: ${stakedMissing.length} staked-token lastAcquisitions failed on first try, retrying sequentially`,
+      );
+      // Brief drain so the breaker fully resets before we start the
+      // retries. The breaker's auto-reset is 60s; this gives most of it.
+      await new Promise((r) => setTimeout(r, 8000));
+      for (const s of stakedMissing) {
+        try {
+          const acq = await lastAcquisitionVerified(
+            s.contract,
+            s.tokenId,
+            s.stakingContract,
+          );
+          if (acq) stakedMarketAcq.set(`${s.contract}:${s.tokenId}`, acq);
+          // Pace ourselves — 200ms between retries.
+          await new Promise((r) => setTimeout(r, 200));
+        } catch {
+          // Already counted in warnings from the first attempt. The token
+          // will just have approximate cost basis. Don't escalate.
+        }
+      }
+      // Trim the warning list to remove the stakedLastAcq entries we
+      // just successfully recovered, so the response accurately reflects
+      // the FINAL state of the load rather than the mid-load failures.
+      const stillMissing = new Set(
+        allStaked
+          .filter((s) => !stakedMarketAcq.has(`${s.contract}:${s.tokenId}`))
+          .map((s) => `stakedLastAcq(${s.contract}:${s.tokenId})`),
+      );
+      for (let i = warnings.length - 1; i >= 0; i--) {
+        const w = warnings[i];
+        if (
+          w.startsWith("stakedLastAcq(") &&
+          !Array.from(stillMissing).some((m) => w.startsWith(m))
+        ) {
+          warnings.splice(i, 1);
+        }
+      }
+      console.log(
+        `[/api/holdings] retry pass complete: ${stakedMissing.length - stillMissing.size} recovered, ${stillMissing.size} still missing`,
+      );
+    }
+
     // Await the floor queries we kicked off earlier (parallel with all the
     // userActivities work), then top up with any traits that ONLY appear on
     // staked tokens (most of the time these are already covered by owned).
