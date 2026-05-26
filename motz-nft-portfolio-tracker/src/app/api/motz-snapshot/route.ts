@@ -150,15 +150,33 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             (s, c) => s + c.rows.length,
             0,
           );
-          // A wallet that responded successfully but loaded few/no tokens
-          // probably hit internal rate-limit catches mid-load. Flag it so
-          // the UI doesn't claim it as a "clean" success. Threshold: any
-          // wallet whose response carries warnings is treated as partial.
-          if (data.warnings && data.warnings.length > 0) {
+          // Only flag as PARTIAL if something STRUCTURAL failed: empty
+          // token list AND warnings, OR warnings from the calls that
+          // determine *which* tokens to show (listHoldings) or the wallet's
+          // primary cost-basis sources (userAcquisitionsFor on the main
+          // wallet, userStakingDepositsFor).
+          //
+          // Enrichment-only warnings (stakedLastAcq, stakedMetadata,
+          // floor lookups, per-token lastAcquisition) DON'T make the load
+          // partial — those tokens still show up, just with degraded cost
+          // basis. Flagging on those produced false "PARTIAL" banners for
+          // wallets that actually loaded correctly.
+          const warnings = data.warnings ?? [];
+          const hasStructuralWarning = warnings.some(
+            (w) =>
+              w.startsWith("listHoldings(") ||
+              w.startsWith("userAcquisitionsFor(") ||
+              w.startsWith("userStakingDepositsFor(") ||
+              w.startsWith("ronUsdNow"),
+          );
+          const isStructurallyPartial =
+            warnings.length > 0 &&
+            (tokenCount === 0 || hasStructuralWarning);
+          if (isStructurallyPartial) {
             partials.push({
               input: w,
               tokens: tokenCount,
-              warnings: data.warnings,
+              warnings,
             });
           }
           for (const c of data.collections) {
