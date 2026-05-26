@@ -77,9 +77,11 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
       // Sequential — same reason as Load Combined: per-wallet shares a
       // server-side rate limiter, running in parallel just trips the breaker.
       // We catch per-wallet failures (so one rate-limited wallet doesn't
-      // wipe out the whole snapshot) and pause briefly between wallets so
-      // the breaker can drain its 60s cooldown if it tripped.
-      const BETWEEN_WALLET_MS = 5000;
+      // wipe out the whole snapshot) and pause between wallets long enough
+      // that the breaker can FULLY drain its 60s cooldown — anything
+      // shorter and later wallets start with a tripped breaker and bail
+      // immediately. 60s is the worst-case full drain.
+      const BETWEEN_WALLET_MS = 60_000;
       for (let i = 0; i < MOTZ_WALLETS.length; i++) {
         const w = MOTZ_WALLETS[i];
         try {
