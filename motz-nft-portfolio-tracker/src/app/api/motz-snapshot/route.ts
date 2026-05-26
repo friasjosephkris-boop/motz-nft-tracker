@@ -65,9 +65,20 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
       // Resolve absolute origin so we can call our own /api/holdings.
       // Next 16 puts the original host on req.nextUrl.
       const origin = req.nextUrl.origin;
-      const transferrerParams = MOTZ_TRANSFERRERS.map(
-        (t) => `&transferrer=${encodeURIComponent(t)}`,
-      ).join("");
+      // NO transferrers. Empirical finding: passing 6 transferrers per
+      // wallet was the actual cause of every "rate-limit / breaker
+      // tripped" snapshot failure. Each transferrer spawns its own
+      // userActivities pagination (~200 pages worst case) which bursts
+      // Sky Mavis faster than its per-minute throttle. Loading the same
+      // 4 wallets WITHOUT transferrers succeeded in single-wallet calls.
+      //
+      // Without transferrers, tokens that were transferred-in from the
+      // project minter fall through to the existing "no-evidence" cost
+      // basis fallback (mint price proxy), which gives the same answer
+      // anyway since those primary-distribution transfers would have
+      // resolved to mint price even with transferrers in place.
+      const transferrerParams = "";
+      void MOTZ_TRANSFERRERS;
       const byContract = new Map<string, TaggedCollectionHoldings>();
       const resolved: string[] = [];
       const failures: { input: string; error: string }[] = [];
