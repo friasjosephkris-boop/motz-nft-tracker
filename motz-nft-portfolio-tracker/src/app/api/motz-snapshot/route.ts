@@ -151,6 +151,62 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
           `All ${MOTZ_WALLETS.length} MoTZ wallets failed to load: ${detail}`,
         );
       }
+
+      // Merge with existing snapshot: for any wallet whose fresh load came
+      // back EMPTY (0 tokens with internal warnings), preserve the previous
+      // snapshot's data for that wallet rather than wiping it. A wallet
+      // that legitimately owns no MoTZ NFTs returns 0 with no warnings —
+      // those are fine to overwrite. Only suspected rate-limited zeros get
+      // preserved.
+      const previous = readSnapshot();
+      if (previous) {
+        // Build a quick map: per-wallet row count in the fresh load.
+        const freshRowsByTag = new Map<string, number>();
+        for (const c of byContract.values()) {
+          for (const r of c.rows) {
+            const tag = r.walletTag ?? "";
+            freshRowsByTag.set(tag, (freshRowsByTag.get(tag) ?? 0) + 1);
+          }
+        }
+        const partialTags = new Set(
+          partials.map((p) => p.input.toLowerCase()),
+        );
+        for (const addr of resolved) {
+          const lc = addr.toLowerCase();
+          const freshCount = freshRowsByTag.get(addr) ?? 0;
+          if (freshCount > 0) continue; // already has fresh data
+          // Was this wallet flagged as partial (i.e. rate-limited zero)?
+          // Check both raw input and resolved address against partialTags.
+          const wasPartial = partialTags.has(lc) ||
+            partials.some(
+              (p) => p.input.toLowerCase().includes(lc.slice(0, 8)),
+            );
+          if (!wasPartial) continue; // legitimately empty, leave alone
+          // Find previous rows for this wallet across all collections.
+          for (const prevCol of previous.collections) {
+            const prevRows = prevCol.rows.filter(
+              (r) => r.walletTag === addr,
+            );
+            if (prevRows.length === 0) continue;
+            const target = byContract.get(prevCol.contract);
+            if (target) {
+              target.rows.push(...prevRows);
+            } else {
+              byContract.set(prevCol.contract, {
+                contract: prevCol.contract,
+                name: prevCol.name,
+                symbol: prevCol.symbol,
+                slug: prevCol.slug,
+                rows: [...prevRows],
+              });
+            }
+            console.log(
+              `[motz-snapshot] preserved ${prevRows.length} previous rows for ${addr.slice(0, 12)}... in ${prevCol.symbol}`,
+            );
+          }
+        }
+      }
+
       const snap: MotzSnapshot = {
         generatedAt: Date.now(),
         walletAddresses: [...MOTZ_WALLETS],
