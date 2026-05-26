@@ -387,13 +387,21 @@ function resistTags(r: DamageResistance | null | undefined): string {
 }
 
 /** Render the floor-100+ tiered resist profile as tags. We mark every
- *  channel in `resisted` as "resists X" — combat then escalates the actual
- *  damage reduction based on how many of an attack's two axes match
- *  (both → 90%, one → 60%, none → 0%). */
+ *  channel in `resisted` as "resists X" and append a magnitude badge so
+ *  players can tell apart the three intensity bands (90/60, 95/70, 98/80)
+ *  before stepping in. Combat then applies the per-attack multiplier based
+ *  on how many of the attack's two axes land in the resisted set. */
 function tieredResistTags(t: import("../units/types").TieredResist): string {
-  return t.resisted
+  const channelTags = t.resisted
     .map(ch => `<span class="stt-tag stt-resist">resists ${ch}</span>`)
     .join("");
+  const bothPct = Math.round((1 - t.muls.both) * 100);
+  const onePct = Math.round((1 - t.muls.one) * 100);
+  // Highlight class escalates with intensity so the eye catches the harder
+  // bands. 95+ both → strong; 90 → normal.
+  const intensityCls = bothPct >= 95 ? "stt-tag stt-resist-strong" : "stt-tag stt-resist";
+  const intensityTag = `<span class="${intensityCls}" title="Wrong damage type takes ${bothPct}% resist; half-wrong takes ${onePct}%">${bothPct}/${onePct}%</span>`;
+  return `${channelTags}${intensityTag}`;
 }
 
 function escapeHtml(s: string): string {

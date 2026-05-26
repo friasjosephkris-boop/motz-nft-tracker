@@ -704,17 +704,28 @@ export function postGameEnemyPowerMul(floorId: number): number {
  *  the floor inherits the floor's randomized resist profile — see below. */
 export const RESIST_RANDO_FIRST_FLOOR = 100;
 
-/** Count-based resist tiers for the floor 100-500 randomized profile.
- *  Per attack, we count how many of its two axes (kind + range) land in the
+/** Count-based resist tiers for the floor 100+ randomized profile. Per
+ *  attack, we count how many of its two axes (kind + range) land in the
  *  floor's "resisted" set and apply the matching multiplier:
- *    both axes resisted → 0.1  (90% resist)
- *    one  axis resisted → 0.4  (60% resist)
- *    neither resisted   → 1    (full damage)
- *  This replaces the older multiplicative per-channel scheme which compounded
- *  to ~91% effective resist on the only viable attack — too brutal in
- *  practice. Tiers are uniform across modes; mode is kept as a parameter for
- *  future per-mode tuning. */
-const FLOOR_RESIST_TIERS = { both: 0.1, one: 0.4, none: 1 } as const;
+ *    both axes resisted → muls.both  ("all-wrong" damage type)
+ *    one  axis resisted → muls.one   ("half-wrong")
+ *    neither resisted   → 1          (always full damage — the "perfect" combo)
+ *  Intensity escalates in three bands so the deep-post-game floors
+ *  (350+, 450+) genuinely punish wrong picks more than the entry band.
+ *  Picks were specified by the user (deep climb = more brutal). */
+const FLOOR_RESIST_BAND_MID_FROM = 350;   // first floor of the mid-band
+const FLOOR_RESIST_BAND_HIGH_FROM = 450;  // first floor of the high-band
+
+/** Resolve the resist-tier multipliers for a given floor. Three bands:
+ *    100-349 → 90% / 60% / 0%   (entry post-game)
+ *    350-449 → 95% / 70% / 0%   (deep climb — wrong picks hurt more)
+ *    450-500 → 98% / 80% / 0%   (apex — only the "perfect" combo deals real damage) */
+function resistTiersForFloor(floorId: number): { both: number; one: number; none: number } {
+  if (floorId >= FLOOR_RESIST_BAND_HIGH_FROM) return { both: 0.02, one: 0.2, none: 1 }; // 98 / 80 / 0
+  if (floorId >= FLOOR_RESIST_BAND_MID_FROM)  return { both: 0.05, one: 0.3, none: 1 }; // 95 / 70 / 0
+  return { both: 0.1, one: 0.4, none: 1 };                                              // 90 / 60 / 0
+}
+
 export type ResistMode = "floor" | "survival" | "boss_raid";
 
 /** Compute a deterministic resistance profile for the given floor + mode.
@@ -722,7 +733,7 @@ export type ResistMode = "floor" | "survival" | "boss_raid";
  *  (physical / magical / melee / range) to the "resisted" set; the other 2
  *  pass damage through normally. The selection is seeded by floorId so the
  *  same floor always produces the same profile (fair across replays /
- *  leaderboard). */
+ *  leaderboard). Magnitude follows the floor's band (see resistTiersForFloor). */
 export function resistProfileForFloor(
   floorId: number,
   _mode: ResistMode = "floor",
@@ -750,7 +761,7 @@ export function resistProfileForFloor(
     ["magical", "range"],
   ];
   const picked = combos[h % combos.length];
-  return { resisted: [picked[0], picked[1]], muls: { ...FLOOR_RESIST_TIERS } };
+  return { resisted: [picked[0], picked[1]], muls: resistTiersForFloor(floorId) };
 }
 
 /** Hand-authored name + enemy overrides for floors 51-500 (all current
