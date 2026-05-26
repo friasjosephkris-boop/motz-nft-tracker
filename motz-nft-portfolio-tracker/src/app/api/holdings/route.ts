@@ -12,6 +12,7 @@ import {
   txSingleNftPrice,
   floorPriceForTrait,
   userAcquisitionsFor,
+  userAcquisitionsForCached,
   ownerOf,
   tokenMetadata,
   userStakingDepositsFor,
@@ -251,43 +252,35 @@ export async function GET(req: NextRequest) {
             },
           )
         : Promise.resolve(new Map()),
-      // For each transferrer wallet, walk THEIR Mint+Sale activity so we
-      // can upgrade transferred rows. Process SEQUENTIALLY with a small
-      // cooldown between each — running 6 transferrers in parallel was
-      // the actual root cause of the "Load Combined" rate-limit failures:
-      // 6 paginators competing for 2 gqlLimiter slots burst the API faster
-      // than its per-minute throttle allows, tripping the breaker even
-      // though single-wallet loads work fine.
+      // Transferrer wallets: scan each via userAcquisitionsForCached, which
+      // hits disk cache (24h TTL) for already-known transferrers and only
+      // calls the API on cache miss. Sequential, but cached hits are
+      // instant — only the first refresh after a TTL expiry actually pages.
+      // Each scan still wrapped in catch so one rate-limited transferrer
+      // doesn't kill the rest.
       //
-      // Each scan is wrapped in catch so one rate-limited transferrer
-      // doesn't kill the rest. Early-exit via wantedKeys further bounds
-      // each scan once all owned tokens are found.
+      // Note: wantedKeys is intentionally NOT passed to the cached scan —
+      // the cache stores the full set of acquisitions for the transferrer
+      // across all tracked contracts, so different users with different
+      // held tokens can share the same cache. Filter happens at row build.
       transferrers.length > 0
         ? (async () => {
             const merged: Awaited<
               ReturnType<typeof userAcquisitionsFor>
             > = new Map();
-            const TRANSFERRER_COOLDOWN_MS = 2000;
-            for (let ti = 0; ti < transferrers.length; ti++) {
-              const t = transferrers[ti];
+            for (const t of transferrers) {
               try {
-                const m = await userAcquisitionsFor(
+                const m = await userAcquisitionsForCached(
                   t,
                   TRACKED_COLLECTIONS.map((c) => c.address),
                   sinceTs,
-                  200,
-                  wantedKeys,
+                  30,
                 );
                 for (const [k, v] of m) {
                   if (!merged.has(k)) merged.set(k, v);
                 }
               } catch (err) {
                 warn(`transferrer(${t})`, err);
-              }
-              if (ti < transferrers.length - 1) {
-                await new Promise((r) =>
-                  setTimeout(r, TRANSFERRER_COOLDOWN_MS),
-                );
               }
             }
             return merged;
