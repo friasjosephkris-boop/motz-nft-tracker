@@ -495,8 +495,33 @@ async function buildCollectionHoldings(
     return acq;
   }
 
+  // Helper: build a minimal row for a token when its full classification
+  // pipeline can't run (e.g. rate-limited mid-load). The row still shows
+  // the token in the holdings list — just with unknown cost/timestamp.
+  function fallbackRow(t: HoldingToken): HoldingRow {
+    const rarity = t.attributes?.[c.traitName]?.[0] ?? null;
+    return {
+      tokenId: t.tokenId,
+      name: t.name ?? null,
+      image: t.cdnImage ?? t.image ?? null,
+      acquiredAt: null,
+      acquiredTxHash: null,
+      acquiredVia: "transfer",
+      rarity,
+      rarityLabel: rarity ? (c.formatTrait?.(rarity) ?? rarity) : null,
+      costRon: 0,
+      ronUsdAtPurchase: null,
+      costUsd: 0,
+      currentRonUsd,
+      floorRon: rarity ? (floorByTrait.get(rarity) ?? null) : null,
+      floorUsd: null,
+      pnlUsd: null,
+    };
+  }
+
   const rows: HoldingRow[] = await Promise.all(
     tokens.map(async (t, i): Promise<HoldingRow> => {
+      try {
       const acq = marketAcqs[i];
       const userAcq = userAcqs.get(`${contractLc}:${t.tokenId}`);
       const userIsRecipient =
@@ -691,6 +716,16 @@ async function buildCollectionHoldings(
         floorUsd,
         pnlUsd,
       };
+      } catch (err) {
+        // A single token's enrichment failed (probably rate-limited
+        // lastBuyerSale / blockTimestampForTx / etc.). Don't kill the
+        // whole wallet's load — show the token with degraded data.
+        console.warn(
+          `[/api/holdings] row(${c.symbol}:${t.tokenId}) failed:`,
+          (err as Error).message,
+        );
+        return fallbackRow(t);
+      }
     }),
   );
 
@@ -699,6 +734,8 @@ async function buildCollectionHoldings(
   // (mint / sale / transfer — never "staked"), and apply the rarity floor.
   const stakedRows: HoldingRow[] = await Promise.all(
     stakedTokens.map(async (t): Promise<HoldingRow> => {
+      try {
+        // Body of staked-token row build below.
       const key = `${contractLc}:${t.tokenId}`;
       const userAcq = userAcqs.get(key);
       const marketAcq = stakedMarketAcq.get(key);
@@ -851,6 +888,13 @@ async function buildCollectionHoldings(
         floorUsd,
         pnlUsd,
       };
+      } catch (err) {
+        console.warn(
+          `[/api/holdings] stakedRow(${c.symbol}:${t.tokenId}) failed:`,
+          (err as Error).message,
+        );
+        return fallbackRow(t);
+      }
     }),
   );
 
