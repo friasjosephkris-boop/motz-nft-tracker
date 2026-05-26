@@ -309,11 +309,25 @@ export async function GET(req: NextRequest) {
     };
     // ownerOf throws on persistent failure — we let that bubble up so the
     // user sees an error instead of a silently-incomplete portfolio.
-    const stakedChecks = await Promise.all(
-      Array.from(stakingDeposits.values()).map(async (d) => ({
-        d,
-        currentOwner: await ownerOf(d.contract, d.tokenId),
-      })),
+    type StakedCheck = {
+      d: { contract: string; tokenId: string };
+      currentOwner: string;
+    };
+    const stakedChecksRaw = await Promise.all(
+      Array.from(stakingDeposits.values()).map(
+        async (d): Promise<StakedCheck | null> => {
+          try {
+            const currentOwner = await ownerOf(d.contract, d.tokenId);
+            return { d, currentOwner };
+          } catch (err) {
+            warn(`ownerOf(${d.contract.slice(0, 10)}...:${d.tokenId})`, err);
+            return null;
+          }
+        },
+      ),
+    );
+    const stakedChecks = stakedChecksRaw.filter(
+      (r): r is StakedCheck => r !== null,
     );
     const stakedByContract = new Map<string, StakedToken[]>();
     for (const { d, currentOwner } of stakedChecks) {
@@ -343,17 +357,19 @@ export async function GET(req: NextRequest) {
       allStaked.flatMap((s) => {
         const key = `${s.contract}:${s.tokenId}`;
         return [
-          tokenMetadata(s.contract, s.tokenId).then((meta) => {
-            if (meta) stakedMetadata.set(key, meta);
-          }),
+          tokenMetadata(s.contract, s.tokenId)
+            .then((meta) => {
+              if (meta) stakedMetadata.set(key, meta);
+            })
+            .catch((err) => warn(`stakedMetadata(${key})`, err)),
           // Ownership-verified: cached history is fresh if its most recent
           // event is "transfer TO this staking contract" (and the staking
           // contract still has it, which we confirmed via ownerOf above).
-          lastAcquisitionVerified(s.contract, s.tokenId, s.stakingContract).then(
-            (acq) => {
+          lastAcquisitionVerified(s.contract, s.tokenId, s.stakingContract)
+            .then((acq) => {
               if (acq) stakedMarketAcq.set(key, acq);
-            },
-          ),
+            })
+            .catch((err) => warn(`stakedLastAcq(${key})`, err)),
         ];
       }),
     );
