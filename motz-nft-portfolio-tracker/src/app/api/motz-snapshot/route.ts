@@ -155,11 +155,11 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
       }
 
       // Merge with existing snapshot: for any wallet whose fresh load came
-      // back EMPTY (0 tokens with internal warnings), preserve the previous
-      // snapshot's data for that wallet rather than wiping it. A wallet
-      // that legitimately owns no MoTZ NFTs returns 0 with no warnings —
-      // those are fine to overwrite. Only suspected rate-limited zeros get
-      // preserved.
+      // back EMPTY (0 tokens with internal warnings) OR outright FAILED,
+      // preserve the previous snapshot's rows for that wallet rather than
+      // wiping them. A wallet that legitimately owns no MoTZ NFTs returns
+      // 0 with no warnings — those are fine to overwrite. Only suspected
+      // rate-limited zeros and failures get preserved.
       const previous = readSnapshot();
       if (previous) {
         // Build a quick map: per-wallet row count in the fresh load.
@@ -170,22 +170,11 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             freshRowsByTag.set(tag, (freshRowsByTag.get(tag) ?? 0) + 1);
           }
         }
-        const partialTags = new Set(
-          partials.map((p) => p.input.toLowerCase()),
-        );
-        for (const addr of resolved) {
-          const lc = addr.toLowerCase();
-          const freshCount = freshRowsByTag.get(addr) ?? 0;
-          if (freshCount > 0) continue; // already has fresh data
-          // Was this wallet flagged as partial (i.e. rate-limited zero)?
-          // Check both raw input and resolved address against partialTags.
-          const wasPartial = partialTags.has(lc) ||
-            partials.some(
-              (p) => p.input.toLowerCase().includes(lc.slice(0, 8)),
-            );
-          if (!wasPartial) continue; // legitimately empty, leave alone
-          // Find previous rows for this wallet across all collections.
-          for (const prevCol of previous.collections) {
+        // Helper: pull previous rows for one wallet tag into the new
+        // byContract map. Returns total rows preserved.
+        function preservePreviousFor(addr: string): number {
+          let preserved = 0;
+          for (const prevCol of previous!.collections) {
             const prevRows = prevCol.rows.filter(
               (r) => r.walletTag === addr,
             );
@@ -202,9 +191,46 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
                 rows: [...prevRows],
               });
             }
+            preserved += prevRows.length;
+          }
+          if (preserved > 0) {
             console.log(
-              `[motz-snapshot] preserved ${prevRows.length} previous rows for ${addr.slice(0, 12)}... in ${prevCol.symbol}`,
+              `[motz-snapshot] preserved ${preserved} previous rows for ${addr.slice(0, 12)}...`,
             );
+          }
+          return preserved;
+        }
+        // 1) Partial wallets — resolved but loaded 0 tokens with warnings.
+        for (const p of partials) {
+          if ((p.tokens ?? 0) > 0) continue;
+          // partials carry the INPUT (RNS or hex), not the resolved addr.
+          // The previous snapshot tags rows by resolved address, so find
+          // any resolved addr from the previous run that matches by
+          // walletAddresses[i] === p.input.
+          const inputLc = p.input.toLowerCase();
+          const prevIdx = previous.walletAddresses.findIndex(
+            (w) => w.toLowerCase() === inputLc,
+          );
+          const prevResolved =
+            prevIdx >= 0 ? previous.resolvedAddresses[prevIdx] : null;
+          if (prevResolved && !freshRowsByTag.get(prevResolved)) {
+            preservePreviousFor(prevResolved);
+            if (!resolved.includes(prevResolved)) resolved.push(prevResolved);
+          }
+        }
+        // 2) Failed wallets — never even made it into `resolved`. Same
+        // lookup as above: map the failure input back to the resolved
+        // address from the previous snapshot, then splice in those rows.
+        for (const f of failures) {
+          const inputLc = f.input.toLowerCase();
+          const prevIdx = previous.walletAddresses.findIndex(
+            (w) => w.toLowerCase() === inputLc,
+          );
+          const prevResolved =
+            prevIdx >= 0 ? previous.resolvedAddresses[prevIdx] : null;
+          if (prevResolved && !freshRowsByTag.get(prevResolved)) {
+            preservePreviousFor(prevResolved);
+            if (!resolved.includes(prevResolved)) resolved.push(prevResolved);
           }
         }
       }
