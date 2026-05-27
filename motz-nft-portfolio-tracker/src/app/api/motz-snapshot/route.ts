@@ -7,6 +7,7 @@ import {
   listHoldingsEth,
   saleHistoryEth,
   collectionFloorEth,
+  tierFloorsEth,
   persistSalesSoon,
 } from "@/lib/opensea";
 import { ethUsdAt, ethUsdNow } from "@/lib/ethprice";
@@ -371,19 +372,25 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
         }
       }
       for (const c of ETH_TRACKED_COLLECTIONS) {
-        let floorEth: number | null = null;
+        let collectionFloor: number | null = null;
         try {
-          floorEth = await collectionFloorEth(c.slug);
+          collectionFloor = await collectionFloorEth(c.slug);
         } catch (err) {
           console.warn(
             `[motz-snapshot] OS floor ${c.slug} failed:`,
             (err as Error).message,
           );
         }
-        const floorUsd =
-          floorEth != null && currentEthUsd != null
-            ? floorEth * currentEthUsd
-            : null;
+        // Per-tier floors via listing walk (Size Class for Cambria Islands).
+        let floorsByTier: Record<string, number> = {};
+        try {
+          floorsByTier = await tierFloorsEth(c.slug, c.address, c.traitName);
+        } catch (err) {
+          console.warn(
+            `[motz-snapshot] OS per-tier floor ${c.slug} failed:`,
+            (err as Error).message,
+          );
+        }
         const rows: TaggedHoldingRow[] = [];
         for (const addr of ethWallets) {
           let nfts: Awaited<ReturnType<typeof listHoldingsEth>> = [];
@@ -436,6 +443,16 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             const costUsd =
               ronUsdAtPurchase != null ? costEth * ronUsdAtPurchase : null;
             const rarity = n.attributes[c.traitName]?.[0] ?? null;
+            // Prefer per-tier floor when available; fall back to collection
+            // floor for tokens whose tier didn't surface in the listing walk.
+            const floorEth =
+              rarity && floorsByTier[rarity] != null
+                ? floorsByTier[rarity]
+                : collectionFloor;
+            const floorUsd =
+              floorEth != null && currentEthUsd != null
+                ? floorEth * currentEthUsd
+                : null;
             const pnlUsd =
               costUsd != null && floorUsd != null
                 ? floorUsd - costUsd

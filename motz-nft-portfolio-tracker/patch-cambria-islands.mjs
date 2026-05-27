@@ -38,29 +38,63 @@ async function os(path) {
 const stats = await os(`/collections/${SLUG}/stats`);
 const collectionFloor = stats.total?.floor_price ?? null;
 console.log(`Collection floor: ${collectionFloor} ETH`);
-// Per-tier floors filled in lazily once we discover which tiers our
-// wallets actually own.
+
+// Per-tier floors — OpenSea's /best endpoint ignores trait filters, so
+// we paginate through cheapest-first listings and look up each token's
+// Size Class. First listing for each tier = tier floor. Stop when we
+// either have all 5 tiers or exhaust a reasonable scan window.
+console.log("Discovering per-tier floors via listing walk…");
 const floorByTier = {};
-async function getTierFloor(tier) {
-  if (tier in floorByTier) return floorByTier[tier];
-  try {
+const TIER_VALUES = new Set();
+// Seed expected tier count from what we'll see across our wallets.
+// We'll add discovered tiers in the loop and exit once they're all priced.
+async function discoverFloors(maxListings = 200) {
+  let next;
+  let scanned = 0;
+  for (let page = 0; page < 10; page++) {
+    const qs = new URLSearchParams({ limit: "50" });
+    if (next) qs.set("next", next);
     const data = await os(
-      `/listings/collection/${SLUG}/best?` +
-        new URLSearchParams({
-          limit: "1",
-          "trait[Size Class]": tier,
-        }).toString(),
+      `/listings/collection/${SLUG}/best?${qs.toString()}`,
     );
-    const listing = data.listings?.[0];
-    const wei = listing?.price?.current?.value ?? null;
-    floorByTier[tier] = wei != null ? Number(BigInt(wei)) / 1e18 : null;
-  } catch (err) {
-    console.warn(`  tier ${tier} floor failed:`, err.message);
-    floorByTier[tier] = null;
+    const listings = data.listings ?? [];
+    for (const l of listings) {
+      const tokenId =
+        l.protocol_data?.parameters?.offer?.[0]?.identifierOrCriteria;
+      const wei = l.price?.current?.value;
+      if (!tokenId || !wei) continue;
+      const priceEth = Number(BigInt(wei)) / 1e18;
+      try {
+        const detail = await os(
+          `/chain/ethereum/contract/${CONTRACT}/nfts/${tokenId}`,
+        );
+        const tier = detail.nft?.traits?.find(
+          (t) => t.trait_type === "Size Class",
+        )?.value;
+        if (!tier) continue;
+        TIER_VALUES.add(tier);
+        if (!(tier in floorByTier) || priceEth < floorByTier[tier]) {
+          floorByTier[tier] = priceEth;
+          console.log(`  ${tier}: ${priceEth} ETH (token #${tokenId})`);
+        }
+      } catch (err) {
+        console.warn(`  trait lookup #${tokenId} failed:`, err.message);
+      }
+      await sleep(300);
+      scanned++;
+      if (scanned >= maxListings) return;
+      // Early exit: if we've already priced 5 tiers (expected total) stop.
+      if (Object.keys(floorByTier).length >= 5) return;
+    }
+    if (!data.next) return;
+    next = data.next;
   }
-  console.log(`  tier "${tier}" floor: ${floorByTier[tier]} ETH`);
-  await sleep(400);
-  return floorByTier[tier];
+}
+await discoverFloors();
+console.log(`Discovered floors:`, floorByTier);
+
+async function getTierFloor(tier) {
+  return tier in floorByTier ? floorByTier[tier] : collectionFloor;
 }
 
 // ETH USD: load bundled history, find most recent.

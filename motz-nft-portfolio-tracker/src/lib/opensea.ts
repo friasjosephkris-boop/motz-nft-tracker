@@ -253,8 +253,8 @@ export async function saleHistoryEth(
 }
 
 /**
- * Collection floor price in ETH.
- * GET /api/v2/collection/{slug}/stats
+ * Collection-wide floor price in ETH.
+ * GET /api/v2/collections/{slug}/stats
  */
 const floorCache = new Map<string, { price: number | null; at: number }>();
 const FLOOR_TTL_MS = 15 * 60 * 1000;
@@ -279,6 +279,98 @@ export async function collectionFloorEth(
     );
     return null;
   }
+}
+
+/**
+ * Per-tier floor discovery. OpenSea's /listings/.../best endpoint doesn't
+ * accept trait filters, so we paginate through cheapest-first listings,
+ * fetch each token's traits via /chain/.../nfts/{tokenId}, and bucket the
+ * minimum price per tier value. Stops early once we've priced `expectedTiers`
+ * distinct tiers or scanned `maxListings` records.
+ *
+ * Result is keyed by the exact attribute value (e.g. "Cove (T1)").
+ * Cached for FLOOR_TTL_MS to keep API volume reasonable.
+ */
+const tierFloorCache = new Map<
+  string,
+  { byTier: Record<string, number>; at: number }
+>();
+
+export async function tierFloorsEth(
+  slug: string,
+  contract: string,
+  traitName: string,
+  options: { maxListings?: number; expectedTiers?: number } = {},
+): Promise<Record<string, number>> {
+  const cacheKey = `${slug}|${traitName}`;
+  const cached = tierFloorCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < FLOOR_TTL_MS) return cached.byTier;
+
+  const { maxListings = 200, expectedTiers = 5 } = options;
+  const byTier: Record<string, number> = {};
+  type ListRes = {
+    listings?: Array<{
+      price?: { current?: { value?: string } };
+      protocol_data?: {
+        parameters?: { offer?: Array<{ identifierOrCriteria?: string }> };
+      };
+    }>;
+    next?: string;
+  };
+  type NftRes = {
+    nft?: { traits?: Array<{ trait_type?: string; value?: string }> };
+  };
+
+  let next: string | undefined;
+  let scanned = 0;
+  outer: for (let page = 0; page < 10; page++) {
+    const qs = new URLSearchParams({ limit: "50" });
+    if (next) qs.set("next", next);
+    let data: ListRes;
+    try {
+      data = await osFetch<ListRes>(
+        `/listings/collection/${slug}/best?${qs.toString()}`,
+      );
+    } catch (err) {
+      console.warn(
+        `[opensea] tierFloorsEth page ${page} failed:`,
+        (err as Error).message,
+      );
+      break;
+    }
+    for (const l of data.listings ?? []) {
+      const tokenId =
+        l.protocol_data?.parameters?.offer?.[0]?.identifierOrCriteria;
+      const wei = l.price?.current?.value;
+      if (!tokenId || !wei) continue;
+      const priceEth = Number(BigInt(wei)) / 1e18;
+      try {
+        const detail = await osFetch<NftRes>(
+          `/chain/ethereum/contract/${contract.toLowerCase()}/nfts/${tokenId}`,
+        );
+        const tier = detail.nft?.traits?.find(
+          (t) => t.trait_type === traitName,
+        )?.value;
+        if (!tier) continue;
+        if (!(tier in byTier) || priceEth < byTier[tier]) {
+          byTier[tier] = priceEth;
+        }
+      } catch (err) {
+        console.warn(
+          `[opensea] tierFloorsEth trait #${tokenId} failed:`,
+          (err as Error).message,
+        );
+      }
+      scanned++;
+      if (scanned >= maxListings) break outer;
+      if (Object.keys(byTier).length >= expectedTiers) break outer;
+    }
+    if (!data.next) break;
+    next = data.next;
+  }
+
+  tierFloorCache.set(cacheKey, { byTier, at: Date.now() });
+  return byTier;
 }
 
 // ---------------------------------------------------------------------------
