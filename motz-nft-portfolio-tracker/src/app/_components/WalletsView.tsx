@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAccount, useConnect, useDisconnect } from "wagmi";
 import type { LoadedPortfolio } from "../page";
 import {
   ApiResponse,
@@ -251,6 +252,22 @@ export function WalletsView({
         </h2>
         <p className="text-xs text-zinc-500">{subtitle}</p>
 
+        {/* Connect-wallet helper, holder mode only. Lets visitors connect
+            their Ronin/Rabby/MetaMask wallet to auto-fill the address input
+            and skip typing. Manual paste-an-address still works below. */}
+        {holderMode && (
+          <ConnectWalletHelper
+            onUseAddress={(addr) => {
+              const next = [...addresses];
+              // Replace the first empty slot, or the first slot if all filled.
+              const slot = next.findIndex((v) => !v.trim());
+              const idx = slot >= 0 ? slot : 0;
+              next[idx] = addr;
+              setAddresses(next);
+            }}
+          />
+        )}
+
         {/* Transferrer UI is only meaningful for the project-owner view —
             it lets you specify upstream wallets that minted/bought tokens
             before transferring them to you, so the load can recover the
@@ -385,5 +402,105 @@ function StatusPill({ status }: { status: WalletStatus }) {
     >
       ✗ failed
     </span>
+  );
+}
+
+/**
+ * Compact connect-wallet helper for the Holder's Wallet view.
+ *
+ * - Not connected: shows a list of installed wallet connectors (Ronin
+ *   Wallet / Rabby / MetaMask / any injected) for one-click connect.
+ * - Connected: shows the address + a primary "Use this wallet" button
+ *   that pre-fills the form's first wallet input. User then clicks
+ *   "Load wallet" to fetch their portfolio.
+ *
+ * Disconnect link lets them switch wallets without leaving the page.
+ */
+function ConnectWalletHelper({
+  onUseAddress,
+}: {
+  onUseAddress: (address: string) => void;
+}) {
+  const { address, isConnected, connector } = useAccount();
+  const { connectors, connect, isPending, error } = useConnect();
+  const { disconnect } = useDisconnect();
+
+  // Filter connectors to wallets that are actually installed in the
+  // browser. The "injected" connector resolves dynamically per-browser
+  // (Ronin Wallet, Rabby, MetaMask, etc. — whichever was last set).
+  const availableConnectors = connectors.filter((c) => {
+    if (c.type === "injected") return true;
+    if (c.id === "metaMaskSDK" || c.id === "rabbyWallet") return true;
+    if (c.id === "io.rabby") return true;
+    return false;
+  });
+
+  return (
+    <div className="rounded-md border border-white/10 bg-white/[0.02] p-3 space-y-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <label className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--motz-red)]">
+          Connect wallet
+        </label>
+        <span className="text-[11px] text-zinc-500">
+          Ronin Wallet · Rabby · MetaMask · any Ronin-compatible wallet
+        </span>
+      </div>
+      {isConnected && address ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="chip chip-blue font-mono text-xs">
+            {connector?.name ? `${connector.name} · ` : ""}
+            {shortAddr(address)}
+          </span>
+          <button
+            type="button"
+            onClick={() => onUseAddress(address)}
+            className="btn-primary"
+          >
+            Use this wallet
+          </button>
+          <button
+            type="button"
+            onClick={() => disconnect()}
+            className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 hover:text-zinc-200"
+          >
+            Disconnect
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          {availableConnectors.length === 0 ? (
+            <span className="text-xs text-zinc-500">
+              No browser wallet detected. Install{" "}
+              <a
+                href="https://wallet.roninchain.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[color:var(--motz-red)] hover:underline"
+              >
+                Ronin Wallet
+              </a>{" "}
+              or paste an address manually below.
+            </span>
+          ) : (
+            availableConnectors.map((c) => (
+              <button
+                key={c.uid}
+                type="button"
+                disabled={isPending}
+                onClick={() => connect({ connector: c })}
+                className="chip font-mono text-xs hover:bg-white/10 transition-colors disabled:opacity-50"
+              >
+                {isPending ? "Connecting…" : `Connect ${c.name}`}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      {error && (
+        <div className="text-xs text-red-400">
+          {error.message?.slice(0, 200)}
+        </div>
+      )}
+    </div>
   );
 }

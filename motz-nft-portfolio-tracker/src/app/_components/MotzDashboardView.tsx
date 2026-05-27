@@ -90,36 +90,25 @@ export function MotzDashboardView() {
   return (
     <div className="space-y-8">
       <section className="glass-card p-6 space-y-3">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h2 className="font-display text-lg font-semibold text-zinc-100">
-              MoTZ Dashboard
-            </h2>
-            <p className="text-xs text-zinc-500">
-              Project portfolio snapshot. Auto-refreshes every 24 hours.
-              {snap && (
-                <>
-                  {" "}Last update:{" "}
-                  <span className="font-mono text-zinc-300">
-                    {fmtRelativeTime(snap.generatedAt)}
-                  </span>
-                  {snap.stale && (
-                    <span className="ml-2 rounded-md border border-amber-700/40 bg-amber-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-amber-300">
-                      stale
-                    </span>
-                  )}
-                </>
+        <h2 className="font-display text-lg font-semibold text-zinc-100">
+          MoTZ Dashboard
+        </h2>
+        <p className="text-xs text-zinc-500">
+          Project portfolio snapshot. Auto-refreshes every 24 hours.
+          {snap && (
+            <>
+              {" "}Last update:{" "}
+              <span className="font-mono text-zinc-300">
+                {fmtRelativeTime(snap.generatedAt)}
+              </span>
+              {snap.stale && (
+                <span className="ml-2 rounded-md border border-amber-700/40 bg-amber-950/40 px-2 py-0.5 text-[10px] font-mono uppercase text-amber-300">
+                  stale
+                </span>
               )}
-            </p>
-          </div>
-          <button
-            onClick={() => fetchSnap(true)}
-            disabled={loading}
-            className="btn-primary"
-          >
-            {loading ? "Refreshing…" : "Refresh"}
-          </button>
-        </div>
+            </>
+          )}
+        </p>
       </section>
 
       {loading && <LoadingOverlay elapsed={elapsed} />}
