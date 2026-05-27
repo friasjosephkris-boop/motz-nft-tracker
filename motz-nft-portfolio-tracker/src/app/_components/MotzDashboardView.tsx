@@ -343,11 +343,14 @@ export function MotzDashboardView() {
             >
               {(selectedSlug ? collections : allCollections).map((c) => {
                 const count = c.rows.length;
-                const cost = c.rows.reduce(
+                // Mirror CollectionSection totals — skip 1-of-1 / no-floor
+                // rows so their cost doesn't show as a phantom loss.
+                const tileRows = c.rows.filter((r) => !r.excludeFromTotals);
+                const cost = tileRows.reduce(
                   (s, r) => s + (r.costUsd ?? 0),
                   0,
                 );
-                const floor = c.rows.reduce(
+                const floor = tileRows.reduce(
                   (s, r) => s + (r.floorUsd ?? 0),
                   0,
                 );

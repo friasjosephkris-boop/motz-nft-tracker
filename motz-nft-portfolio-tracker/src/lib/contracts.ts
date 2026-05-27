@@ -87,7 +87,9 @@ export const MOKI_GENESIS: TrackedCollection = {
   mintDate: "2024-07-09",
   // Moki uses "Fur" as the broad rarity tier (14 variants: Spirit rarest
   // → Light Brown most common). The 27 named uniques carry a "1 of 1"
-  // attribute that takes precedence for floor lookups.
+  // attribute — we surface that name as the rarity LABEL but explicitly
+  // skip floor lookups for these tokens (there's only one of each, so
+  // no comparable floor exists). PnL stays null by design.
   traitName: "Fur",
   overrideTraitName: "1 of 1",
 };

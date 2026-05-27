@@ -31,19 +31,38 @@ export const dynamic = "force-dynamic";
 function rarityFor(
   c: TrackedCollection,
   attributes: Record<string, string[]> | null | undefined,
-): { traitName: string; value: string } | null {
+): { traitName: string; value: string; isOverride: boolean } | null {
   if (!attributes) return null;
   if (c.overrideTraitName) {
     const v = attributes[c.overrideTraitName]?.[0];
-    if (v) return { traitName: c.overrideTraitName, value: v };
+    if (v)
+      return {
+        traitName: c.overrideTraitName,
+        value: v,
+        isOverride: true,
+      };
   }
   const v = attributes[c.traitName]?.[0];
-  if (v) return { traitName: c.traitName, value: v };
+  if (v) return { traitName: c.traitName, value: v, isOverride: false };
   return null;
 }
 
 function floorKey(traitName: string, value: string): string {
   return `${traitName}|${value}`;
+}
+
+/**
+ * Floor lookup for a token's rarity. 1-of-1 / override-trait rarities
+ * have no comparable floor by definition — return null so we don't waste
+ * an API call and the row renders with floor = "—", pnl = null.
+ */
+function floorForRarity(
+  r: { traitName: string; value: string; isOverride: boolean } | null,
+  floorMap: Map<string, number | null>,
+): number | null {
+  if (!r) return null;
+  if (r.isOverride) return null;
+  return floorMap.get(floorKey(r.traitName, r.value)) ?? null;
 }
 
 export type HoldingRow = {
@@ -63,6 +82,13 @@ export type HoldingRow = {
   floorRon: number | null;
   floorUsd: number | null;
   pnlUsd: number | null;
+  /**
+   * Set on rows whose rarity came from the collection's overrideTraitName
+   * (e.g. Moki 1-of-1s). These have no comparable floor by design, so
+   * the UI excludes them from section totals to avoid a phantom -cost
+   * being attributed to them.
+   */
+  excludeFromTotals?: boolean;
 };
 
 export type CollectionHoldings = {
@@ -234,9 +260,14 @@ export async function GET(req: NextRequest) {
     const ownedFloorPromise = Promise.all(
       TRACKED_COLLECTIONS.map(async (c, ci) => {
         const contractLc = c.address.toLowerCase();
+        // Skip 1-of-1 (override) rarities — they have no comparable floor
+        // and the lookup would just waste an API call returning null.
         const ownedTraits = tokensPerCollection[ci]
           .map((t) => rarityFor(c, t.attributes))
-          .filter((r): r is { traitName: string; value: string } => !!r);
+          .filter(
+            (r): r is { traitName: string; value: string; isOverride: boolean } =>
+              !!r && !r.isOverride,
+          );
         const distinct = new Map<string, { traitName: string; value: string }>();
         for (const r of ownedTraits) distinct.set(floorKey(r.traitName, r.value), r);
         const m = new Map<string, number | null>();
@@ -544,7 +575,10 @@ export async function GET(req: NextRequest) {
               stakedMetadata.get(`${contractLc}:${s.tokenId}`)?.attributes,
             ),
           )
-          .filter((r): r is { traitName: string; value: string } => !!r);
+          .filter(
+            (r): r is { traitName: string; value: string; isOverride: boolean } =>
+              !!r && !r.isOverride,
+          );
         const existing =
           floorByCollectionAndTrait.get(contractLc) ??
           new Map<string, number | null>();
@@ -700,9 +734,10 @@ async function buildCollectionHoldings(
       ronUsdAtPurchase: null,
       costUsd: 0,
       currentRonUsd,
-      floorRon: r ? (floorByTrait.get(floorKey(r.traitName, r.value)) ?? null) : null,
+      floorRon: floorForRarity(r, floorByTrait),
       floorUsd: null,
       pnlUsd: null,
+      excludeFromTotals: r?.isOverride === true,
     };
   }
 
@@ -879,9 +914,7 @@ async function buildCollectionHoldings(
       const rarityLabel = rarity
         ? (c.formatTrait?.(rarity) ?? rarity)
         : null;
-      const floorRon = rInfo
-        ? (floorByTrait.get(floorKey(rInfo.traitName, rInfo.value)) ?? null)
-        : null;
+      const floorRon = floorForRarity(rInfo, floorByTrait);
       const floorUsd =
         floorRon != null && currentRonUsd != null
           ? floorRon * currentRonUsd
@@ -905,6 +938,7 @@ async function buildCollectionHoldings(
         floorRon,
         floorUsd,
         pnlUsd,
+        excludeFromTotals: rInfo?.isOverride === true,
       };
       } catch (err) {
         // A single token's enrichment failed (probably rate-limited
@@ -1055,9 +1089,7 @@ async function buildCollectionHoldings(
       const rInfo = rarityFor(c, t.attributes);
       const rarity = rInfo?.value ?? null;
       const rarityLabel = rarity ? (c.formatTrait?.(rarity) ?? rarity) : null;
-      const floorRon = rInfo
-        ? (floorByTrait.get(floorKey(rInfo.traitName, rInfo.value)) ?? null)
-        : null;
+      const floorRon = floorForRarity(rInfo, floorByTrait);
       const floorUsd =
         floorRon != null && currentRonUsd != null
           ? floorRon * currentRonUsd
@@ -1080,6 +1112,7 @@ async function buildCollectionHoldings(
         floorRon,
         floorUsd,
         pnlUsd,
+        excludeFromTotals: rInfo?.isOverride === true,
       };
       } catch (err) {
         console.warn(

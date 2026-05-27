@@ -30,7 +30,11 @@ export function sumRows(
 ): number {
   return (
     collections?.reduce(
-      (s, c) => s + c.rows.reduce((rs, r) => rs + (f(r) ?? 0), 0),
+      (s, c) =>
+        s +
+        c.rows
+          .filter((r) => !r.excludeFromTotals)
+          .reduce((rs, r) => rs + (f(r) ?? 0), 0),
       0,
     ) ?? 0
   );
@@ -222,8 +226,14 @@ export function CollectionSection({
   // active, COST/PNL reflect the filtered subset (matches the "Showing N
   // of M" text below). When unfiltered, view === c.rows so totals are the
   // full collection.
-  const costUsd = view.reduce((s, r) => s + (r.costUsd ?? 0), 0);
-  const floorUsd = view.reduce((s, r) => s + (r.floorUsd ?? 0), 0);
+  //
+  // Rows with excludeFromTotals=true (Moki 1-of-1s like soda / Gruyere)
+  // are skipped entirely — they have no comparable floor by design, so
+  // including their cost without a real floor would attribute a phantom
+  // loss of -cost to them on every refresh.
+  const tableRows = view.filter((r) => !r.excludeFromTotals);
+  const costUsd = tableRows.reduce((s, r) => s + (r.costUsd ?? 0), 0);
+  const floorUsd = tableRows.reduce((s, r) => s + (r.floorUsd ?? 0), 0);
   const pnl = floorUsd - costUsd;
   const isFiltered = view.length !== totalRowCount;
 
