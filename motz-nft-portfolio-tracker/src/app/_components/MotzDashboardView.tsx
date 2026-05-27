@@ -421,9 +421,10 @@ const COLLECTION_IMAGES: Record<string, string> = {
   // a branded background. Until then the tile renders with the dark
   // gradient only — still readable, just less visually distinct.
   "moki-genesis": "/motz/collections/moki.png",
-  // Ethereum / OpenSea collection. Drop a 512x512 PNG at this path to
-  // give the tile a branded background.
+  // Ethereum / OpenSea collections. Drop a 512x512 PNG at these paths
+  // to give the tiles a branded background.
   cambriaislands: "/motz/collections/cambria-islands.png",
+  "fableborne-primordials-20": "/motz/collections/fableborne-primordials.png",
 };
 
 function CollectionTile({
