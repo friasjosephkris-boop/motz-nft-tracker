@@ -1,9 +1,18 @@
+/**
+ * Chain identifier. Ronin collections go through the Sky Mavis pipeline;
+ * "ethereum" collections go through the OpenSea pipeline. Most fields are
+ * shared; chain-specific fields are noted.
+ */
+export type ChainId = "ronin" | "ethereum";
+
 export type TrackedCollection = {
   address: `0x${string}`;
+  /** Defaults to "ronin" for back-compat with the existing Ronin pipeline. */
+  chain?: ChainId;
   name: string;
   symbol: string;
   slug: string;
-  /** Public mint price in RON. */
+  /** Public mint price in the chain's native currency (RON for ronin, ETH for ethereum). */
   mintPriceRon: number;
   /** Public mint date (ISO YYYY-MM-DD, UTC). */
   mintDate: string;
@@ -83,9 +92,40 @@ export const MOKI_GENESIS: TrackedCollection = {
   overrideTraitName: "1 of 1",
 };
 
+export const CAMBRIA_ISLANDS: TrackedCollection = {
+  address: "0xd479cc4b52a692b4dd82ead6ae082e161ac7c049",
+  chain: "ethereum",
+  name: "Cambria Islands",
+  symbol: "CI",
+  slug: "cambriaislands",
+  // 0.1 ETH public mint price.
+  mintPriceRon: 0.1,
+  mintDate: "2025-10-23",
+  // Rarity trait unknown until first metadata fetch. Update once known.
+  traitName: "Rarity",
+};
+
+/** Ronin-only collections (Sky Mavis pipeline). */
 export const TRACKED_COLLECTIONS: TrackedCollection[] = [
   MOTZ_FOUNDERS_COIN,
   CAMBRIA_CORES,
   FABLEBORNE_KINGDOM,
   MOKI_GENESIS,
 ];
+
+/** Ethereum collections (OpenSea pipeline). Tracked separately so the
+ * Ronin code paths don't accidentally pull these in. */
+export const ETH_TRACKED_COLLECTIONS: TrackedCollection[] = [
+  CAMBRIA_ISLANDS,
+];
+
+/** All tracked collections across all chains. */
+export const ALL_TRACKED_COLLECTIONS: TrackedCollection[] = [
+  ...TRACKED_COLLECTIONS,
+  ...ETH_TRACKED_COLLECTIONS,
+];
+
+/** Helper: pick the correct collection list for a given chain. */
+export function collectionsForChain(chain: ChainId): TrackedCollection[] {
+  return chain === "ethereum" ? ETH_TRACKED_COLLECTIONS : TRACKED_COLLECTIONS;
+}

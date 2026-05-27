@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 import { MOTZ_WALLETS, MOTZ_TRANSFERRERS } from "@/lib/motz-wallets";
+import { ETH_TRACKED_COLLECTIONS } from "@/lib/contracts";
+import {
+  listHoldingsEth,
+  lastSaleEth,
+  collectionFloorEth,
+  persistSalesSoon,
+} from "@/lib/opensea";
+import { ethUsdAt, ethUsdNow } from "@/lib/ethprice";
 import type {
   ApiResponse,
   TaggedCollectionHoldings,
@@ -251,6 +259,107 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
           await new Promise((r) => setTimeout(r, BETWEEN_WALLET_MS));
         }
       }
+      // -------------------------------------------------------------
+      // Ethereum-side collections (OpenSea pipeline)
+      // -------------------------------------------------------------
+      // Iterates ETH_TRACKED_COLLECTIONS × resolved wallet addresses,
+      // pulls holdings + cost basis + floor from OpenSea, and merges
+      // into byContract alongside the Ronin rows. Per-wallet errors
+      // are isolated so an OpenSea hiccup never wipes Ronin data.
+      const currentEthUsd = ethUsdNow();
+      const ethWallets = resolved.length > 0 ? resolved : [];
+      for (const c of ETH_TRACKED_COLLECTIONS) {
+        let floorEth: number | null = null;
+        try {
+          floorEth = await collectionFloorEth(c.slug);
+        } catch (err) {
+          console.warn(
+            `[motz-snapshot] OS floor ${c.slug} failed:`,
+            (err as Error).message,
+          );
+        }
+        const floorUsd =
+          floorEth != null && currentEthUsd != null
+            ? floorEth * currentEthUsd
+            : null;
+        const rows: TaggedHoldingRow[] = [];
+        for (const addr of ethWallets) {
+          let nfts: Awaited<ReturnType<typeof listHoldingsEth>> = [];
+          try {
+            nfts = await listHoldingsEth(addr, c.slug);
+          } catch (err) {
+            console.warn(
+              `[motz-snapshot] OS holdings ${addr.slice(0, 8)}/${c.slug} failed:`,
+              (err as Error).message,
+            );
+            continue;
+          }
+          for (const n of nfts) {
+            // Cost basis: fall back to mint price (0.1 ETH) if no sale
+            // event surfaces. lastSaleEth is cached on disk so this
+            // costs ~1 OpenSea request per token on cold cache, zero
+            // on warm.
+            const sale = await lastSaleEth(c.address, n.tokenId);
+            let acquiredAt: number | null = null;
+            let acquiredVia: "sale" | "mint" | "transfer" = "mint";
+            let costEth = c.mintPriceRon; // 0.1 for Cambria Islands
+            let acquiredTxHash: string | null = null;
+            if (sale && sale.toAddress?.toLowerCase() === addr.toLowerCase()) {
+              acquiredAt = sale.eventTimestamp;
+              acquiredVia = "sale";
+              costEth = Number(BigInt(sale.priceWei)) / 1e18;
+              acquiredTxHash = sale.txHash;
+            } else {
+              // Default to mint date when no buyer-matching sale found.
+              acquiredAt = Math.floor(
+                new Date(`${c.mintDate}T00:00:00Z`).getTime() / 1000,
+              );
+            }
+            const ronUsdAtPurchase = acquiredAt
+              ? ethUsdAt(acquiredAt)
+              : null;
+            const costUsd =
+              ronUsdAtPurchase != null ? costEth * ronUsdAtPurchase : null;
+            const rarity = n.attributes[c.traitName]?.[0] ?? null;
+            const pnlUsd =
+              costUsd != null && floorUsd != null
+                ? floorUsd - costUsd
+                : null;
+            rows.push({
+              tokenId: n.tokenId,
+              name: n.name,
+              image: n.imageUrl,
+              acquiredAt,
+              acquiredTxHash,
+              acquiredVia,
+              rarity,
+              rarityLabel: rarity
+                ? (c.formatTrait?.(rarity) ?? rarity)
+                : null,
+              costRon: costEth,
+              ronUsdAtPurchase,
+              costUsd,
+              currentRonUsd: currentEthUsd,
+              floorRon: floorEth,
+              floorUsd,
+              pnlUsd,
+              walletTag: addr.toLowerCase(),
+            });
+          }
+        }
+        if (rows.length > 0) {
+          byContract.set(c.address.toLowerCase(), {
+            contract: c.address.toLowerCase(),
+            name: c.name,
+            symbol: c.symbol,
+            slug: c.slug,
+            rows,
+          });
+        }
+      }
+      // Flush OpenSea sale cache to disk.
+      persistSalesSoon();
+
       // If literally nothing loaded, surface the failure (no point writing
       // an empty snapshot over a previously-good one).
       if (resolved.length === 0) {
