@@ -286,6 +286,10 @@ const COLLECTION_IMAGES: Record<string, string> = {
   "motz-founders-coin": "/motz/collections/founders-coin.jpg",
   "cambria-cores": "/motz/collections/cambria.png",
   "fableborne-kingdom": "/motz/collections/fableborne.jpg",
+  // Drop an image at public/motz/collections/moki.png to give this tile
+  // a branded background. Until then the tile renders with the dark
+  // gradient only — still readable, just less visually distinct.
+  "moki-genesis": "/motz/collections/moki.png",
 };
 
 function CollectionTile({

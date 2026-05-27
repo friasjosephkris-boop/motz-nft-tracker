@@ -61,8 +61,23 @@ export const FABLEBORNE_KINGDOM: TrackedCollection = {
   stakingContracts: ["0x569899aab0ff89c1711114ba9d7be0774bd23c71"],
 };
 
+export const MOKI_GENESIS: TrackedCollection = {
+  address: "0x47b5a7c2e4f07772696bbf8c8c32fe2b9eabd550",
+  name: "Moki Genesis",
+  symbol: "MOKI",
+  slug: "moki-genesis",
+  // 55 RON public/lucksack mint price on July 9, 2024 (~$150 USD at the time).
+  mintPriceRon: 55,
+  mintDate: "2024-07-09",
+  // Best-guess trait name. If Sky Mavis returns floors as null, this is
+  // probably the wrong attribute key — check a sample token's attributes
+  // payload and update accordingly (e.g. "Tier", "Class").
+  traitName: "Rarity",
+};
+
 export const TRACKED_COLLECTIONS: TrackedCollection[] = [
   MOTZ_FOUNDERS_COIN,
   CAMBRIA_CORES,
   FABLEBORNE_KINGDOM,
+  MOKI_GENESIS,
 ];
