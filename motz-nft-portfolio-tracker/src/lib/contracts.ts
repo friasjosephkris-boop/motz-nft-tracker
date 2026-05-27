@@ -109,6 +109,22 @@ export const CAMBRIA_ISLANDS: TrackedCollection = {
   traitName: "Size Class",
 };
 
+export const FABLEBORNE_PRIMORDIALS: TrackedCollection = {
+  address: "0xd355cd58ad1a4b9cde8cfa34834ec3be13c5f98d",
+  chain: "ethereum",
+  name: "Fableborne Primordials",
+  // OpenSea slug discovered via /chain/ethereum/contract/{addr}.
+  // OpenSea uses a "-20" suffix for this collection — keep verbatim.
+  slug: "fableborne-primordials-20",
+  symbol: "FBP",
+  // Public mint ended Oct 4, 2023 at $40 USD. ETH/USD closed at
+  // ~$1646.79 that day, so mint price ≈ 0.02428968 ETH.
+  mintPriceRon: 0.02428968,
+  mintDate: "2023-10-04",
+  // Rarity trait unknown until first metadata fetch. Update once known.
+  traitName: "Rarity",
+};
+
 /** Ronin-only collections (Sky Mavis pipeline). */
 export const TRACKED_COLLECTIONS: TrackedCollection[] = [
   MOTZ_FOUNDERS_COIN,
@@ -121,6 +137,7 @@ export const TRACKED_COLLECTIONS: TrackedCollection[] = [
  * Ronin code paths don't accidentally pull these in. */
 export const ETH_TRACKED_COLLECTIONS: TrackedCollection[] = [
   CAMBRIA_ISLANDS,
+  FABLEBORNE_PRIMORDIALS,
 ];
 
 /** All tracked collections across all chains. */
