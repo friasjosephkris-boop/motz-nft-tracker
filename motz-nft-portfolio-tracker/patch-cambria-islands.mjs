@@ -93,8 +93,52 @@ async function discoverFloors(maxListings = 200) {
 await discoverFloors();
 console.log(`Discovered floors:`, floorByTier);
 
+// Lazy fallback: most-recent SALE price for a tier with no active listings.
+const lastSaleByTier = {};
+async function getLastTierSale(tier) {
+  if (tier in lastSaleByTier) return lastSaleByTier[tier];
+  console.log(`  scanning recent sales for ${tier} fallback…`);
+  let next;
+  let found = null;
+  outer: for (let page = 0; page < 6; page++) {
+    const qs = new URLSearchParams({ event_type: "sale", limit: "50" });
+    if (next) qs.set("next", next);
+    const data = await os(`/events/collection/${SLUG}?${qs.toString()}`);
+    for (const ev of data.asset_events ?? []) {
+      const tokenId = ev.nft?.identifier;
+      const wei = ev.payment?.quantity;
+      if (!tokenId || !wei) continue;
+      try {
+        const detail = await os(
+          `/chain/ethereum/contract/${CONTRACT}/nfts/${tokenId}`,
+        );
+        const t = detail.nft?.traits?.find(
+          (x) => x.trait_type === "Size Class",
+        )?.value;
+        if (t === tier) {
+          found = Number(BigInt(wei)) / 1e18;
+          console.log(`    found ${tier} sale: ${found} ETH (#${tokenId})`);
+          break outer;
+        }
+      } catch {}
+      await sleep(250);
+    }
+    if (!data.next) break;
+    next = data.next;
+  }
+  lastSaleByTier[tier] = found;
+  return found;
+}
+
 async function getTierFloor(tier) {
-  return tier in floorByTier ? floorByTier[tier] : collectionFloor;
+  if (tier in floorByTier) return floorByTier[tier];
+  // No active listing for this tier — fall back to most recent SALE.
+  const sale = await getLastTierSale(tier);
+  if (sale != null) {
+    floorByTier[tier] = sale;
+    return sale;
+  }
+  return collectionFloor;
 }
 
 // ETH USD: load bundled history, find most recent.

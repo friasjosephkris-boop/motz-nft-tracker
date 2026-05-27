@@ -282,6 +282,94 @@ export async function collectionFloorEth(
 }
 
 /**
+ * Most recent SALE price for a given tier. Used as a fallback when a tier
+ * has no active listings (most listing walks miss the rarest tiers). The
+ * scan walks newest-first collection sales, fetches each token's traits,
+ * and returns the first one matching the target tier value.
+ *
+ * Result cached for FLOOR_TTL_MS. Returns null if no sale found within
+ * `maxScanned` events.
+ */
+const lastTierSaleCache = new Map<
+  string,
+  { priceEth: number | null; at: number }
+>();
+
+export async function lastTierSaleEth(
+  slug: string,
+  contract: string,
+  traitName: string,
+  tier: string,
+  maxScanned = 100,
+): Promise<number | null> {
+  const cacheKey = `${slug}|${traitName}|${tier}`;
+  const cached = lastTierSaleCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < FLOOR_TTL_MS) return cached.priceEth;
+
+  type Ev = {
+    event_timestamp: number;
+    payment?: { quantity: string };
+    nft?: { identifier?: string };
+  };
+  type Res = { asset_events?: Ev[]; next?: string };
+  type NftRes = {
+    nft?: { traits?: Array<{ trait_type?: string; value?: string }> };
+  };
+
+  let next: string | undefined;
+  let scanned = 0;
+  let foundPrice: number | null = null;
+  outer: for (let page = 0; page < 10; page++) {
+    const qs = new URLSearchParams({
+      event_type: "sale",
+      limit: "50",
+    });
+    if (next) qs.set("next", next);
+    let data: Res;
+    try {
+      data = await osFetch<Res>(
+        `/events/collection/${slug}?${qs.toString()}`,
+      );
+    } catch (err) {
+      console.warn(
+        `[opensea] lastTierSaleEth page ${page} failed:`,
+        (err as Error).message,
+      );
+      break;
+    }
+    for (const ev of data.asset_events ?? []) {
+      const tokenId = ev.nft?.identifier;
+      const wei = ev.payment?.quantity;
+      if (!tokenId || !wei) continue;
+      try {
+        const detail = await osFetch<NftRes>(
+          `/chain/ethereum/contract/${contract.toLowerCase()}/nfts/${tokenId}`,
+        );
+        const t = detail.nft?.traits?.find(
+          (x) => x.trait_type === traitName,
+        )?.value;
+        if (t === tier) {
+          foundPrice = Number(BigInt(wei)) / 1e18;
+          break outer;
+        }
+      } catch (err) {
+        console.warn(
+          `[opensea] lastTierSaleEth trait #${tokenId} failed:`,
+          (err as Error).message,
+        );
+      }
+      scanned++;
+      if (scanned >= maxScanned) break outer;
+    }
+    if (!data.next) break;
+    next = data.next;
+  }
+
+  lastTierSaleCache.set(cacheKey, { priceEth: foundPrice, at: Date.now() });
+  return foundPrice;
+}
+
+/**
  * Per-tier floor discovery. OpenSea's /listings/.../best endpoint doesn't
  * accept trait filters, so we paginate through cheapest-first listings,
  * fetch each token's traits via /chain/.../nfts/{tokenId}, and bucket the

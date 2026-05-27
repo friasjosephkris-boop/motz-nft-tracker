@@ -8,6 +8,7 @@ import {
   saleHistoryEth,
   collectionFloorEth,
   tierFloorsEth,
+  lastTierSaleEth,
   persistSalesSoon,
 } from "@/lib/opensea";
 import { ethUsdAt, ethUsdNow } from "@/lib/ethprice";
@@ -391,6 +392,12 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             (err as Error).message,
           );
         }
+        // For any tier we HOLD but couldn't find a listing for (e.g. T5
+        // with no active sales), fall back to the most recent SALE price
+        // for that tier. Better signal than the collection floor since
+        // rare tiers trade at very different prices from the median.
+        // We populate this lazily after we've discovered which tiers our
+        // wallets actually hold (below in the per-wallet loop).
         const rows: TaggedHoldingRow[] = [];
         for (const addr of ethWallets) {
           let nfts: Awaited<ReturnType<typeof listHoldingsEth>> = [];
@@ -443,12 +450,34 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             const costUsd =
               ronUsdAtPurchase != null ? costEth * ronUsdAtPurchase : null;
             const rarity = n.attributes[c.traitName]?.[0] ?? null;
-            // Prefer per-tier floor when available; fall back to collection
-            // floor for tokens whose tier didn't surface in the listing walk.
-            const floorEth =
-              rarity && floorsByTier[rarity] != null
-                ? floorsByTier[rarity]
-                : collectionFloor;
+            // Floor lookup chain:
+            //   1. Active listing floor for this exact tier
+            //   2. Most recent SALE price for this tier (lazy, cached)
+            //   3. Collection-wide floor as last resort
+            let floorEth: number | null = collectionFloor;
+            if (rarity) {
+              if (floorsByTier[rarity] != null) {
+                floorEth = floorsByTier[rarity];
+              } else {
+                try {
+                  const lastSale = await lastTierSaleEth(
+                    c.slug,
+                    c.address,
+                    c.traitName,
+                    rarity,
+                  );
+                  if (lastSale != null) {
+                    floorsByTier[rarity] = lastSale; // memoize
+                    floorEth = lastSale;
+                  }
+                } catch (err) {
+                  console.warn(
+                    `[motz-snapshot] lastTierSale ${c.slug}/${rarity} failed:`,
+                    (err as Error).message,
+                  );
+                }
+              }
+            }
             const floorUsd =
               floorEth != null && currentEthUsd != null
                 ? floorEth * currentEthUsd
