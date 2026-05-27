@@ -165,8 +165,21 @@ export function CollectionSection({
     ),
   );
 
-  // Filter THEN sort. Filters narrow the set; sort orders what's left.
+  // Dedupe rows by (walletTag, tokenId). Merge-protection in the snapshot
+  // pipeline can occasionally re-attribute a token to the same wallet across
+  // runs and leave a duplicate row. Duplicates produce colliding React keys,
+  // which prevents <tbody> from reordering when the sort changes — that's
+  // why a column header click could "do nothing" on a collection with dupes.
   let view = c.rows;
+  const seen = new Set<string>();
+  const deduped: typeof c.rows = [];
+  for (const r of c.rows) {
+    const k = `${r.walletTag ?? ""}-${r.tokenId}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    deduped.push(r);
+  }
+  view = deduped;
   if (rarityFilter !== "all") {
     view = view.filter(
       (r) => (r.rarityLabel ?? r.rarity) === rarityFilter,
@@ -201,7 +214,10 @@ export function CollectionSection({
     }
   });
 
-  if (c.rows.length === 0) return null;
+  if (deduped.length === 0) return null;
+  // Total count uses the deduped row set so the section header reflects the
+  // count the user actually sees in the table.
+  const totalRowCount = deduped.length;
   // Header totals follow whatever's currently visible: when filters are
   // active, COST/PNL reflect the filtered subset (matches the "Showing N
   // of M" text below). When unfiltered, view === c.rows so totals are the
@@ -209,7 +225,7 @@ export function CollectionSection({
   const costUsd = view.reduce((s, r) => s + (r.costUsd ?? 0), 0);
   const floorUsd = view.reduce((s, r) => s + (r.floorUsd ?? 0), 0);
   const pnl = floorUsd - costUsd;
-  const isFiltered = view.length !== c.rows.length;
+  const isFiltered = view.length !== totalRowCount;
 
   // Helper: when user clicks a sortable header, toggle direction if it's
   // already the active sort, otherwise switch to that sort with asc.
@@ -254,10 +270,10 @@ export function CollectionSection({
               {isFiltered ? (
                 <>
                   ({view.length}{" "}
-                  <span className="text-zinc-600">of {c.rows.length}</span>)
+                  <span className="text-zinc-600">of {totalRowCount}</span>)
                 </>
               ) : (
-                `(${c.rows.length})`
+                `(${totalRowCount})`
               )}
             </span>
           </h2>
@@ -317,9 +333,9 @@ export function CollectionSection({
                 Clear filters
               </button>
             )}
-            {view.length !== c.rows.length && (
+            {view.length !== totalRowCount && (
               <span className="font-mono text-[11px] text-zinc-500 ml-auto">
-                Showing {view.length} of {c.rows.length}
+                Showing {view.length} of {totalRowCount}
               </span>
             )}
           </div>
@@ -375,7 +391,10 @@ export function CollectionSection({
                 </thead>
                 <tbody>
                   {view.map((r) => (
-                    <Row key={`${r.walletTag ?? ""}-${r.tokenId}`} r={r} />
+                    <Row
+                      key={`${r.walletTag ?? ""}-${r.tokenId}`}
+                      r={r}
+                    />
                   ))}
                   {view.length === 0 && (
                     <tr>
