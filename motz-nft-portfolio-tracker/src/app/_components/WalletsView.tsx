@@ -259,12 +259,16 @@ export function WalletsView({
           <ConnectWalletHelper
             onUseAddress={(addr) => {
               const next = [...addresses];
-              // Replace the first empty slot, or the first slot if all filled.
               const slot = next.findIndex((v) => !v.trim());
               const idx = slot >= 0 ? slot : 0;
               next[idx] = addr;
               setAddresses(next);
+              // One-click "Load my wallet": after the address is set in
+              // state, fire the load on the next microtask so React has
+              // flushed setAddresses and loadAll sees the new value.
+              setTimeout(() => loadAll(), 0);
             }}
+            primaryLabel="Load my wallet"
           />
         )}
 
@@ -314,59 +318,83 @@ export function WalletsView({
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          {/* Holder mode = single wallet only (visitors looking up their
-              own portfolio don't need multi-wallet combine). Project
-              owner view shows all input rows + the + Add button below. */}
-          {(holderMode ? addresses.slice(0, 1) : addresses).map((v, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <span className="eyebrow w-20 shrink-0">
-                {holderMode ? "Wallet" : `Wallet ${i + 1}`}
-              </span>
-              <input
-                value={v}
-                onChange={(e) => updateInput(i, e.target.value)}
-                placeholder="0x… or RNS"
-                disabled={loading}
-                className="flex-1 rounded-md bg-black/40 border border-white/10 px-3 py-2 font-mono text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[color:var(--motz-red)] focus:ring-1 focus:ring-[color:var(--motz-red)]/40"
-              />
-              {!holderMode && (
-                <button
-                  onClick={() => removeWalletRow(i)}
-                  disabled={loading || addresses.length <= 1}
-                  title="Remove this wallet"
-                  className="h-9 w-9 rounded-md border border-white/10 bg-white/5 text-zinc-400 hover:border-[color:var(--motz-red)]/40 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                  aria-label="Remove wallet"
-                >
-                  −
-                </button>
-              )}
-              <StatusPill status={statuses[i] ?? { state: "idle" }} />
+        {/* Manual paste-an-address input + Add another wallet are
+            hidden in holderMode. Visitors load only their own
+            connected wallet via the Connect Wallet helper above —
+            after clicking "Use this wallet" they can hit "Load wallet"
+            here. The first wallet input is still present internally
+            (just visually hidden) because loadAll reads from
+            addresses[0]; clicking "Use this wallet" populates it. */}
+        {!holderMode && (
+          <>
+            <div className="flex flex-col gap-2">
+              {addresses.map((v, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="eyebrow w-20 shrink-0">
+                    {`Wallet ${i + 1}`}
+                  </span>
+                  <input
+                    value={v}
+                    onChange={(e) => updateInput(i, e.target.value)}
+                    placeholder="0x… or RNS"
+                    disabled={loading}
+                    className="flex-1 rounded-md bg-black/40 border border-white/10 px-3 py-2 font-mono text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[color:var(--motz-red)] focus:ring-1 focus:ring-[color:var(--motz-red)]/40"
+                  />
+                  <button
+                    onClick={() => removeWalletRow(i)}
+                    disabled={loading || addresses.length <= 1}
+                    title="Remove this wallet"
+                    className="h-9 w-9 rounded-md border border-white/10 bg-white/5 text-zinc-400 hover:border-[color:var(--motz-red)]/40 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Remove wallet"
+                  >
+                    −
+                  </button>
+                  <StatusPill status={statuses[i] ?? { state: "idle" }} />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={loadAll}
-            disabled={loading}
-            className="btn-primary"
-          >
-            {loading
-              ? "Loading…"
-              : holderMode || cleaned.length === 1
-                ? "Load wallet"
-                : "Load combined"}
-          </button>
-          {!holderMode && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={loadAll}
+                disabled={loading}
+                className="btn-primary"
+              >
+                {loading
+                  ? "Loading…"
+                  : cleaned.length === 1
+                    ? "Load wallet"
+                    : "Load combined"}
+              </button>
+              <button
+                onClick={addWalletRow}
+                disabled={loading}
+                className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--motz-red)] hover:text-zinc-100 disabled:opacity-40"
+              >
+                + Add another wallet
+              </button>
+            </div>
+          </>
+        )}
+        {/* In holderMode: render the single wallet's status pill +
+            "Load" button. The address comes from the Connect Wallet
+            helper above (which writes into addresses[0]). No manual
+            paste; visitors can only view their connected wallet. */}
+        {holderMode && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={addWalletRow}
-              disabled={loading}
-              className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--motz-red)] hover:text-zinc-100 disabled:opacity-40"
+              onClick={loadAll}
+              disabled={loading || !cleaned[0]}
+              className="btn-primary"
             >
-              + Add another wallet
+              {loading
+                ? "Loading…"
+                : cleaned[0]
+                  ? "Load my wallet"
+                  : "Connect a wallet to load"}
             </button>
-          )}
-        </div>
+            <StatusPill status={statuses[0] ?? { state: "idle" }} />
+          </div>
+        )}
         {error && (
           <div className="rounded-md border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300 whitespace-pre-wrap break-words">
             {error}
@@ -427,8 +455,12 @@ function StatusPill({ status }: { status: WalletStatus }) {
  */
 function ConnectWalletHelper({
   onUseAddress,
+  primaryLabel = "Use this wallet",
 }: {
   onUseAddress: (address: string) => void;
+  /** Override the connected-state primary button label. Used by holder
+   * mode to make it a single-click "Load my wallet" action. */
+  primaryLabel?: string;
 }) {
   const { address, isConnected, connector } = useAccount();
   const { connectors, connect, isPending, error } = useConnect();
@@ -472,7 +504,7 @@ function ConnectWalletHelper({
             onClick={() => onUseAddress(address)}
             className="btn-primary"
           >
-            Use this wallet
+            {primaryLabel}
           </button>
           <button
             type="button"
