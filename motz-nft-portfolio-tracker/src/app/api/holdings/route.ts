@@ -18,6 +18,7 @@ import {
   userStakingDepositsFor,
 } from "@/lib/marketplace";
 import { ronUsdAt, ronUsdNow } from "@/lib/coingecko";
+import { lookupManualCost } from "@/lib/manual-costs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -646,6 +647,37 @@ export async function GET(req: NextRequest) {
         );
       }),
     );
+
+    // Apply manual cost overrides (P2P trades, OTC deals, gifts with
+    // a known value, etc.) as a final post-pass. These always win over
+    // the standard pipeline's computed cost basis. Source of truth is
+    // src/lib/manual-costs.ts — edit there, redeploy.
+    for (const col of collections) {
+      const contractLc = col.contract.toLowerCase();
+      for (const row of col.rows) {
+        const override = lookupManualCost(contractLc, row.tokenId);
+        if (!override) continue;
+        row.costRon = override.cost;
+        if (override.via) row.acquiredVia = override.via;
+        if (override.acquiredAtIso) {
+          row.acquiredAt = Math.floor(
+            new Date(override.acquiredAtIso).getTime() / 1000,
+          );
+        }
+        // Recompute USD fields off the (possibly new) acquiredAt.
+        if (row.acquiredAt) {
+          row.ronUsdAtPurchase = await ronUsdAt(row.acquiredAt);
+        }
+        row.costUsd =
+          row.ronUsdAtPurchase != null
+            ? row.costRon * row.ronUsdAtPurchase
+            : null;
+        row.pnlUsd =
+          row.costUsd != null && row.floorUsd != null
+            ? row.floorUsd - row.costUsd
+            : null;
+      }
+    }
 
     return NextResponse.json({
       address,

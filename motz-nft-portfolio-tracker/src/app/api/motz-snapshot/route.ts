@@ -13,6 +13,7 @@ import {
   persistSalesSoon,
 } from "@/lib/opensea";
 import { ethUsdAt, ethUsdNow } from "@/lib/ethprice";
+import { lookupManualCost } from "@/lib/manual-costs";
 import type {
   ApiResponse,
   TaggedCollectionHoldings,
@@ -512,6 +513,19 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
                 );
                 acquiredVia = "transfer";
                 costEth = 0;
+              }
+            }
+            // Apply any manual cost override (e.g. P2P trades that
+            // don't surface as on-chain sale events). Wins over the
+            // standard pipeline's computed cost basis.
+            const override = lookupManualCost(c.address, n.tokenId);
+            if (override) {
+              costEth = override.cost;
+              if (override.via) acquiredVia = override.via;
+              if (override.acquiredAtIso) {
+                acquiredAt = Math.floor(
+                  new Date(override.acquiredAtIso).getTime() / 1000,
+                );
               }
             }
             const ronUsdAtPurchase = acquiredAt

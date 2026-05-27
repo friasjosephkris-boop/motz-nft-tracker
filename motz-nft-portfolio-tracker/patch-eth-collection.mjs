@@ -220,6 +220,31 @@ for (const addr of WALLETS) {
     const floorEth = rarity && floorByTier[rarity] != null
       ? floorByTier[rarity]
       : collectionFloor;
+    // Apply manual cost-basis override if present (P2P / OTC trades).
+    // Parses src/lib/manual-costs.ts via a lightweight regex since we
+    // don't want to add a TS compiler dep to a one-off patch script.
+    try {
+      const tsSrc = fs.readFileSync("src/lib/manual-costs.ts", "utf8");
+      const cm = tsSrc.match(
+        new RegExp(
+          `"${CONTRACT.toLowerCase()}"\\s*:\\s*\\{[^}]*?"${n.identifier}"\\s*:\\s*\\{([^}]*)\\}`,
+          "s",
+        ),
+      );
+      if (cm) {
+        const body = cm[1];
+        const costM = body.match(/cost:\s*([0-9.eE+-]+)/);
+        const viaM = body.match(/via:\s*"(sale|transfer|mint)"/);
+        const dateM = body.match(/acquiredAtIso:\s*"([0-9T:\-Z]+)"/);
+        if (costM) costEth = Number(costM[1]);
+        if (viaM) acquiredVia = viaM[1];
+        if (dateM)
+          acquiredAt = Math.floor(new Date(dateM[1]).getTime() / 1000);
+      }
+    } catch {
+      /* manual-costs.ts missing or unreadable — skip */
+    }
+
     const ronUsdAtPurchase = ethUsdAt(acquiredAt);
     const costUsd =
       ronUsdAtPurchase != null ? costEth * ronUsdAtPurchase : null;
