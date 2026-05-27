@@ -4,7 +4,7 @@ import { getMaxCleared } from "../core/clears";
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -159,6 +159,16 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
               <button class="ghost-btn" id="admin-fill-energy" type="button">Refill Max</button>
             </div>
             <div class="admin-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="admin-info">🔍 <strong>Diagnose Wallet Progress</strong> — reads a wallet's per-wallet maxfloor key AND its score on the Highest Floor leaderboard. Drift between the two means a clear report dropped (server's strict-sequential rule then silently rejects every later floor). The repair button raises their max + LB to a chosen floor.</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <input type="text" id="admin-diag-wallet" placeholder="0x..." style="font-family:monospace; padding:4px 8px; min-width:340px;" />
+                <button class="ghost-btn" id="admin-diag-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;">🔍 Diagnose</button>
+                <input type="number" id="admin-diag-floor" placeholder="177" min="1" max="500" style="width:80px; padding:4px 6px;" />
+                <button class="ghost-btn" id="admin-set-max-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🛠 Set Max Floor</button>
+              </div>
+              <span class="admin-info" id="admin-diag-result" style="font-family:monospace; font-size:11px; color:#cce4ff;"></span>
+            </div>
+            <div class="admin-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
               <span class="admin-info">🎟 <strong>Grant Sample bRON Vouchers</strong> — pushes a mixed set to your own inventory so you can preview the voucher-pay path in the shop. Server enforces admin gate AND that the target is the caller, so no cross-wallet grant is possible.</span>
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
                 <button class="ghost-btn" id="admin-grant-vouchers-small" type="button" style="border-color:#9bcfff;color:#cce4ff;">🎟 +Small (3×t1, 2×t2, 1×t3)</button>
@@ -311,6 +321,64 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       await alertModal({ kind: "warning", title: "Server Unreachable", message: "Filled energy <strong>locally only</strong> — this won't persist across reloads." });
     }
     onClose(); renderSettings(root, onClose);
+  });
+
+  // ---- Wallet progress diagnostic + repair ----
+  // Read-only diagnose first, then optional raise via "Set Max Floor". The
+  // diagnostic surfaces drift between the per-wallet maxfloor key (source
+  // of truth) and the Highest Floor LB score — a mismatch is the smoking
+  // gun for a dropped clear report under the strict-sequential rule.
+  const setDiagOut = (msg: string, kind: "ok" | "warn" | "err" = "ok"): void => {
+    const out = root.querySelector<HTMLElement>("#admin-diag-result");
+    if (!out) return;
+    out.style.color = kind === "err" ? "#ffb8c0" : kind === "warn" ? "#ffd485" : "#cce4ff";
+    out.innerHTML = msg;
+  };
+  const diagWalletInput = (): string =>
+    (root.querySelector<HTMLInputElement>("#admin-diag-wallet")?.value || "").trim();
+  root.querySelector<HTMLButtonElement>("#admin-diag-btn")?.addEventListener("click", async () => {
+    const wallet = diagWalletInput();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) { setDiagOut("Enter a 0x-prefixed 40-hex wallet first.", "err"); return; }
+    setDiagOut("Querying…");
+    const r = await adminDiagnoseWallet(wallet);
+    if (!r.ok || !r.diag) { setDiagOut(`Diagnose failed: ${r.error ?? "unknown"}`, "err"); return; }
+    const d = r.diag;
+    const drift = (d.lbScore ?? 0) !== d.serverMaxFloor;
+    const driftNote = drift
+      ? `<br><strong style="color:#ff9c9c;">⚠ DRIFT: per-wallet=${d.serverMaxFloor} but LB=${d.lbScore ?? "—"}</strong>`
+      : `<br><span style="color:#bfffc8;">✓ In sync</span>`;
+    setDiagOut(`
+      Wallet: ${wallet}<br>
+      IGN: <strong>${d.ign ?? "(none)"}</strong><br>
+      Server max floor (per-wallet key): <strong>${d.serverMaxFloor}</strong><br>
+      Highest Floor LB score: <strong>${d.lbScore ?? "(not in LB)"}</strong><br>
+      LB rank: <strong>${d.lbRank ?? "(unranked)"}</strong>
+      ${driftNote}
+    `, drift ? "warn" : "ok");
+  });
+  root.querySelector<HTMLButtonElement>("#admin-set-max-btn")?.addEventListener("click", async () => {
+    const wallet = diagWalletInput();
+    const floor = Number(root.querySelector<HTMLInputElement>("#admin-diag-floor")?.value);
+    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) { setDiagOut("Enter a 0x-prefixed 40-hex wallet first.", "err"); return; }
+    if (!Number.isFinite(floor) || floor < 1 || floor > 500) { setDiagOut("Floor must be 1..500.", "err"); return; }
+    const ok = await confirmModal({
+      title: "Raise Wallet's Max Floor?",
+      message: `This will set <strong>${wallet}</strong>'s server max floor and Highest Floor LB score to <strong>${floor}</strong>.<br><br>Use this to repair drift from a dropped clear report. <strong>Raises only</strong> — if the LB already shows a higher score it stays put.`,
+      confirmLabel: "Set Max Floor",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
+    setDiagOut("Setting…");
+    const r = await adminSetMaxFloor(wallet, floor);
+    if (!r.ok || !r.diag) { setDiagOut(`Set failed: ${r.error ?? "unknown"}`, "err"); return; }
+    const d = r.diag;
+    setDiagOut(`
+      ✓ Set complete<br>
+      Wallet: ${wallet}<br>
+      Server max floor: <strong>${d.serverMaxFloor}</strong><br>
+      Highest Floor LB score: <strong>${d.lbScore ?? "(not in LB)"}</strong><br>
+      LB rank: <strong>${d.lbRank ?? "(unranked)"}</strong>
+    `, "ok");
   });
 
   // ---- Sample voucher grants (admin only, caller-only target) ----

@@ -697,6 +697,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  if (op === "admin_diagnose_wallet") {
+    // Read-only progress diagnostic. Returns the wallet's per-wallet
+    // maxfloor (source of truth) AND its score on the Highest Floor LB
+    // — drift between the two is the smoking gun for a dropped clear
+    // report (LB never advanced past the gap).
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
+      ? (req.body as { wallet: string }).wallet.trim().toLowerCase() : "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+      res.status(400).json({ error: "wallet must be a 0x-prefixed 40-hex address" }); return;
+    }
+    try {
+      const { getWalletProgressDiagnosis } = await import("../_lib/runState.js");
+      const diag = await getWalletProgressDiagnosis(target);
+      res.status(200).json({ ok: true, wallet: target, ...diag });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "admin_set_max_floor") {
+    // Repair tool — raise a wallet's max-cleared floor + LB score to a
+    // specific value. Designed for the "client cleared 177 but server
+    // is stuck at 175 because the 176 report dropped" drift case.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
+      ? (req.body as { wallet: string }).wallet.trim().toLowerCase() : "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+      res.status(400).json({ error: "wallet must be a 0x-prefixed 40-hex address" }); return;
+    }
+    const floor = typeof (req.body as { floor?: unknown }).floor === "number"
+      ? Math.floor((req.body as { floor: number }).floor) : -1;
+    if (floor < 1 || floor > 500) {
+      res.status(400).json({ error: "floor must be 1..500" }); return;
+    }
+    try {
+      const { adminSetMaxFloor, getWalletProgressDiagnosis } = await import("../_lib/runState.js");
+      const r = await adminSetMaxFloor(target, floor);
+      const after = await getWalletProgressDiagnosis(target);
+      res.status(200).json({ ok: true, wallet: target, newMax: r.newMax, ...after });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "admin_grant_energy_to") {
     // Variant of admin_grant_energy that targets a SPECIFIC wallet rather
     // than the admin's own. Use for comp grants (player paid for a bundle

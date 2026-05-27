@@ -72,6 +72,75 @@ export async function adminGrantSampleVouchers(
   } catch { return null; }
 }
 
+export interface WalletDiagnosis {
+  serverMaxFloor: number;
+  /** Score the wallet currently holds on the Highest Floor leaderboard.
+   *  Null if the wallet isn't in the zset at all. */
+  lbScore: number | null;
+  /** 1-indexed rank on the LB. Null if not present. */
+  lbRank: number | null;
+  ign: string | null;
+}
+
+/** Admin only: read progress diagnostics for a target wallet. Returns the
+ *  per-wallet max-floor key AND the wallet's score on the Highest Floor LB
+ *  — any drift between the two is the smoking gun for a dropped clear
+ *  report. */
+export async function adminDiagnoseWallet(wallet: string): Promise<{ ok: boolean; wallet?: string; diag?: WalletDiagnosis; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_diagnose_wallet", wallet }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; wallet?: string; serverMaxFloor?: number; lbScore?: number | null; lbRank?: number | null; ign?: string | null }));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return {
+      ok: true,
+      wallet: data.wallet,
+      diag: {
+        serverMaxFloor: data.serverMaxFloor ?? 0,
+        lbScore: data.lbScore ?? null,
+        lbRank: data.lbRank ?? null,
+        ign: data.ign ?? null,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "network" };
+  }
+}
+
+/** Admin only: raise a wallet's max-cleared floor + LB score. Use to repair
+ *  drift when a clear report failed to land. Cap 1..500. Raises only — if
+ *  the LB already shows a higher score it stays put. */
+export async function adminSetMaxFloor(wallet: string, floor: number): Promise<{ ok: boolean; newMax?: number; diag?: WalletDiagnosis; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_set_max_floor", wallet, floor }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; newMax?: number; serverMaxFloor?: number; lbScore?: number | null; lbRank?: number | null; ign?: string | null }));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return {
+      ok: true,
+      newMax: data.newMax,
+      diag: {
+        serverMaxFloor: data.serverMaxFloor ?? 0,
+        lbScore: data.lbScore ?? null,
+        lbRank: data.lbRank ?? null,
+        ign: data.ign ?? null,
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "network" };
+  }
+}
+
 /** Admin only: fill server energy to MAX. Returns the new balance. */
 export async function adminFillServerEnergy(): Promise<number | null> {
   const tok = token();

@@ -794,6 +794,45 @@ export async function getHighestFloorTop(limit = 5): Promise<HighestFloorEntry[]
   return rows.map((r, i) => ({ rank: i + 1, address: r.member, ign: igns[i] ?? null, floor: r.score }));
 }
 
+/** Admin: raise a wallet's max-cleared floor AND sync the leaderboard.
+ *  Designed for the common drift case — a clear report failed to land and
+ *  the server's max trails the player's actual progress. RAISES ONLY: if
+ *  the LB already shows a higher score it stays put (admin who needs to
+ *  demote should use adminForceResetWallet first). Cap at TOWER_FINAL_FLOOR
+ *  to avoid pushing anyone past the campaign finale. */
+export async function adminSetMaxFloor(address: string, floor: number): Promise<{ newMax: number }> {
+  const clamped = Math.max(0, Math.min(TOWER_FINAL_FLOOR, Math.floor(floor)));
+  await setJson(maxFloorKey(address), clamped, 60 * 60 * 24 * 365 * 5);
+  await zaddGt(HIGHEST_FLOOR_LB_KEY, clamped, address.toLowerCase()).catch(() => 0);
+  return { newMax: clamped };
+}
+
+/** Admin diagnostic: read a wallet's per-wallet maxfloor (source of truth)
+ *  AND its score on the highest-floor leaderboard, so drift between the
+ *  two is obvious. Returns null fields when the wallet has nothing recorded. */
+export async function getWalletProgressDiagnosis(address: string): Promise<{
+  serverMaxFloor: number;
+  lbScore: number | null;
+  lbRank: number | null;
+  ign: string | null;
+}> {
+  const { zscore } = await import("./redis.js");
+  const addr = address.toLowerCase();
+  const [serverMaxFloor, lbScore, lbRank, igns] = await Promise.all([
+    getMaxFloorCleared(addr),
+    zscore(HIGHEST_FLOOR_LB_KEY, addr),
+    zrevrank(HIGHEST_FLOOR_LB_KEY, addr),
+    hmget(IGN_HASH_KEY, [addr]),
+  ]);
+  return {
+    serverMaxFloor,
+    lbScore,
+    // zrevrank is 0-indexed; surface as 1-indexed rank for humans.
+    lbRank: lbRank === null ? null : lbRank + 1,
+    ign: igns[0] ?? null,
+  };
+}
+
 // ---- Replay storage ----
 const REPLAY_TTL_SECONDS = 60 * 60 * 24 * 365;  // 1 year — replays for a permanent leaderboard
 export function replayKey(scope: string, address: string): string {

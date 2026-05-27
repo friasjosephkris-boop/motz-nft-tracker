@@ -109,6 +109,16 @@ export async function zrevrank(key: string, member: string): Promise<number | nu
   return typeof r === "number" ? r : null;
 }
 
+/** Read a single member's score from a zset. Null if the member isn't in
+ *  the set. Used by admin diagnostics to compare a wallet's per-wallet
+ *  state against their leaderboard score (drift detection). */
+export async function zscore(key: string, member: string): Promise<number | null> {
+  const r = await call(["ZSCORE", key, member]);
+  if (typeof r !== "string") return null;
+  const n = Number(r);
+  return Number.isFinite(n) ? n : null;
+}
+
 export async function incrWithExpire(key: string, ttlSeconds: number): Promise<number> {
   const n = await call(["INCR", key]) as number;
   if (n === 1) await call(["EXPIRE", key, ttlSeconds]);
