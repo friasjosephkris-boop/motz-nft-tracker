@@ -369,13 +369,15 @@ export function MotzDashboardView() {
             </section>
           )}
 
-          {collections.map((c) => (
-            <CollectionSection
-              key={c.contract}
-              c={c}
-              defaultExpanded={selectedSlug !== null}
-            />
-          ))}
+          {/* Per-collection sections are intentionally hidden on the
+              all-collections overview — the dashboard there should feel
+              like a "summary" view (totals + tiles only). The section
+              with its full token table only appears when the user
+              clicks a tile to drill into one collection. */}
+          {selectedSlug &&
+            collections.map((c) => (
+              <CollectionSection key={c.contract} c={c} defaultExpanded />
+            ))}
 
           {totalCount === 0 && (
             <div className="glass-card p-10 text-center text-zinc-400">
@@ -393,6 +395,8 @@ export function MotzDashboardView() {
 const COLLECTION_IMAGES: Record<string, string> = {
   "motz-founders-coin": "/motz/collections/founders-coin.jpg",
   "cambria-cores": "/motz/collections/cambria.png",
+  "fableborne-kingdoms": "/motz/collections/fableborne.jpg",
+  // Keep the old slug mapped too in case the cached snapshot still uses it.
   "fableborne-kingdom": "/motz/collections/fableborne.jpg",
   // Drop an image at public/motz/collections/moki.png to give this tile
   // a branded background. Until then the tile renders with the dark

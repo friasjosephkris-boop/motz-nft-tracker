@@ -93,7 +93,28 @@ function Chevron() {
   );
 }
 
-type SortKey = "tokenId" | "rarity" | "acquired" | "pnl";
+type SortKey =
+  | "tokenId"
+  | "rarity"
+  | "acquired"
+  | "costRon"
+  | "costUsd"
+  | "floor"
+  | "pnl";
+
+// Shared null-safe numeric comparator. Nulls always sort to the bottom
+// regardless of direction so they don't pollute the top of the list when
+// sorting by columns like Cost / Floor / PnL where many rows can be null.
+function numericCompare(
+  a: number | null | undefined,
+  b: number | null | undefined,
+  dir: 1 | -1,
+): number {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return (a - b) * dir;
+}
 type SortDir = "asc" | "desc";
 
 export function CollectionSection({
@@ -156,15 +177,14 @@ export function CollectionSection({
         const bt = b.acquiredAt ?? 0;
         return (at - bt) * dir;
       }
-      case "pnl": {
-        // null pnl sorts to the bottom regardless of direction
-        const ap = a.pnlUsd;
-        const bp = b.pnlUsd;
-        if (ap == null && bp == null) return 0;
-        if (ap == null) return 1;
-        if (bp == null) return -1;
-        return (ap - bp) * dir;
-      }
+      case "costRon":
+        return numericCompare(a.costRon, b.costRon, dir);
+      case "costUsd":
+        return numericCompare(a.costUsd, b.costUsd, dir);
+      case "floor":
+        return numericCompare(a.floorUsd, b.floorUsd, dir);
+      case "pnl":
+        return numericCompare(a.pnlUsd, b.pnlUsd, dir);
     }
   });
 
@@ -314,13 +334,24 @@ export function CollectionSection({
                     >
                       Acquired{sortIndicator("acquired")}
                     </SortableHeader>
-                    <th className="text-right px-4 py-3 font-medium">
-                      Cost (RON)
-                    </th>
-                    <th className="text-right px-4 py-3 font-medium">
-                      Cost (USD)
-                    </th>
-                    <th className="text-right px-4 py-3 font-medium">Floor</th>
+                    <SortableHeader
+                      onClick={() => clickSort("costRon")}
+                      align="right"
+                    >
+                      Cost (RON){sortIndicator("costRon")}
+                    </SortableHeader>
+                    <SortableHeader
+                      onClick={() => clickSort("costUsd")}
+                      align="right"
+                    >
+                      Cost (USD){sortIndicator("costUsd")}
+                    </SortableHeader>
+                    <SortableHeader
+                      onClick={() => clickSort("floor")}
+                      align="right"
+                    >
+                      Floor{sortIndicator("floor")}
+                    </SortableHeader>
                     <SortableHeader
                       onClick={() => clickSort("pnl")}
                       align="right"

@@ -48,9 +48,9 @@ export const CAMBRIA_CORES: TrackedCollection = {
 
 export const FABLEBORNE_KINGDOM: TrackedCollection = {
   address: "0x727b7ff568e7173134eb02517c4a87eac390a77b",
-  name: "Fableborne Kingdom",
+  name: "Fableborne Kingdoms",
   symbol: "FK",
-  slug: "fableborne-kingdom",
+  slug: "fableborne-kingdoms",
   mintPriceRon: 50,
   // Redemption/airdrop phase concluded Feb 19, 2025 — use that as the
   // canonical mint date for cost-basis lookups.
