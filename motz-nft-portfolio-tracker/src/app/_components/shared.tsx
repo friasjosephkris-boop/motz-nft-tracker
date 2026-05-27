@@ -426,6 +426,8 @@ export function CollectionSection({
                     <Row
                       key={`${r.walletTag ?? ""}-${r.tokenId}`}
                       r={r}
+                      collectionContract={c.contract}
+                      collectionSlug={c.slug}
                     />
                   ))}
                   {view.length === 0 && (
@@ -501,7 +503,56 @@ function FilterDropdown({
   );
 }
 
-export function Row({ r }: { r: TaggedHoldingRow }) {
+/**
+ * Build the marketplace URL for a token. Chain-aware: ETH tokens link
+ * to OpenSea, RON tokens link to the Ronin marketplace. Returns null
+ * when we don't have enough info to build a useful URL.
+ */
+function tokenMarketplaceUrl(
+  currencySymbol: string | undefined,
+  contract: string | undefined,
+  slug: string | undefined,
+  tokenId: string,
+): string | null {
+  if (currencySymbol === "ETH") {
+    if (!contract) return null;
+    return `https://opensea.io/item/ethereum/${contract.toLowerCase()}/${tokenId}`;
+  }
+  // Default to Ronin marketplace.
+  if (!slug) return null;
+  return `https://marketplace.roninchain.com/collections/${slug}/${tokenId}`;
+}
+
+export function Row({
+  r,
+  collectionContract,
+  collectionSlug,
+}: {
+  r: TaggedHoldingRow;
+  /** Contract address for the collection this row belongs to. */
+  collectionContract?: string;
+  /** Ronin marketplace slug for this collection. */
+  collectionSlug?: string;
+}) {
+  const url = tokenMarketplaceUrl(
+    r.currencySymbol,
+    collectionContract,
+    collectionSlug,
+    r.tokenId,
+  );
+  const nameLabel = r.name || `#${r.tokenId}`;
+  const nameNode = url ? (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hover:text-[color:var(--motz-red)] hover:underline transition-colors"
+    >
+      {nameLabel}
+    </a>
+  ) : (
+    nameLabel
+  );
   return (
     <tr className="border-t border-white/5 hover:bg-white/[0.03] transition-colors">
       <td className="px-4 py-3">
@@ -516,7 +567,7 @@ export function Row({ r }: { r: TaggedHoldingRow }) {
           )}
           <div>
             <div className="font-medium text-zinc-100 flex items-center gap-2">
-              {r.name || `#${r.tokenId}`}
+              {nameNode}
               {r.walletTag && (
                 <span className="chip chip-blue font-mono text-[10px]">
                   {shortAddr(r.walletTag)}
