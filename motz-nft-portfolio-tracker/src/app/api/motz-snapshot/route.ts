@@ -36,6 +36,16 @@ export type MotzSnapshot = {
   generatedAt: number;
   walletAddresses: string[];
   resolvedAddresses: string[];
+  /**
+   * Persistent input → resolved-address map. Built incrementally over
+   * refreshes: a wallet's resolution is recorded once it resolves
+   * successfully (even on a refresh where its load fails), so the
+   * merge-protection logic can look up its previous resolved address
+   * even when the failure prevents it from appearing in this run's
+   * `resolvedAddresses`. Optional for backwards compatibility with
+   * older snapshot files.
+   */
+  walletResolutions?: Record<string, string>;
   collections: TaggedCollectionHoldings[];
   currentRonUsd: number | null;
   walletCount: number;
@@ -99,6 +109,13 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
       const failures: { input: string; error: string }[] = [];
       const partials: { input: string; tokens: number; warnings: string[] }[] =
         [];
+      // Carry the previous snapshot's input→resolved map forward so a
+      // failed wallet's resolution survives this refresh (used for
+      // merge-protection lookup). New successful resolutions overwrite.
+      const previousSnapForResolutions = readSnapshot();
+      const walletResolutions: Record<string, string> = {
+        ...(previousSnapForResolutions?.walletResolutions ?? {}),
+      };
       let currentRonUsd: number | null = null;
       // Sequential — same reason as Load Combined: per-wallet shares a
       // server-side rate limiter, running in parallel just trips the breaker.
@@ -165,6 +182,9 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
           }
           const data = j as ApiResponse;
           resolved.push(data.address);
+          // Record this wallet's resolution so failures on future
+          // refreshes can still look up its resolved address.
+          walletResolutions[w.toLowerCase()] = data.address.toLowerCase();
           if (data.currentRonUsd != null) currentRonUsd = data.currentRonUsd;
           const tokenCount = data.collections.reduce(
             (s, c) => s + c.rows.length,
@@ -286,34 +306,46 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
           }
           return preserved;
         }
+        // Helper: resolve a wallet input (RNS or hex) to its resolved
+        // 0x address using the previous snapshot's input→resolved map.
+        // Falls back to the legacy parallel-arrays lookup for snapshots
+        // written before walletResolutions was introduced.
+        function resolveInputFromPrevious(input: string): string | null {
+          // Narrow against the outer `if (previous)` guard.
+          const prev = previous!;
+          const inputLc = input.toLowerCase();
+          const fromMap = prev.walletResolutions?.[inputLc];
+          if (fromMap) return fromMap;
+          // Legacy fallback — only correct if walletAddresses and
+          // resolvedAddresses are the same length (i.e. no failures in
+          // the previous refresh).
+          if (
+            prev.walletAddresses.length === prev.resolvedAddresses.length
+          ) {
+            const prevIdx = prev.walletAddresses.findIndex(
+              (w) => w.toLowerCase() === inputLc,
+            );
+            return prevIdx >= 0 ? prev.resolvedAddresses[prevIdx] : null;
+          }
+          // Last resort: if the input itself is a hex address, use it.
+          if (/^0x[a-fA-F0-9]{40}$/.test(inputLc)) return inputLc;
+          return null;
+        }
+
         // 1) Partial wallets — resolved but loaded 0 tokens with warnings.
         for (const p of partials) {
           if ((p.tokens ?? 0) > 0) continue;
-          // partials carry the INPUT (RNS or hex), not the resolved addr.
-          // The previous snapshot tags rows by resolved address, so find
-          // any resolved addr from the previous run that matches by
-          // walletAddresses[i] === p.input.
-          const inputLc = p.input.toLowerCase();
-          const prevIdx = previous.walletAddresses.findIndex(
-            (w) => w.toLowerCase() === inputLc,
-          );
-          const prevResolved =
-            prevIdx >= 0 ? previous.resolvedAddresses[prevIdx] : null;
+          const prevResolved = resolveInputFromPrevious(p.input);
           if (prevResolved && !freshRowsByTag.get(prevResolved)) {
             preservePreviousFor(prevResolved);
             if (!resolved.includes(prevResolved)) resolved.push(prevResolved);
           }
         }
-        // 2) Failed wallets — never even made it into `resolved`. Same
-        // lookup as above: map the failure input back to the resolved
-        // address from the previous snapshot, then splice in those rows.
+        // 2) Failed wallets — never made it into `resolved`. Map the
+        // failure input back to its previously-known resolved address
+        // then splice in those rows so we don't lose them on flaky refresh.
         for (const f of failures) {
-          const inputLc = f.input.toLowerCase();
-          const prevIdx = previous.walletAddresses.findIndex(
-            (w) => w.toLowerCase() === inputLc,
-          );
-          const prevResolved =
-            prevIdx >= 0 ? previous.resolvedAddresses[prevIdx] : null;
+          const prevResolved = resolveInputFromPrevious(f.input);
           if (prevResolved && !freshRowsByTag.get(prevResolved)) {
             preservePreviousFor(prevResolved);
             if (!resolved.includes(prevResolved)) resolved.push(prevResolved);
@@ -325,6 +357,7 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
         generatedAt: Date.now(),
         walletAddresses: [...MOTZ_WALLETS],
         resolvedAddresses: resolved,
+        walletResolutions,
         collections: [...byContract.values()],
         currentRonUsd,
         walletCount: resolved.length,
