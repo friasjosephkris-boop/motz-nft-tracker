@@ -216,6 +216,12 @@ export function CollectionSection({
       case "rarity": {
         const ar = a.rarityLabel ?? a.rarity ?? "";
         const br = b.rarityLabel ?? b.rarity ?? "";
+        // Prefer numeric tier when both rarities embed a T-prefixed tier
+        // (e.g. "Cove (T1)" → 1, "Admiralty (T3)" → 3). Falls back to
+        // locale string sort for collections that don't use this format.
+        const ta = ar.match(/T(\d+)/);
+        const tb = br.match(/T(\d+)/);
+        if (ta && tb) return (Number(ta[1]) - Number(tb[1])) * dir;
         return ar.localeCompare(br) * dir;
       }
       case "acquired": {

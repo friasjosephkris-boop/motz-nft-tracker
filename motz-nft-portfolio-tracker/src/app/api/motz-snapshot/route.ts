@@ -354,12 +354,22 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
       // are isolated so an OpenSea hiccup never wipes Ronin data.
       const currentEthUsd = ethUsdNow();
       const ethWallets = resolved.length > 0 ? resolved : [];
-      // Transferrer set: any MoTZ wallet's resolved hex address. If a
-      // currently-held token has a prior sale where one of these wallets
-      // was the buyer, that sale's price = cost basis — regardless of
-      // whether the current owner is the same wallet (direct buyer) or
-      // received it via inter-wallet transfer later.
+      // Transferrer set: all MoTZ holder wallets + any transferrer-only
+      // wallet that's already a hex address. If a currently-held token
+      // has a prior sale where ANY of these wallets was the buyer, that
+      // sale's price = cost basis — regardless of whether the current
+      // owner is the direct buyer or received it via inter-wallet
+      // transfer later.
       const motzHexSet = new Set(ethWallets.map((a) => a.toLowerCase()));
+      for (const t of MOTZ_TRANSFERRERS) {
+        const lc = t.toLowerCase();
+        if (/^0x[a-f0-9]{40}$/.test(lc)) motzHexSet.add(lc);
+        else {
+          // RNS name — try the previous-snapshot resolution map.
+          const resolved = walletResolutions[lc];
+          if (resolved) motzHexSet.add(resolved.toLowerCase());
+        }
+      }
       for (const c of ETH_TRACKED_COLLECTIONS) {
         let floorEth: number | null = null;
         try {
