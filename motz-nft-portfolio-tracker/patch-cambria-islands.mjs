@@ -273,6 +273,43 @@ for (const addr of WALLETS) {
 
 console.log(`\nTotal rows: ${rows.length}`);
 
+// Second pass: for any tier whose floor fell back to the collection
+// floor (because the listing walk + global sale scan missed it), use
+// the most-recent sale price among OUR held tokens of that tier as
+// the fallback. Better signal than collection floor for rare tiers.
+const tierLatestSale = {}; // tier -> { ts, price }
+for (const r of rows) {
+  if (!r.rarity || r.acquiredVia === "mint") continue;
+  const ts = r.acquiredAt;
+  const price = r.costRon;
+  if (ts == null || price == null) continue;
+  const prev = tierLatestSale[r.rarity];
+  if (!prev || ts > prev.ts) tierLatestSale[r.rarity] = { ts, price };
+}
+let patched = 0;
+for (const r of rows) {
+  if (!r.rarity) continue;
+  if (r.floorRon !== collectionFloor) continue;
+  const latest = tierLatestSale[r.rarity];
+  if (!latest) continue;
+  r.floorRon = latest.price;
+  r.floorUsd =
+    latest.price != null && r.currentRonUsd != null
+      ? latest.price * r.currentRonUsd
+      : null;
+  r.pnlUsd =
+    r.costUsd != null && r.floorUsd != null ? r.floorUsd - r.costUsd : null;
+  patched++;
+}
+if (patched > 0) {
+  console.log(
+    `\nPatched ${patched} rows with own-holdings tier-sale floor:`,
+    Object.entries(tierLatestSale).map(
+      ([t, v]) => `${t}=${v.price} ETH`,
+    ),
+  );
+}
+
 // Splice into both snapshot copies.
 for (const p of ["data/motz-snapshot.json", "src/data/motz-snapshot.json"]) {
   const s = JSON.parse(fs.readFileSync(p, "utf8"));

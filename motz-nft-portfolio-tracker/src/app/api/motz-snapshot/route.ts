@@ -520,6 +520,39 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             });
           }
         }
+        // Post-pass: for tiers whose floor fell back to the collection
+        // floor (no active listing AND no global sale found), use the
+        // most recent sale price among OUR own held tokens of that tier.
+        // Better signal than collection floor for rare tiers like T5.
+        const tierLatestSale: Record<
+          string,
+          { ts: number; price: number }
+        > = {};
+        for (const r of rows) {
+          if (!r.rarity || r.acquiredVia === "mint") continue;
+          const ts = r.acquiredAt;
+          const price = r.costRon;
+          if (ts == null || price == null) continue;
+          const prev = tierLatestSale[r.rarity];
+          if (!prev || ts > prev.ts) {
+            tierLatestSale[r.rarity] = { ts, price };
+          }
+        }
+        for (const r of rows) {
+          if (!r.rarity) continue;
+          if (r.floorRon !== collectionFloor) continue;
+          const latest = tierLatestSale[r.rarity];
+          if (!latest) continue;
+          r.floorRon = latest.price;
+          r.floorUsd =
+            latest.price != null && r.currentRonUsd != null
+              ? latest.price * r.currentRonUsd
+              : null;
+          r.pnlUsd =
+            r.costUsd != null && r.floorUsd != null
+              ? r.floorUsd - r.costUsd
+              : null;
+        }
         if (rows.length > 0) {
           byContract.set(c.address.toLowerCase(), {
             contract: c.address.toLowerCase(),
