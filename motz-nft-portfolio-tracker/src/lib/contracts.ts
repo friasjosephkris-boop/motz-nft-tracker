@@ -9,6 +9,13 @@ export type TrackedCollection = {
   mintDate: string;
   /** Attribute key used as the rarity/tier filter on this collection. */
   traitName: string;
+  /**
+   * Optional override attribute. When a token has this attribute set, its
+   * value takes precedence over `traitName` for rarity/floor lookups.
+   * Example: Moki Genesis uses "Fur" as the bulk tier, but the 27 named
+   * "1 of 1" tokens get their own per-name floor via this override.
+   */
+  overrideTraitName?: string;
   /** Optional display formatter for a raw trait value (e.g. "1" → "Tier 1"). */
   formatTrait?: (value: string) => string;
   /**
@@ -69,10 +76,11 @@ export const MOKI_GENESIS: TrackedCollection = {
   // 55 RON public/lucksack mint price on July 9, 2024 (~$150 USD at the time).
   mintPriceRon: 55,
   mintDate: "2024-07-09",
-  // Best-guess trait name. If Sky Mavis returns floors as null, this is
-  // probably the wrong attribute key — check a sample token's attributes
-  // payload and update accordingly (e.g. "Tier", "Class").
-  traitName: "Rarity",
+  // Moki uses "Fur" as the broad rarity tier (14 variants: Spirit rarest
+  // → Light Brown most common). The 27 named uniques carry a "1 of 1"
+  // attribute that takes precedence for floor lookups.
+  traitName: "Fur",
+  overrideTraitName: "1 of 1",
 };
 
 export const TRACKED_COLLECTIONS: TrackedCollection[] = [

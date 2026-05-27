@@ -22,6 +22,30 @@ import { ronUsdAt, ronUsdNow } from "@/lib/coingecko";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * Extract the rarity attribute for a token, honoring `overrideTraitName`.
+ * Returns the trait name (used as part of the floor-map cache key so a
+ * "Fur=Spirit" floor never collides with a "1 of 1=spirit" floor) plus
+ * the raw value.
+ */
+function rarityFor(
+  c: TrackedCollection,
+  attributes: Record<string, string[]> | null | undefined,
+): { traitName: string; value: string } | null {
+  if (!attributes) return null;
+  if (c.overrideTraitName) {
+    const v = attributes[c.overrideTraitName]?.[0];
+    if (v) return { traitName: c.overrideTraitName, value: v };
+  }
+  const v = attributes[c.traitName]?.[0];
+  if (v) return { traitName: c.traitName, value: v };
+  return null;
+}
+
+function floorKey(traitName: string, value: string): string {
+  return `${traitName}|${value}`;
+}
+
 export type HoldingRow = {
   tokenId: string;
   name?: string | null;
@@ -211,13 +235,17 @@ export async function GET(req: NextRequest) {
       TRACKED_COLLECTIONS.map(async (c, ci) => {
         const contractLc = c.address.toLowerCase();
         const ownedTraits = tokensPerCollection[ci]
-          .map((t) => t.attributes?.[c.traitName]?.[0])
-          .filter((v): v is string => !!v);
-        const distinct = Array.from(new Set(ownedTraits));
+          .map((t) => rarityFor(c, t.attributes))
+          .filter((r): r is { traitName: string; value: string } => !!r);
+        const distinct = new Map<string, { traitName: string; value: string }>();
+        for (const r of ownedTraits) distinct.set(floorKey(r.traitName, r.value), r);
         const m = new Map<string, number | null>();
         await Promise.all(
-          distinct.map(async (v) => {
-            m.set(v, await floorPriceForTrait(c.address, c.traitName, v));
+          Array.from(distinct.values()).map(async (r) => {
+            m.set(
+              floorKey(r.traitName, r.value),
+              await floorPriceForTrait(c.address, r.traitName, r.value),
+            );
           }),
         );
         floorByCollectionAndTrait.set(contractLc, m);
@@ -433,24 +461,31 @@ export async function GET(req: NextRequest) {
       TRACKED_COLLECTIONS.map(async (c) => {
         const contractLc = c.address.toLowerCase();
         const stakedTraits = (stakedByContract.get(contractLc) ?? [])
-          .map(
-            (s) =>
-              stakedMetadata.get(`${contractLc}:${s.tokenId}`)?.attributes?.[
-                c.traitName
-              ]?.[0],
+          .map((s) =>
+            rarityFor(
+              c,
+              stakedMetadata.get(`${contractLc}:${s.tokenId}`)?.attributes,
+            ),
           )
-          .filter((v): v is string => !!v);
+          .filter((r): r is { traitName: string; value: string } => !!r);
         const existing =
           floorByCollectionAndTrait.get(contractLc) ??
           new Map<string, number | null>();
-        const missing = stakedTraits.filter((v) => !existing.has(v));
-        if (missing.length === 0) {
+        const missing = new Map<string, { traitName: string; value: string }>();
+        for (const r of stakedTraits) {
+          const k = floorKey(r.traitName, r.value);
+          if (!existing.has(k)) missing.set(k, r);
+        }
+        if (missing.size === 0) {
           floorByCollectionAndTrait.set(contractLc, existing);
           return;
         }
         await Promise.all(
-          Array.from(new Set(missing)).map(async (v) => {
-            existing.set(v, await floorPriceForTrait(c.address, c.traitName, v));
+          Array.from(missing.values()).map(async (r) => {
+            existing.set(
+              floorKey(r.traitName, r.value),
+              await floorPriceForTrait(c.address, r.traitName, r.value),
+            );
           }),
         );
         floorByCollectionAndTrait.set(contractLc, existing);
@@ -573,7 +608,8 @@ async function buildCollectionHoldings(
   // pipeline can't run (e.g. rate-limited mid-load). The row still shows
   // the token in the holdings list — just with unknown cost/timestamp.
   function fallbackRow(t: HoldingToken): HoldingRow {
-    const rarity = t.attributes?.[c.traitName]?.[0] ?? null;
+    const r = rarityFor(c, t.attributes);
+    const rarity = r?.value ?? null;
     return {
       tokenId: t.tokenId,
       name: t.name ?? null,
@@ -587,7 +623,7 @@ async function buildCollectionHoldings(
       ronUsdAtPurchase: null,
       costUsd: 0,
       currentRonUsd,
-      floorRon: rarity ? (floorByTrait.get(rarity) ?? null) : null,
+      floorRon: r ? (floorByTrait.get(floorKey(r.traitName, r.value)) ?? null) : null,
       floorUsd: null,
       pnlUsd: null,
     };
@@ -761,11 +797,14 @@ async function buildCollectionHoldings(
             ? costRon * ronUsdAtPurchase
             : null;
 
-      const rarity = t.attributes?.[c.traitName]?.[0] ?? null;
+      const rInfo = rarityFor(c, t.attributes);
+      const rarity = rInfo?.value ?? null;
       const rarityLabel = rarity
         ? (c.formatTrait?.(rarity) ?? rarity)
         : null;
-      const floorRon = rarity ? (floorByTrait.get(rarity) ?? null) : null;
+      const floorRon = rInfo
+        ? (floorByTrait.get(floorKey(rInfo.traitName, rInfo.value)) ?? null)
+        : null;
       const floorUsd =
         floorRon != null && currentRonUsd != null
           ? floorRon * currentRonUsd
@@ -936,9 +975,12 @@ async function buildCollectionHoldings(
           : costRon != null && ronUsdAtPurchase != null
             ? costRon * ronUsdAtPurchase
             : null;
-      const rarity = t.attributes?.[c.traitName]?.[0] ?? null;
+      const rInfo = rarityFor(c, t.attributes);
+      const rarity = rInfo?.value ?? null;
       const rarityLabel = rarity ? (c.formatTrait?.(rarity) ?? rarity) : null;
-      const floorRon = rarity ? (floorByTrait.get(rarity) ?? null) : null;
+      const floorRon = rInfo
+        ? (floorByTrait.get(floorKey(rInfo.traitName, rInfo.value)) ?? null)
+        : null;
       const floorUsd =
         floorRon != null && currentRonUsd != null
           ? floorRon * currentRonUsd
