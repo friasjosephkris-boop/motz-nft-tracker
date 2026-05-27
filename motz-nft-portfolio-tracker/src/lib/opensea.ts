@@ -223,7 +223,7 @@ export async function collectionFloorEth(
     total?: { floor_price?: number | null };
   };
   try {
-    const data = await osFetch<Res>(`/collection/${slug}/stats`);
+    const data = await osFetch<Res>(`/collections/${slug}/stats`);
     const price = data.total?.floor_price ?? null;
     floorCache.set(slug, { price, at: Date.now() });
     return price;
