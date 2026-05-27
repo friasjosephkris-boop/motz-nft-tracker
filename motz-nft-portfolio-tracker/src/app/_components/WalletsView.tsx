@@ -315,9 +315,14 @@ export function WalletsView({
         )}
 
         <div className="flex flex-col gap-2">
-          {addresses.map((v, i) => (
+          {/* Holder mode = single wallet only (visitors looking up their
+              own portfolio don't need multi-wallet combine). Project
+              owner view shows all input rows + the + Add button below. */}
+          {(holderMode ? addresses.slice(0, 1) : addresses).map((v, i) => (
             <div key={i} className="flex items-center gap-3">
-              <span className="eyebrow w-20 shrink-0">Wallet {i + 1}</span>
+              <span className="eyebrow w-20 shrink-0">
+                {holderMode ? "Wallet" : `Wallet ${i + 1}`}
+              </span>
               <input
                 value={v}
                 onChange={(e) => updateInput(i, e.target.value)}
@@ -325,15 +330,17 @@ export function WalletsView({
                 disabled={loading}
                 className="flex-1 rounded-md bg-black/40 border border-white/10 px-3 py-2 font-mono text-sm placeholder:text-zinc-600 focus:outline-none focus:border-[color:var(--motz-red)] focus:ring-1 focus:ring-[color:var(--motz-red)]/40"
               />
-              <button
-                onClick={() => removeWalletRow(i)}
-                disabled={loading || addresses.length <= 1}
-                title="Remove this wallet"
-                className="h-9 w-9 rounded-md border border-white/10 bg-white/5 text-zinc-400 hover:border-[color:var(--motz-red)]/40 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Remove wallet"
-              >
-                −
-              </button>
+              {!holderMode && (
+                <button
+                  onClick={() => removeWalletRow(i)}
+                  disabled={loading || addresses.length <= 1}
+                  title="Remove this wallet"
+                  className="h-9 w-9 rounded-md border border-white/10 bg-white/5 text-zinc-400 hover:border-[color:var(--motz-red)]/40 hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  aria-label="Remove wallet"
+                >
+                  −
+                </button>
+              )}
               <StatusPill status={statuses[i] ?? { state: "idle" }} />
             </div>
           ))}
@@ -346,17 +353,19 @@ export function WalletsView({
           >
             {loading
               ? "Loading…"
-              : cleaned.length === 1
+              : holderMode || cleaned.length === 1
                 ? "Load wallet"
                 : "Load combined"}
           </button>
-          <button
-            onClick={addWalletRow}
-            disabled={loading}
-            className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--motz-red)] hover:text-zinc-100 disabled:opacity-40"
-          >
-            + Add another wallet
-          </button>
+          {!holderMode && (
+            <button
+              onClick={addWalletRow}
+              disabled={loading}
+              className="font-mono text-[11px] uppercase tracking-wider text-[color:var(--motz-red)] hover:text-zinc-100 disabled:opacity-40"
+            >
+              + Add another wallet
+            </button>
+          )}
         </div>
         {error && (
           <div className="rounded-md border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300 whitespace-pre-wrap break-words">
@@ -425,15 +434,22 @@ function ConnectWalletHelper({
   const { connectors, connect, isPending, error } = useConnect();
   const { disconnect } = useDisconnect();
 
-  // Filter connectors to wallets that are actually installed in the
-  // browser. The "injected" connector resolves dynamically per-browser
-  // (Ronin Wallet, Rabby, MetaMask, etc. — whichever was last set).
-  const availableConnectors = connectors.filter((c) => {
-    if (c.type === "injected") return true;
-    if (c.id === "metaMaskSDK" || c.id === "rabbyWallet") return true;
-    if (c.id === "io.rabby") return true;
-    return false;
-  });
+  // Surface ONE connect button — the user's currently-injected browser
+  // wallet (Ronin Wallet, Rabby, MetaMask, etc.). RainbowKit/wagmi
+  // duplicates injected connectors across multiple ids ("injected",
+  // "io.rabby", "metaMaskSDK") which cluttered the UI; we pick the most
+  // specific available and show only that.
+  const orderedConnectors = (() => {
+    const named = connectors.find(
+      (c) => c.id === "io.rabby" || c.id === "rabbyWallet",
+    );
+    if (named) return [named];
+    const metaMask = connectors.find((c) => c.id === "metaMaskSDK");
+    if (metaMask) return [metaMask];
+    const injected = connectors.find((c) => c.type === "injected");
+    if (injected) return [injected];
+    return connectors.slice(0, 1);
+  })();
 
   return (
     <div className="rounded-md border border-white/10 bg-white/[0.02] p-3 space-y-2">
@@ -468,7 +484,7 @@ function ConnectWalletHelper({
         </div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          {availableConnectors.length === 0 ? (
+          {orderedConnectors.length === 0 ? (
             <span className="text-xs text-zinc-500">
               No browser wallet detected. Install{" "}
               <a
@@ -482,17 +498,26 @@ function ConnectWalletHelper({
               or paste an address manually below.
             </span>
           ) : (
-            availableConnectors.map((c) => (
-              <button
-                key={c.uid}
-                type="button"
-                disabled={isPending}
-                onClick={() => connect({ connector: c })}
-                className="chip font-mono text-xs hover:bg-white/10 transition-colors disabled:opacity-50"
-              >
-                {isPending ? "Connecting…" : `Connect ${c.name}`}
-              </button>
-            ))
+            orderedConnectors.map((c) => {
+              // Prefer the connector's brand name. The generic "injected"
+              // connector reports name="Injected" which isn't useful; in
+              // that case just say "Connect Wallet".
+              const label =
+                c.name && c.name.toLowerCase() !== "injected"
+                  ? `Connect ${c.name}`
+                  : "Connect Wallet";
+              return (
+                <button
+                  key={c.uid}
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => connect({ connector: c })}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  {isPending ? "Connecting…" : label}
+                </button>
+              );
+            })
           )}
         </div>
       )}
