@@ -300,7 +300,7 @@ export function MotzDashboardView() {
             <Stat label="NFTs held" value={String(totalCount)} />
             <Stat label="Cost basis (USD)" value={fmtUsd(totalCostUsd)} />
             <Stat
-              label="Floor value"
+              label="Current value"
               value={fmtUsd(totalFloorUsd)}
               hint={`${totalFloorRon.toLocaleString("en-US", { maximumFractionDigits: 2 })} RON`}
               accent="gold"
@@ -481,7 +481,7 @@ function CollectionTile({
           </div>
           <div>
             <div className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
-              Floor (USD)
+              Current value (USD)
             </div>
             <div className="font-display text-xl font-bold text-[color:var(--motz-gold)]">
               {fmtUsd(floorUsd)}

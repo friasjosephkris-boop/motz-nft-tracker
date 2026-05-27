@@ -167,7 +167,7 @@ export function DashboardView({
             <Stat label="NFTs held" value={String(totalCount)} />
             <Stat label="Cost basis (USD)" value={fmtUsd(totalCostUsd)} />
             <Stat
-              label="Floor value"
+              label="Current value"
               value={fmtUsd(totalFloorUsd)}
               hint={`${totalFloorRon.toLocaleString("en-US", { maximumFractionDigits: 2 })} RON`}
               accent="gold"
