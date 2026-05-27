@@ -169,9 +169,14 @@ export function CollectionSection({
   });
 
   if (c.rows.length === 0) return null;
-  const costUsd = c.rows.reduce((s, r) => s + (r.costUsd ?? 0), 0);
-  const floorUsd = c.rows.reduce((s, r) => s + (r.floorUsd ?? 0), 0);
+  // Header totals follow whatever's currently visible: when filters are
+  // active, COST/PNL reflect the filtered subset (matches the "Showing N
+  // of M" text below). When unfiltered, view === c.rows so totals are the
+  // full collection.
+  const costUsd = view.reduce((s, r) => s + (r.costUsd ?? 0), 0);
+  const floorUsd = view.reduce((s, r) => s + (r.floorUsd ?? 0), 0);
   const pnl = floorUsd - costUsd;
+  const isFiltered = view.length !== c.rows.length;
 
   // Helper: when user clicks a sortable header, toggle direction if it's
   // already the active sort, otherwise switch to that sort with asc.
@@ -213,7 +218,14 @@ export function CollectionSection({
           <h2 className="font-display text-xl font-semibold text-zinc-100">
             {c.name}{" "}
             <span className="text-sm font-normal text-zinc-500">
-              ({c.rows.length})
+              {isFiltered ? (
+                <>
+                  ({view.length}{" "}
+                  <span className="text-zinc-600">of {c.rows.length}</span>)
+                </>
+              ) : (
+                `(${c.rows.length})`
+              )}
             </span>
           </h2>
         </button>
