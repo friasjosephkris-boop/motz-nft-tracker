@@ -96,10 +96,19 @@ function Chevron() {
 type SortKey = "tokenId" | "rarity" | "acquired" | "pnl";
 type SortDir = "asc" | "desc";
 
-export function CollectionSection({ c }: { c: TaggedCollectionHoldings }) {
+export function CollectionSection({
+  c,
+  defaultExpanded = false,
+}: {
+  c: TaggedCollectionHoldings;
+  /** Caller can force the section open on mount (e.g. drill-down view). */
+  defaultExpanded?: boolean;
+}) {
   // Collapsed by default so the dashboard opens to a quick summary view.
   // User clicks the chevron to expand any collection they want to drill into.
-  const [expanded, setExpanded] = useState(false);
+  // defaultExpanded lets the parent override this — used when filtering to a
+  // single collection where it makes sense to show the table immediately.
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [sortKey, setSortKey] = useState<SortKey>("tokenId");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [rarityFilter, setRarityFilter] = useState<string>("all");

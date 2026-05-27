@@ -78,7 +78,19 @@ export function MotzDashboardView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const collections = snap?.collections ?? [];
+  // Drill-down state: when a tile is clicked, restrict the entire view to
+  // that one collection (filtered totals + only its tile + auto-expanded
+  // section). Setting back to null returns to the all-collections view.
+  const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
+
+  const allCollections = snap?.collections ?? [];
+  const collections = selectedSlug
+    ? allCollections.filter((c) => c.slug === selectedSlug)
+    : allCollections;
+  const selectedCollection = selectedSlug
+    ? allCollections.find((c) => c.slug === selectedSlug)
+    : null;
+
   const totalCount = collections.reduce((s, c) => s + c.rows.length, 0);
   const totalCostUsd = sumRows(collections, (r) => r.costUsd);
   const totalFloorUsd = sumRows(collections, (r) => r.floorUsd);
@@ -234,12 +246,35 @@ export function MotzDashboardView() {
             />
           </section>
 
+          {/* Drill-down "back" link, visible only when filtered to one
+              collection. Clicking returns to the all-collections view. */}
+          {selectedSlug && selectedCollection && (
+            <div>
+              <button
+                onClick={() => setSelectedSlug(null)}
+                className="font-mono text-[11px] uppercase tracking-wider text-zinc-400 hover:text-[color:var(--motz-red)] transition-colors"
+              >
+                ← All collections
+              </button>
+            </div>
+          )}
+
           {/* Per-collection summary tiles with background imagery. Each
-              tile shows count, cost basis, floor value, and P&L for that
-              specific collection at a glance. */}
-          {collections.length > 0 && (
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {collections.map((c) => {
+              tile is a button — click to filter the whole dashboard to
+              that collection only. When filtered, only the selected tile
+              renders (full-width). */}
+          {(selectedSlug
+            ? collections
+            : allCollections
+          ).length > 0 && (
+            <section
+              className={
+                selectedSlug
+                  ? "grid grid-cols-1 gap-4"
+                  : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              }
+            >
+              {(selectedSlug ? collections : allCollections).map((c) => {
                 const count = c.rows.length;
                 const cost = c.rows.reduce(
                   (s, r) => s + (r.costUsd ?? 0),
@@ -259,6 +294,8 @@ export function MotzDashboardView() {
                     costUsd={cost}
                     floorUsd={floor}
                     pnlUsd={pnl}
+                    onClick={() => setSelectedSlug(c.slug)}
+                    isActive={selectedSlug === c.slug}
                   />
                 );
               })}
@@ -266,7 +303,11 @@ export function MotzDashboardView() {
           )}
 
           {collections.map((c) => (
-            <CollectionSection key={c.contract} c={c} />
+            <CollectionSection
+              key={c.contract}
+              c={c}
+              defaultExpanded={selectedSlug !== null}
+            />
           ))}
 
           {totalCount === 0 && (
@@ -299,6 +340,8 @@ function CollectionTile({
   costUsd,
   floorUsd,
   pnlUsd,
+  onClick,
+  isActive = false,
 }: {
   name: string;
   slug: string;
@@ -306,10 +349,22 @@ function CollectionTile({
   costUsd: number;
   floorUsd: number;
   pnlUsd: number;
+  onClick?: () => void;
+  isActive?: boolean;
 }) {
   const bg = COLLECTION_IMAGES[slug];
   return (
-    <div className="relative overflow-hidden rounded-lg border border-white/10 bg-black/40 min-h-[180px] group">
+    <button
+      type="button"
+      onClick={onClick}
+      className={
+        "relative overflow-hidden rounded-lg border min-h-[180px] group w-full text-left transition-all " +
+        "cursor-pointer focus:outline-none focus:ring-2 focus:ring-[color:var(--motz-red)]/60 " +
+        (isActive
+          ? "border-[color:var(--motz-red)] bg-black/60 ring-2 ring-[color:var(--motz-red)]/40"
+          : "border-white/10 bg-black/40 hover:border-[color:var(--motz-red)]/40")
+      }
+    >
       {/* Background image with strong dark gradient overlay so the stats
           remain legible on top of any imagery. */}
       {bg && (
@@ -317,7 +372,7 @@ function CollectionTile({
         <img
           src={bg}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-30 transition-opacity duration-300 group-hover:opacity-40"
+          className="absolute inset-0 h-full w-full object-cover opacity-30 transition-opacity duration-300 group-hover:opacity-50"
           aria-hidden
         />
       )}
@@ -371,6 +426,6 @@ function CollectionTile({
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
