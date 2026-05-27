@@ -437,9 +437,20 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
                 transferrerSale.toAddress === addr.toLowerCase()
                   ? "sale"
                   : "transfer";
+            } else if (history.length > 0) {
+              // Token has a sale history but no MoTZ wallet was the
+              // buyer. Someone else bought it, then it was transferred
+              // (privately/OTC) to the current MoTZ owner. Use the most
+              // recent sale price as a best-effort cost basis, labeled
+              // "transfer" so the UI shows it distinctly from mints.
+              const latest = history[0];
+              acquiredAt = latest.eventTimestamp;
+              costEth = Number(BigInt(latest.priceWei)) / 1e18;
+              acquiredTxHash = latest.txHash;
+              acquiredVia = "transfer";
             } else {
-              // No MoTZ-wallet purchase in history → token was minted by
-              // the current owner.
+              // No sale history at all → token was minted by the current
+              // owner direct from the contract.
               acquiredAt = Math.floor(
                 new Date(`${c.mintDate}T00:00:00Z`).getTime() / 1000,
               );

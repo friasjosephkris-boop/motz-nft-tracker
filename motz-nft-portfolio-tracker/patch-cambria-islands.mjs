@@ -188,8 +188,9 @@ for (const addr of WALLETS) {
       );
       const sales = ev.asset_events ?? [];
       const motzSet = new Set(WALLETS.map((w) => w.toLowerCase()));
+      // OpenSea sale events use `buyer` field, not `to_address`.
       const transferrerSale = sales.find((s) =>
-        motzSet.has(s.to_address?.toLowerCase()),
+        motzSet.has(s.buyer?.toLowerCase()),
       );
       if (transferrerSale) {
         acquiredAt = transferrerSale.event_timestamp;
@@ -197,9 +198,19 @@ for (const addr of WALLETS) {
           Number(BigInt(transferrerSale.payment?.quantity ?? "0")) / 1e18;
         acquiredTxHash = transferrerSale.transaction ?? null;
         acquiredVia =
-          transferrerSale.to_address?.toLowerCase() === addr.toLowerCase()
+          transferrerSale.buyer?.toLowerCase() === addr.toLowerCase()
             ? "sale"
             : "transfer";
+      } else if (sales.length > 0) {
+        // Token has a sale history but no MoTZ wallet was the buyer.
+        // Means someone else bought it and (likely) later transferred
+        // it to the current owner. Use the most-recent sale price as
+        // a best-effort cost basis and label as "transfer".
+        const latest = sales[0];
+        acquiredAt = latest.event_timestamp;
+        costEth = Number(BigInt(latest.payment?.quantity ?? "0")) / 1e18;
+        acquiredTxHash = latest.transaction ?? null;
+        acquiredVia = "transfer";
       }
     } catch (err) {
       console.warn(`  sale lookup #${n.identifier} failed:`, err.message);

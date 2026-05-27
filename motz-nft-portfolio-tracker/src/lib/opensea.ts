@@ -178,7 +178,8 @@ export async function lastSaleEth(
       event_timestamp: number;
       payment?: { quantity: string };
       transaction?: string;
-      to_address?: string;
+      buyer?: string;
+      seller?: string;
     }>;
   };
   try {
@@ -194,7 +195,10 @@ export async function lastSaleEth(
       eventTimestamp: ev.event_timestamp,
       priceWei: ev.payment?.quantity ?? "0",
       txHash: ev.transaction ?? null,
-      toAddress: ev.to_address ?? null,
+      // OpenSea v2 sale events use `buyer`, not `to_address`. Earlier
+      // versions of this code looked for the wrong field, causing every
+      // sale to silently mismatch and fall back to mint-price cost basis.
+      toAddress: ev.buyer?.toLowerCase() ?? null,
     };
     lastSaleCache.set(key, sale);
     return sale;
@@ -228,7 +232,8 @@ export async function saleHistoryEth(
       event_timestamp: number;
       payment?: { quantity: string };
       transaction?: string;
-      to_address?: string;
+      buyer?: string;
+      seller?: string;
     }>;
   };
   try {
@@ -239,7 +244,8 @@ export async function saleHistoryEth(
       eventTimestamp: ev.event_timestamp,
       priceWei: ev.payment?.quantity ?? "0",
       txHash: ev.transaction ?? null,
-      toAddress: ev.to_address?.toLowerCase() ?? null,
+      // OpenSea v2 sale events use `buyer`, not `to_address`.
+      toAddress: ev.buyer?.toLowerCase() ?? null,
     }));
     saleHistoryCache.set(key, sales);
     return sales;
