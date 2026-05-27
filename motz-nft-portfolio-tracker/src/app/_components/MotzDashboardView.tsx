@@ -83,7 +83,45 @@ export function MotzDashboardView() {
   // section). Setting back to null returns to the all-collections view.
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
 
-  const allCollections = snap?.collections ?? [];
+  // Owner filter: when set, restrict every row across every collection to
+  // only those tagged with this wallet address. Works orthogonally with
+  // the collection drill-down — user can filter to one owner AND one
+  // collection simultaneously.
+  const [ownerFilter, setOwnerFilter] = useState<string>("all");
+
+  const rawCollections = snap?.collections ?? [];
+
+  // Build owner dropdown options from the snapshot's resolved addresses.
+  // Maps resolved (0x…) back to its original RNS / hex input from
+  // walletAddresses[i] for a friendly label.
+  const ownerOptions: { value: string; label: string }[] = [];
+  if (snap) {
+    for (let i = 0; i < snap.resolvedAddresses.length; i++) {
+      const resolved = snap.resolvedAddresses[i];
+      const input = snap.walletAddresses[i] ?? "";
+      ownerOptions.push({
+        value: resolved.toLowerCase(),
+        label: input || shortAddr(resolved),
+      });
+    }
+  }
+
+  // Apply owner filter — strip rows where walletTag doesn't match.
+  // Collections that end up empty after the filter are dropped from the
+  // display entirely so we don't show zero-token tiles + sections.
+  const ownerFilteredCollections =
+    ownerFilter === "all"
+      ? rawCollections
+      : rawCollections
+          .map((c) => ({
+            ...c,
+            rows: c.rows.filter(
+              (r) => (r.walletTag ?? "").toLowerCase() === ownerFilter,
+            ),
+          }))
+          .filter((c) => c.rows.length > 0);
+
+  const allCollections = ownerFilteredCollections;
   const collections = selectedSlug
     ? allCollections.filter((c) => c.slug === selectedSlug)
     : allCollections;
@@ -225,6 +263,35 @@ export function MotzDashboardView() {
                     </>
                   )}
                 </div>
+                {/* Owner filter — narrows the entire dashboard (stats,
+                    tiles, sections) to a single project wallet. */}
+                {ownerOptions.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <label className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">
+                      Owner
+                    </label>
+                    <select
+                      value={ownerFilter}
+                      onChange={(e) => setOwnerFilter(e.target.value)}
+                      className="rounded-md bg-black/40 border border-white/10 px-2 py-1 font-mono text-xs text-zinc-200 focus:outline-none focus:border-[color:var(--motz-red)] focus:ring-1 focus:ring-[color:var(--motz-red)]/40"
+                    >
+                      <option value="all">All wallets</option>
+                      {ownerOptions.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                    {ownerFilter !== "all" && (
+                      <button
+                        onClick={() => setOwnerFilter("all")}
+                        className="font-mono text-[11px] uppercase tracking-wider text-zinc-500 hover:text-[color:var(--motz-red)]"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })()}
