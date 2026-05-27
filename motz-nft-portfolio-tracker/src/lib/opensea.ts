@@ -212,6 +212,74 @@ export async function lastSaleEth(
 }
 
 /**
+ * Original minter (recipient of the first 0x0 -> X transfer for a token).
+ * Used to distinguish "primary minted this directly" from "someone else
+ * minted then transferred to primary" — when the original minter isn't
+ * a MoTZ wallet, the token should be labeled "transfer" not "mint".
+ */
+const minterCache = new Map<string, string | null>();
+
+export async function originalMinterEth(
+  contract: string,
+  tokenId: string,
+): Promise<string | null> {
+  const key = `${contract.toLowerCase()}:${tokenId}`;
+  if (minterCache.has(key)) return minterCache.get(key)!;
+  type Res = {
+    asset_events?: Array<{
+      event_timestamp: number;
+      from_address?: string;
+      to_address?: string;
+    }>;
+    next?: string;
+  };
+  try {
+    // Walk transfer events oldest-first by paginating to the end. The
+    // events endpoint returns newest-first, so we need to follow `next`
+    // until we hit the mint (from = 0x0).
+    let next: string | undefined;
+    let firstMint: { ts: number; to: string } | null = null;
+    for (let page = 0; page < 6; page++) {
+      const qs = new URLSearchParams({
+        event_type: "transfer",
+        limit: "50",
+      });
+      if (next) qs.set("next", next);
+      const data = await osFetch<Res>(
+        `/events/chain/ethereum/contract/${contract.toLowerCase()}/nfts/${tokenId}?${qs.toString()}`,
+      );
+      for (const ev of data.asset_events ?? []) {
+        if (
+          ev.from_address &&
+          /^0x0+$/i.test(ev.from_address) &&
+          ev.to_address
+        ) {
+          // Found the mint transfer; record and use the newest-first one
+          // we encounter (in practice there's only ever one mint per token).
+          if (!firstMint || ev.event_timestamp > firstMint.ts) {
+            firstMint = {
+              ts: ev.event_timestamp,
+              to: ev.to_address.toLowerCase(),
+            };
+          }
+        }
+      }
+      if (!data.next) break;
+      next = data.next;
+    }
+    const result = firstMint?.to ?? null;
+    minterCache.set(key, result);
+    return result;
+  } catch (err) {
+    console.warn(
+      `[opensea] originalMinterEth ${contract}/${tokenId} failed:`,
+      (err as Error).message,
+    );
+    return null;
+  }
+}
+
+/**
  * Full sale history for a token (most-recent first, up to `limit`).
  * Used for transferrer-aware cost basis: find the most recent sale where
  * the BUYER is one of our tracked MoTZ wallets. That sale's price is the

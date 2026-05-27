@@ -9,6 +9,7 @@ import {
   collectionFloorEth,
   tierFloorsEth,
   lastTierSaleEth,
+  originalMinterEth,
   persistSalesSoon,
 } from "@/lib/opensea";
 import { ethUsdAt, ethUsdNow } from "@/lib/ethprice";
@@ -449,11 +450,38 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
               acquiredTxHash = latest.txHash;
               acquiredVia = "transfer";
             } else {
-              // No sale history at all → token was minted by the current
-              // owner direct from the contract.
-              acquiredAt = Math.floor(
-                new Date(`${c.mintDate}T00:00:00Z`).getTime() / 1000,
-              );
+              // No sale history. Could be either:
+              //   (a) Direct mint by the current owner (genuinely 0.1 ETH)
+              //   (b) Mint by someone else + private/off-marketplace
+              //       transfer to current owner (cost unknown, mark as
+              //       "transfer" with 0 cost since we have no signal)
+              // Check the original minter via transfer events.
+              let isDirectMint = true;
+              try {
+                const minter = await originalMinterEth(c.address, n.tokenId);
+                if (minter && minter !== addr.toLowerCase()) {
+                  isDirectMint = false;
+                }
+              } catch (err) {
+                console.warn(
+                  `[motz-snapshot] originalMinter ${c.slug}:${n.tokenId} failed:`,
+                  (err as Error).message,
+                );
+              }
+              if (isDirectMint) {
+                acquiredAt = Math.floor(
+                  new Date(`${c.mintDate}T00:00:00Z`).getTime() / 1000,
+                );
+                // costEth stays at mint price, acquiredVia stays "mint".
+              } else {
+                // Off-marketplace transfer in. No sale price = no cost
+                // basis available. Label as transfer with cost = 0.
+                acquiredAt = Math.floor(
+                  new Date(`${c.mintDate}T00:00:00Z`).getTime() / 1000,
+                );
+                acquiredVia = "transfer";
+                costEth = 0;
+              }
             }
             const ronUsdAtPurchase = acquiredAt
               ? ethUsdAt(acquiredAt)

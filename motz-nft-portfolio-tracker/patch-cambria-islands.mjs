@@ -211,6 +211,31 @@ for (const addr of WALLETS) {
         costEth = Number(BigInt(latest.payment?.quantity ?? "0")) / 1e18;
         acquiredTxHash = latest.transaction ?? null;
         acquiredVia = "transfer";
+      } else {
+        // No sale history. Check if THIS wallet was the original minter:
+        // if not, the token was minted elsewhere and transferred in
+        // off-marketplace — label as transfer with cost = 0.
+        try {
+          const tev = await os(
+            `/events/chain/ethereum/contract/${CONTRACT}/nfts/${n.identifier}?event_type=transfer&limit=20`,
+          );
+          const mint = (tev.asset_events ?? []).find(
+            (e) => /^0x0+$/i.test(e.from_address ?? ""),
+          );
+          if (
+            mint &&
+            mint.to_address &&
+            mint.to_address.toLowerCase() !== addr.toLowerCase()
+          ) {
+            acquiredVia = "transfer";
+            costEth = 0;
+          }
+        } catch (err) {
+          console.warn(
+            `  mint lookup #${n.identifier} failed:`,
+            err.message,
+          );
+        }
       }
     } catch (err) {
       console.warn(`  sale lookup #${n.identifier} failed:`, err.message);
