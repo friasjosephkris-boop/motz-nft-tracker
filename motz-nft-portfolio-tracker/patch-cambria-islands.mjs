@@ -162,6 +162,10 @@ function ethUsdAt(ts) {
 }
 
 
+// tierMarketSale: tier -> { ts, price } — most recent sale of a token
+// of that tier observed in any held-token's sale history. Used as
+// floor fallback. NOT cost basis.
+const tierMarketSale = {};
 const rows = [];
 for (const addr of WALLETS) {
   console.log(`\nWallet ${addr.slice(0, 8)}…`);
@@ -182,11 +186,13 @@ for (const addr of WALLETS) {
     let acquiredAt = MINT_DATE_TS;
     let acquiredVia = "mint";
     let acquiredTxHash = null;
+    let saleHistoryForMarket = []; // captured separately for tier market signal
     try {
       const ev = await os(
         `/events/chain/ethereum/contract/${CONTRACT}/nfts/${n.identifier}?event_type=sale&limit=20`,
       );
       const sales = ev.asset_events ?? [];
+      saleHistoryForMarket = sales;
       const motzSet = new Set(WALLETS.map((w) => w.toLowerCase()));
       // OpenSea sale events use `buyer` field, not `to_address`.
       const transferrerSale = sales.find((s) =>
@@ -203,12 +209,12 @@ for (const addr of WALLETS) {
             : "transfer";
       } else if (sales.length > 0) {
         // Token has a sale history but no MoTZ wallet was the buyer.
-        // Means someone else bought it and (likely) later transferred
-        // it to the current owner. Use the most-recent sale price as
-        // a best-effort cost basis and label as "transfer".
+        // Per cost-basis policy, transfers in from non-tracked wallets
+        // are zero-cost. We keep the latest sale's timestamp/tx as
+        // the most precise on-chain "when" signal.
         const latest = sales[0];
         acquiredAt = latest.event_timestamp;
-        costEth = Number(BigInt(latest.payment?.quantity ?? "0")) / 1e18;
+        costEth = 0;
         acquiredTxHash = latest.transaction ?? null;
         acquiredVia = "transfer";
       } else {
@@ -271,6 +277,22 @@ for (const addr of WALLETS) {
     const pnlUsd =
       costUsd != null && floorUsd != null ? floorUsd - costUsd : null;
 
+    // Record the latest market sale of this tier (independently of
+    // cost basis) so we can use it as a floor fallback later.
+    if (rarity && saleHistoryForMarket.length > 0) {
+      const latestSale = saleHistoryForMarket[0];
+      const priceEth =
+        Number(BigInt(latestSale.payment?.quantity ?? "0")) / 1e18;
+      if (priceEth > 0) {
+        const prev = tierMarketSale[rarity];
+        if (!prev || latestSale.event_timestamp > prev.ts) {
+          tierMarketSale[rarity] = {
+            ts: latestSale.event_timestamp,
+            price: priceEth,
+          };
+        }
+      }
+    }
     rows.push({
       tokenId: n.identifier,
       name: n.name ?? null,
@@ -300,27 +322,18 @@ console.log(`\nTotal rows: ${rows.length}`);
 
 // Second pass: for any tier whose floor fell back to the collection
 // floor (because the listing walk + global sale scan missed it), use
-// the most-recent sale price among OUR held tokens of that tier as
-// the fallback. Better signal than collection floor for rare tiers.
-const tierLatestSale = {}; // tier -> { ts, price }
-for (const r of rows) {
-  if (!r.rarity || r.acquiredVia === "mint") continue;
-  const ts = r.acquiredAt;
-  const price = r.costRon;
-  if (ts == null || price == null) continue;
-  const prev = tierLatestSale[r.rarity];
-  if (!prev || ts > prev.ts) tierLatestSale[r.rarity] = { ts, price };
-}
+// the most-recent MARKET sale price (any buyer) observed in any held
+// token's sale history. This is market data, NOT cost basis.
 let patched = 0;
 for (const r of rows) {
   if (!r.rarity) continue;
   if (r.floorRon !== collectionFloor) continue;
-  const latest = tierLatestSale[r.rarity];
-  if (!latest) continue;
-  r.floorRon = latest.price;
+  const market = tierMarketSale[r.rarity];
+  if (!market) continue;
+  r.floorRon = market.price;
   r.floorUsd =
-    latest.price != null && r.currentRonUsd != null
-      ? latest.price * r.currentRonUsd
+    market.price != null && r.currentRonUsd != null
+      ? market.price * r.currentRonUsd
       : null;
   r.pnlUsd =
     r.costUsd != null && r.floorUsd != null ? r.floorUsd - r.costUsd : null;
@@ -328,8 +341,8 @@ for (const r of rows) {
 }
 if (patched > 0) {
   console.log(
-    `\nPatched ${patched} rows with own-holdings tier-sale floor:`,
-    Object.entries(tierLatestSale).map(
+    `\nPatched ${patched} rows with tier-market-sale floor:`,
+    Object.entries(tierMarketSale).map(
       ([t, v]) => `${t}=${v.price} ETH`,
     ),
   );

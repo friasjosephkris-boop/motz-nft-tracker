@@ -397,8 +397,13 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
         // with no active sales), fall back to the most recent SALE price
         // for that tier. Better signal than the collection floor since
         // rare tiers trade at very different prices from the median.
-        // We populate this lazily after we've discovered which tiers our
-        // wallets actually hold (below in the per-wallet loop).
+        // Populated during the per-wallet loop as we walk each token's
+        // sale history (independently of cost basis — buyer doesn't
+        // matter, we just want a market-price signal per tier).
+        const tierMarketSale: Record<
+          string,
+          { ts: number; price: number }
+        > = {};
         const rows: TaggedHoldingRow[] = [];
         for (const addr of ethWallets) {
           let nfts: Awaited<ReturnType<typeof listHoldingsEth>> = [];
@@ -419,6 +424,26 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             //      token was later transferred between MoTZ wallets.
             //   3. If no such sale exists, fall back to mint price + date.
             const history = await saleHistoryEth(c.address, n.tokenId);
+            // Track the most recent observed market sale for this tier
+            // (regardless of buyer). Used later as a fallback floor for
+            // tiers with no active listing. Separate from cost basis,
+            // which only counts MoTZ-wallet purchases.
+            const rarityForMarket =
+              n.attributes[c.traitName]?.[0] ?? null;
+            if (rarityForMarket && history.length > 0) {
+              const latestSale = history[0];
+              const priceEth =
+                Number(BigInt(latestSale.priceWei)) / 1e18;
+              if (priceEth > 0) {
+                const prev = tierMarketSale[rarityForMarket];
+                if (!prev || latestSale.eventTimestamp > prev.ts) {
+                  tierMarketSale[rarityForMarket] = {
+                    ts: latestSale.eventTimestamp,
+                    price: priceEth,
+                  };
+                }
+              }
+            }
             let acquiredAt: number | null = null;
             let acquiredVia: "sale" | "mint" | "transfer" = "mint";
             let costEth = c.mintPriceRon; // 0.1 ETH for Cambria Islands
@@ -440,13 +465,14 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
                   : "transfer";
             } else if (history.length > 0) {
               // Token has a sale history but no MoTZ wallet was the
-              // buyer. Someone else bought it, then it was transferred
-              // (privately/OTC) to the current MoTZ owner. Use the most
-              // recent sale price as a best-effort cost basis, labeled
-              // "transfer" so the UI shows it distinctly from mints.
+              // buyer. That sale's price belongs to whoever paid for
+              // it (not us), so per cost-basis policy a transfer-in
+              // from a non-tracked wallet is treated as zero cost.
+              // We keep the latest sale's timestamp/tx as the "when"
+              // since that's the most precise on-chain signal.
               const latest = history[0];
               acquiredAt = latest.eventTimestamp;
-              costEth = Number(BigInt(latest.priceWei)) / 1e18;
+              costEth = 0;
               acquiredTxHash = latest.txHash;
               acquiredVia = "transfer";
             } else {
@@ -550,31 +576,18 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
         }
         // Post-pass: for tiers whose floor fell back to the collection
         // floor (no active listing AND no global sale found), use the
-        // most recent sale price among OUR own held tokens of that tier.
-        // Better signal than collection floor for rare tiers like T5.
-        const tierLatestSale: Record<
-          string,
-          { ts: number; price: number }
-        > = {};
-        for (const r of rows) {
-          if (!r.rarity || r.acquiredVia === "mint") continue;
-          const ts = r.acquiredAt;
-          const price = r.costRon;
-          if (ts == null || price == null) continue;
-          const prev = tierLatestSale[r.rarity];
-          if (!prev || ts > prev.ts) {
-            tierLatestSale[r.rarity] = { ts, price };
-          }
-        }
+        // most-recent market sale price for that tier observed in any
+        // of our held-token sale histories. This is market data, NOT
+        // cost basis — buyer identity doesn't matter here.
         for (const r of rows) {
           if (!r.rarity) continue;
           if (r.floorRon !== collectionFloor) continue;
-          const latest = tierLatestSale[r.rarity];
-          if (!latest) continue;
-          r.floorRon = latest.price;
+          const market = tierMarketSale[r.rarity];
+          if (!market) continue;
+          r.floorRon = market.price;
           r.floorUsd =
-            latest.price != null && r.currentRonUsd != null
-              ? latest.price * r.currentRonUsd
+            market.price != null && r.currentRonUsd != null
+              ? market.price * r.currentRonUsd
               : null;
           r.pnlUsd =
             r.costUsd != null && r.floorUsd != null
