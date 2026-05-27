@@ -453,6 +453,83 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Metadata retry pass: any staked token without metadata (or with
+    // metadata missing the rarity attribute) gets a second sequential
+    // chance. Critical for floor / PnL accuracy — without rarity, the
+    // floor lookup keys can't be built and the row shows blank values
+    // in the UI. We pace at 200ms after a brief drain, mirroring the
+    // lastAcquisition retry above.
+    const metaMissing = allStaked.filter((s) => {
+      const key = `${s.contract}:${s.tokenId}`;
+      const meta = stakedMetadata.get(key);
+      if (!meta) return true;
+      // Determine which trait this collection cares about and check that
+      // the token actually carries it. Otherwise the rarity lookup ends
+      // up null and the floor/pnl columns render as "—".
+      const c = TRACKED_COLLECTIONS.find(
+        (tc) => tc.address.toLowerCase() === s.contract,
+      );
+      if (!c) return false;
+      const attrs = meta.attributes ?? {};
+      const hasOverride =
+        c.overrideTraitName && attrs[c.overrideTraitName]?.[0];
+      const hasPrimary = attrs[c.traitName]?.[0];
+      return !hasOverride && !hasPrimary;
+    });
+    if (metaMissing.length > 0) {
+      console.log(
+        `[/api/holdings] metadata retry pass: ${metaMissing.length} staked tokens missing rarity metadata, retrying sequentially`,
+      );
+      await new Promise((r) => setTimeout(r, 8000));
+      let recovered = 0;
+      for (const s of metaMissing) {
+        try {
+          const meta = await tokenMetadata(s.contract, s.tokenId);
+          if (meta) {
+            stakedMetadata.set(`${s.contract}:${s.tokenId}`, meta);
+            recovered++;
+          }
+          await new Promise((r) => setTimeout(r, 200));
+        } catch (err) {
+          warn(`stakedMetadataRetry(${s.contract}:${s.tokenId})`, err);
+        }
+      }
+      // Drop the original first-pass warnings for tokens we just recovered.
+      const stillMissing = new Set(
+        metaMissing
+          .filter(
+            (s) =>
+              !stakedMetadata.has(`${s.contract}:${s.tokenId}`) ||
+              (() => {
+                const c = TRACKED_COLLECTIONS.find(
+                  (tc) => tc.address.toLowerCase() === s.contract,
+                );
+                if (!c) return true;
+                const attrs =
+                  stakedMetadata.get(`${s.contract}:${s.tokenId}`)
+                    ?.attributes ?? {};
+                const hasOverride =
+                  c.overrideTraitName && attrs[c.overrideTraitName]?.[0];
+                const hasPrimary = attrs[c.traitName]?.[0];
+                return !hasOverride && !hasPrimary;
+              })(),
+          )
+          .map((s) => `stakedMetadata(${s.contract}:${s.tokenId})`),
+      );
+      for (let i = warnings.length - 1; i >= 0; i--) {
+        const w = warnings[i];
+        if (
+          w.startsWith("stakedMetadata(") &&
+          !Array.from(stillMissing).some((m) => w.startsWith(m))
+        ) {
+          warnings.splice(i, 1);
+        }
+      }
+      console.log(
+        `[/api/holdings] metadata retry pass complete: ${recovered} recovered, ${stillMissing.size} still missing rarity`,
+      );
+    }
+
     // Await the floor queries we kicked off earlier (parallel with all the
     // userActivities work), then top up with any traits that ONLY appear on
     // staked tokens (most of the time these are already covered by owned).
