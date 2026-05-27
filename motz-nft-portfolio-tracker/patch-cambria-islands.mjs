@@ -95,21 +95,32 @@ for (const addr of WALLETS) {
 
   for (const n of nfts) {
     await sleep(400);
-    // Look up last sale to determine cost basis.
+    // Transferrer-aware cost basis: walk sale history newest-to-oldest
+    // and find the first sale where the BUYER was any MoTZ wallet. That
+    // sale's price is our cost basis even if the token was later moved
+    // between MoTZ wallets without an on-chain sale.
     let costEth = MINT_PRICE_ETH;
     let acquiredAt = MINT_DATE_TS;
     let acquiredVia = "mint";
     let acquiredTxHash = null;
     try {
       const ev = await os(
-        `/events/chain/ethereum/contract/${CONTRACT}/nfts/${n.identifier}?event_type=sale&limit=1`,
+        `/events/chain/ethereum/contract/${CONTRACT}/nfts/${n.identifier}?event_type=sale&limit=20`,
       );
-      const sale = ev.asset_events?.[0];
-      if (sale && sale.to_address?.toLowerCase() === addr.toLowerCase()) {
-        acquiredAt = sale.event_timestamp;
-        acquiredVia = "sale";
-        costEth = Number(BigInt(sale.payment?.quantity ?? "0")) / 1e18;
-        acquiredTxHash = sale.transaction ?? null;
+      const sales = ev.asset_events ?? [];
+      const motzSet = new Set(WALLETS.map((w) => w.toLowerCase()));
+      const transferrerSale = sales.find((s) =>
+        motzSet.has(s.to_address?.toLowerCase()),
+      );
+      if (transferrerSale) {
+        acquiredAt = transferrerSale.event_timestamp;
+        costEth =
+          Number(BigInt(transferrerSale.payment?.quantity ?? "0")) / 1e18;
+        acquiredTxHash = transferrerSale.transaction ?? null;
+        acquiredVia =
+          transferrerSale.to_address?.toLowerCase() === addr.toLowerCase()
+            ? "sale"
+            : "transfer";
       }
     } catch (err) {
       console.warn(`  sale lookup #${n.identifier} failed:`, err.message);

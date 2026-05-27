@@ -208,6 +208,51 @@ export async function lastSaleEth(
 }
 
 /**
+ * Full sale history for a token (most-recent first, up to `limit`).
+ * Used for transferrer-aware cost basis: find the most recent sale where
+ * the BUYER is one of our tracked MoTZ wallets. That sale's price is the
+ * cost basis for whichever MoTZ wallet currently holds the token, even
+ * if it was later transferred between wallets without an on-chain sale.
+ */
+const saleHistoryCache = new Map<string, OpenSeaSale[]>();
+
+export async function saleHistoryEth(
+  contract: string,
+  tokenId: string,
+  limit = 20,
+): Promise<OpenSeaSale[]> {
+  const key = `${contract.toLowerCase()}:${tokenId}`;
+  if (saleHistoryCache.has(key)) return saleHistoryCache.get(key)!;
+  type Res = {
+    asset_events?: Array<{
+      event_timestamp: number;
+      payment?: { quantity: string };
+      transaction?: string;
+      to_address?: string;
+    }>;
+  };
+  try {
+    const data = await osFetch<Res>(
+      `/events/chain/ethereum/contract/${contract.toLowerCase()}/nfts/${tokenId}?event_type=sale&limit=${limit}`,
+    );
+    const sales: OpenSeaSale[] = (data.asset_events ?? []).map((ev) => ({
+      eventTimestamp: ev.event_timestamp,
+      priceWei: ev.payment?.quantity ?? "0",
+      txHash: ev.transaction ?? null,
+      toAddress: ev.to_address?.toLowerCase() ?? null,
+    }));
+    saleHistoryCache.set(key, sales);
+    return sales;
+  } catch (err) {
+    console.warn(
+      `[opensea] saleHistoryEth ${contract}/${tokenId} failed:`,
+      (err as Error).message,
+    );
+    return [];
+  }
+}
+
+/**
  * Collection floor price in ETH.
  * GET /api/v2/collection/{slug}/stats
  */

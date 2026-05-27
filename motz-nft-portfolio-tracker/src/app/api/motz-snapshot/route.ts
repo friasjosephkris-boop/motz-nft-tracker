@@ -5,7 +5,7 @@ import { MOTZ_WALLETS, MOTZ_TRANSFERRERS } from "@/lib/motz-wallets";
 import { ETH_TRACKED_COLLECTIONS } from "@/lib/contracts";
 import {
   listHoldingsEth,
-  lastSaleEth,
+  saleHistoryEth,
   collectionFloorEth,
   persistSalesSoon,
 } from "@/lib/opensea";
@@ -354,6 +354,12 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
       // are isolated so an OpenSea hiccup never wipes Ronin data.
       const currentEthUsd = ethUsdNow();
       const ethWallets = resolved.length > 0 ? resolved : [];
+      // Transferrer set: any MoTZ wallet's resolved hex address. If a
+      // currently-held token has a prior sale where one of these wallets
+      // was the buyer, that sale's price = cost basis — regardless of
+      // whether the current owner is the same wallet (direct buyer) or
+      // received it via inter-wallet transfer later.
+      const motzHexSet = new Set(ethWallets.map((a) => a.toLowerCase()));
       for (const c of ETH_TRACKED_COLLECTIONS) {
         let floorEth: number | null = null;
         try {
@@ -381,22 +387,35 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             continue;
           }
           for (const n of nfts) {
-            // Cost basis: fall back to mint price (0.1 ETH) if no sale
-            // event surfaces. lastSaleEth is cached on disk so this
-            // costs ~1 OpenSea request per token on cold cache, zero
-            // on warm.
-            const sale = await lastSaleEth(c.address, n.tokenId);
+            // Transferrer-aware cost basis:
+            //   1. Pull the token's sale history (cached on disk).
+            //   2. Walk newest-to-oldest, find the FIRST sale whose buyer
+            //      is any MoTZ wallet. That's our cost basis even if the
+            //      token was later transferred between MoTZ wallets.
+            //   3. If no such sale exists, fall back to mint price + date.
+            const history = await saleHistoryEth(c.address, n.tokenId);
             let acquiredAt: number | null = null;
             let acquiredVia: "sale" | "mint" | "transfer" = "mint";
-            let costEth = c.mintPriceRon; // 0.1 for Cambria Islands
+            let costEth = c.mintPriceRon; // 0.1 ETH for Cambria Islands
             let acquiredTxHash: string | null = null;
-            if (sale && sale.toAddress?.toLowerCase() === addr.toLowerCase()) {
-              acquiredAt = sale.eventTimestamp;
-              acquiredVia = "sale";
-              costEth = Number(BigInt(sale.priceWei)) / 1e18;
-              acquiredTxHash = sale.txHash;
+            const transferrerSale = history.find(
+              (s) => s.toAddress && motzHexSet.has(s.toAddress),
+            );
+            if (transferrerSale) {
+              acquiredAt = transferrerSale.eventTimestamp;
+              costEth = Number(BigInt(transferrerSale.priceWei)) / 1e18;
+              acquiredTxHash = transferrerSale.txHash;
+              // Direct-purchase by current owner = "sale". If the buying
+              // wallet is a DIFFERENT MoTZ wallet, the token was transferred
+              // in afterwards — mark as "transfer" but keep the original
+              // cost basis preserved from the transferrer's purchase.
+              acquiredVia =
+                transferrerSale.toAddress === addr.toLowerCase()
+                  ? "sale"
+                  : "transfer";
             } else {
-              // Default to mint date when no buyer-matching sale found.
+              // No MoTZ-wallet purchase in history → token was minted by
+              // the current owner.
               acquiredAt = Math.floor(
                 new Date(`${c.mintDate}T00:00:00Z`).getTime() / 1000,
               );
