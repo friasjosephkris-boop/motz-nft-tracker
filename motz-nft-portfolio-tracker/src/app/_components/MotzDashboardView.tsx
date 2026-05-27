@@ -275,7 +275,7 @@ export function MotzDashboardView() {
                       onChange={(e) => setOwnerFilter(e.target.value)}
                       className="rounded-md bg-black/40 border border-white/10 px-2 py-1 font-mono text-xs text-zinc-200 focus:outline-none focus:border-[color:var(--motz-red)] focus:ring-1 focus:ring-[color:var(--motz-red)]/40"
                     >
-                      <option value="all">All wallets</option>
+                      <option value="all">MoTZ wallet</option>
                       {ownerOptions.map((o) => (
                         <option key={o.value} value={o.value}>
                           {o.label}
