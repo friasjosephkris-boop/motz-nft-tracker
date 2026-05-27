@@ -73,15 +73,15 @@ function makeLimiter(max: number, minIntervalMs = 0) {
     },
   };
 }
-// 2 concurrent GraphQL calls + 150ms minimum gap between subsequent calls.
-// Caps our effective rate at ~13 req/sec under steady-state, which is well
-// under most Sky Mavis tier limits while still parallelising meaningful
-// amounts of work. The 150ms gap matters most when calls fail FAST (429s
-// return in <100ms) — without it we'd cycle slots 50× per second and trip
-// the per-second cap instantly.
+// 1 concurrent GraphQL call + 300ms minimum gap between subsequent calls.
+// Effective rate ~3.3 req/sec — well under any Sky Mavis tier limit and
+// completely avoids the burst-throttle that kicks in around 5-10 req/sec.
+// Slower refreshes (~2x), but no more PARTIAL warnings from rate limits.
+// Originally 2 concurrent / 150ms; that worked most of the time but tripped
+// the burst limiter on big wallets with hundreds of staked tokens.
 // 10 concurrent RPC calls (no gap): separate pool, no rate-limit issues
 // observed on Sky Mavis's archive RPC endpoint.
-const gqlLimiter = makeLimiter(2, 150);
+const gqlLimiter = makeLimiter(1, 300);
 const rpcLimiter = makeLimiter(10);
 
 // Circuit breaker: when Sky Mavis's daily quota is exhausted, every call

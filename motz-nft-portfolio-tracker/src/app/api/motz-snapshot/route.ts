@@ -260,6 +260,92 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
         }
       }
       // -------------------------------------------------------------
+      // Auto-retry pass: any wallet that came back STRUCTURALLY partial
+      // (listHoldings / userAcquisitionsFor / userStakingDepositsFor
+      // failed) gets retried after a long cool-down. Repeats until no
+      // structural partials remain or MAX_RETRY_ROUNDS exhausted.
+      // -------------------------------------------------------------
+      const MAX_RETRY_ROUNDS = 3;
+      const RETRY_COOLDOWN_MS = 120_000; // 2 min — full breaker drain + buffer
+      for (let round = 1; round <= MAX_RETRY_ROUNDS; round++) {
+        const structurallyPartial = partials.filter((p) =>
+          p.warnings.some(
+            (w) =>
+              w.startsWith("listHoldings(") ||
+              w.startsWith("userAcquisitionsFor(") ||
+              w.startsWith("userStakingDepositsFor("),
+          ),
+        );
+        if (structurallyPartial.length === 0) break;
+        console.log(
+          `[motz-snapshot] retry round ${round}/${MAX_RETRY_ROUNDS}: ${structurallyPartial.length} structurally partial wallets — cooling down ${RETRY_COOLDOWN_MS / 1000}s`,
+        );
+        await new Promise((r) => setTimeout(r, RETRY_COOLDOWN_MS));
+        for (const p of structurallyPartial) {
+          const w = p.input;
+          try {
+            const url =
+              `${origin}/api/holdings?address=${encodeURIComponent(w)}` +
+              transferrerParams;
+            const r = await fetch(url, { cache: "no-store" });
+            const j = (await r.json()) as ApiResponse | { error: string };
+            if (!r.ok || "error" in j) continue;
+            const data = j as ApiResponse;
+            // Replace any previous rows for this wallet's resolved
+            // address with the fresh load.
+            const tag = data.address.toLowerCase();
+            for (const col of byContract.values()) {
+              col.rows = col.rows.filter((row) => row.walletTag !== tag);
+            }
+            for (const c of data.collections) {
+              const existing = byContract.get(c.contract);
+              const tagged: TaggedHoldingRow[] = c.rows.map((row) => ({
+                ...row,
+                walletTag: tag,
+              }));
+              if (existing) existing.rows.push(...tagged);
+              else
+                byContract.set(c.contract, {
+                  contract: c.contract,
+                  name: c.name,
+                  symbol: c.symbol,
+                  slug: c.slug,
+                  rows: tagged,
+                });
+            }
+            // Update partial / failure status for this wallet.
+            const warnings = data.warnings ?? [];
+            const stillStructural = warnings.some(
+              (w) =>
+                w.startsWith("listHoldings(") ||
+                w.startsWith("userAcquisitionsFor(") ||
+                w.startsWith("userStakingDepositsFor("),
+            );
+            const tokenCount = data.collections.reduce(
+              (s, c) => s + c.rows.length,
+              0,
+            );
+            const idx = partials.findIndex((q) => q.input === w);
+            if (stillStructural || (tokenCount === 0 && warnings.length > 0)) {
+              if (idx >= 0)
+                partials[idx] = { input: w, tokens: tokenCount, warnings };
+              else partials.push({ input: w, tokens: tokenCount, warnings });
+            } else if (idx >= 0) {
+              partials.splice(idx, 1);
+              console.log(
+                `[motz-snapshot] retry round ${round}: ${w} recovered (${tokenCount} tokens)`,
+              );
+            }
+          } catch (err) {
+            console.warn(
+              `[motz-snapshot] retry round ${round} for ${w} threw:`,
+              (err as Error).message,
+            );
+          }
+        }
+      }
+
+      // -------------------------------------------------------------
       // Ethereum-side collections (OpenSea pipeline)
       // -------------------------------------------------------------
       // Iterates ETH_TRACKED_COLLECTIONS × resolved wallet addresses,
