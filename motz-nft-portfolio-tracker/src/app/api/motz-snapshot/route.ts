@@ -468,12 +468,13 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
               // buyer. That sale's price belongs to whoever paid for
               // it (not us), so per cost-basis policy a transfer-in
               // from a non-tracked wallet is treated as zero cost.
-              // We keep the latest sale's timestamp/tx as the "when"
-              // since that's the most precise on-chain signal.
+              // We DON'T keep that tx hash either — it's the prior
+              // owner's purchase, not ours; showing it on a row
+              // labeled "Transferred" would be misleading.
               const latest = history[0];
               acquiredAt = latest.eventTimestamp;
               costEth = 0;
-              acquiredTxHash = latest.txHash;
+              acquiredTxHash = null;
               acquiredVia = "transfer";
             } else {
               // No sale history. Could be either:

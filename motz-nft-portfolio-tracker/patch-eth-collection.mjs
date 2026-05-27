@@ -165,11 +165,13 @@ for (const addr of WALLETS) {
         acquiredVia = "sale";
       } else if (saleHistory.length > 0) {
         // Non-tracked buyer in history → transferred in privately,
-        // cost = 0 per policy. Keep timestamp/tx for "when" signal.
+        // cost = 0 per policy. Don't carry over the prior owner's
+        // tx hash — that wasn't our purchase, and showing it on a
+        // "Transferred" row is misleading.
         const latest = saleHistory[0];
         acquiredAt = latest.event_timestamp;
         costEth = 0;
-        acquiredTxHash = latest.transaction ?? null;
+        acquiredTxHash = null;
         acquiredVia = "transfer";
       } else {
         // No sale history. Check who originally minted: if it's any
