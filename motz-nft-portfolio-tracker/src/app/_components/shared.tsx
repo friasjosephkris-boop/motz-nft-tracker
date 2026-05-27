@@ -251,11 +251,11 @@ export function CollectionSection({
         if (ai != null && bi != null) return (ai - bi) * dir;
         return ar.localeCompare(br) * dir;
       }
-      case "acquired": {
-        const at = a.acquiredAt ?? 0;
-        const bt = b.acquiredAt ?? 0;
-        return (at - bt) * dir;
-      }
+      case "acquired":
+        // Use numericCompare so rows with null acquiredAt always sink
+        // to the bottom regardless of sort direction (previously they
+        // piled up at the top in asc, polluting the visible order).
+        return numericCompare(a.acquiredAt, b.acquiredAt, dir);
       case "costRon":
         return numericCompare(a.costRon, b.costRon, dir);
       case "costUsd":
