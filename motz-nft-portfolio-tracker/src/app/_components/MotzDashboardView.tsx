@@ -245,6 +245,37 @@ export function MotzDashboardView() {
             />
           </section>
 
+          {/* Per-collection summary tiles with background imagery. Each
+              tile shows count, cost basis, floor value, and P&L for that
+              specific collection at a glance. */}
+          {collections.length > 0 && (
+            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {collections.map((c) => {
+                const count = c.rows.length;
+                const cost = c.rows.reduce(
+                  (s, r) => s + (r.costUsd ?? 0),
+                  0,
+                );
+                const floor = c.rows.reduce(
+                  (s, r) => s + (r.floorUsd ?? 0),
+                  0,
+                );
+                const pnl = floor - cost;
+                return (
+                  <CollectionTile
+                    key={c.contract}
+                    name={c.name}
+                    slug={c.slug}
+                    count={count}
+                    costUsd={cost}
+                    floorUsd={floor}
+                    pnlUsd={pnl}
+                  />
+                );
+              })}
+            </section>
+          )}
+
           {collections.map((c) => (
             <CollectionSection key={c.contract} c={c} />
           ))}
@@ -256,6 +287,97 @@ export function MotzDashboardView() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+// Maps collection slugs to their background images under /public/motz/collections.
+// Keep this in sync with src/lib/contracts.ts slugs.
+const COLLECTION_IMAGES: Record<string, string> = {
+  "motz-founders-coin": "/motz/collections/founders-coin.jpg",
+  "cambria-cores": "/motz/collections/cambria.png",
+  "fableborne-kingdom": "/motz/collections/fableborne.jpg",
+};
+
+function CollectionTile({
+  name,
+  slug,
+  count,
+  costUsd,
+  floorUsd,
+  pnlUsd,
+}: {
+  name: string;
+  slug: string;
+  count: number;
+  costUsd: number;
+  floorUsd: number;
+  pnlUsd: number;
+}) {
+  const bg = COLLECTION_IMAGES[slug];
+  return (
+    <div className="relative overflow-hidden rounded-lg border border-white/10 bg-black/40 min-h-[180px] group">
+      {/* Background image with strong dark gradient overlay so the stats
+          remain legible on top of any imagery. */}
+      {bg && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={bg}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-30 transition-opacity duration-300 group-hover:opacity-40"
+          aria-hidden
+        />
+      )}
+      <div
+        className="absolute inset-0 bg-gradient-to-br from-black/40 via-black/60 to-black/80"
+        aria-hidden
+      />
+
+      <div className="relative h-full p-4 flex flex-col justify-between gap-3">
+        <h3 className="font-display text-lg font-semibold text-zinc-100 leading-tight">
+          {name}
+        </h3>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+              NFTs
+            </div>
+            <div className="font-display text-xl font-bold text-zinc-100">
+              {count}
+            </div>
+          </div>
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+              Cost (USD)
+            </div>
+            <div className="font-display text-xl font-bold text-zinc-100">
+              {fmtUsd(costUsd)}
+            </div>
+          </div>
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+              Floor (USD)
+            </div>
+            <div className="font-display text-xl font-bold text-[color:var(--motz-gold)]">
+              {fmtUsd(floorUsd)}
+            </div>
+          </div>
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-wider text-zinc-400">
+              P&amp;L (USD)
+            </div>
+            <div
+              className={
+                "font-display text-xl font-bold " +
+                (pnlUsd >= 0 ? "text-emerald-400" : "text-red-400")
+              }
+            >
+              {pnlUsd >= 0 ? "+" : ""}
+              {fmtUsd(pnlUsd)}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
