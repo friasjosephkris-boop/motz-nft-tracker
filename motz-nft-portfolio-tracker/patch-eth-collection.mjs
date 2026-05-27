@@ -33,10 +33,11 @@ const MINT_DATE_TS = Math.floor(
 );
 
 const WALLETS = [
-  "0x37cedb10dfa478ce14423e24f745fd640b4cd989",
-  "0x466e70f677b3ebd99ff027ec13cc040f19978abc",
-  "0x8f6ab5bac76a285f90079ad754ef18e9ab5d6873",
-  "0x62101fdf7d454a6f4dc1474580c6af8bd7171ca4",
+  "0x37cedb10dfa478ce14423e24f745fd640b4cd989", // primary
+  "0x535b02b47d5d0d8b08ce93066c0660f717694998", // secondary primary (33 CI)
+  "0x466e70f677b3ebd99ff027ec13cc040f19978abc", // markofthezeal
+  "0x8f6ab5bac76a285f90079ad754ef18e9ab5d6873", // masterofcoin
+  "0x62101fdf7d454a6f4dc1474580c6af8bd7171ca4", // motzvault
   "0x27f4cea185af16f6cf784359e203e0125bea4ffb",
 ];
 
