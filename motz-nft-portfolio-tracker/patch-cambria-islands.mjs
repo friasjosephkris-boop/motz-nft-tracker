@@ -33,11 +33,34 @@ async function os(path) {
   return r.json();
 }
 
-// Floor.
-console.log("Fetching floor + stats…");
+// Collection-wide floor as fallback.
 const stats = await os(`/collections/${SLUG}/stats`);
-const floorEth = stats.total?.floor_price ?? null;
-console.log(`  floor: ${floorEth} ETH`);
+const collectionFloor = stats.total?.floor_price ?? null;
+console.log(`Collection floor: ${collectionFloor} ETH`);
+// Per-tier floors filled in lazily once we discover which tiers our
+// wallets actually own.
+const floorByTier = {};
+async function getTierFloor(tier) {
+  if (tier in floorByTier) return floorByTier[tier];
+  try {
+    const data = await os(
+      `/listings/collection/${SLUG}/best?` +
+        new URLSearchParams({
+          limit: "1",
+          "trait[Size Class]": tier,
+        }).toString(),
+    );
+    const listing = data.listings?.[0];
+    const wei = listing?.price?.current?.value ?? null;
+    floorByTier[tier] = wei != null ? Number(BigInt(wei)) / 1e18 : null;
+  } catch (err) {
+    console.warn(`  tier ${tier} floor failed:`, err.message);
+    floorByTier[tier] = null;
+  }
+  console.log(`  tier "${tier}" floor: ${floorByTier[tier]} ETH`);
+  await sleep(400);
+  return floorByTier[tier];
+}
 
 // ETH USD: load bundled history, find most recent.
 const ethHistory = JSON.parse(
@@ -59,8 +82,6 @@ function ethUsdAt(ts) {
   return ethHistory[ddmmyyyy(ts)] ?? null;
 }
 
-const floorUsd =
-  floorEth != null && currentEthUsd != null ? floorEth * currentEthUsd : null;
 
 const rows = [];
 for (const addr of WALLETS) {
@@ -97,15 +118,32 @@ for (const addr of WALLETS) {
     const ronUsdAtPurchase = ethUsdAt(acquiredAt);
     const costUsd =
       ronUsdAtPurchase != null ? costEth * ronUsdAtPurchase : null;
+
+    // Per-token detail fetch — /account/{addr}/nfts strips traits in bulk
+    // mode, so we hit the single-NFT endpoint to get Size Class.
+    let rarity = null;
+    try {
+      const detail = await os(
+        `/chain/ethereum/contract/${CONTRACT}/nfts/${n.identifier}`,
+      );
+      const traits = detail.nft?.traits ?? [];
+      const sizeClass = traits.find(
+        (t) => t.trait_type === "Size Class",
+      );
+      rarity = sizeClass?.value ?? null;
+    } catch (err) {
+      console.warn(`  trait lookup #${n.identifier} failed:`, err.message);
+    }
+    await sleep(400);
+    const floorEth = rarity
+      ? ((await getTierFloor(rarity)) ?? collectionFloor)
+      : collectionFloor;
+    const floorUsd =
+      floorEth != null && currentEthUsd != null
+        ? floorEth * currentEthUsd
+        : null;
     const pnlUsd =
       costUsd != null && floorUsd != null ? floorUsd - costUsd : null;
-
-    const attrs = {};
-    for (const t of n.traits ?? []) {
-      attrs[t.trait_type] = attrs[t.trait_type] ?? [];
-      attrs[t.trait_type].push(t.value);
-    }
-    const rarity = attrs["Rarity"]?.[0] ?? null;
 
     rows.push({
       tokenId: n.identifier,
@@ -126,7 +164,7 @@ for (const addr of WALLETS) {
       walletTag: addr.toLowerCase(),
     });
     console.log(
-      `  #${n.identifier} via=${acquiredVia} cost=${costEth} ETH pnl=${pnlUsd?.toFixed(2)}`,
+      `  #${n.identifier} ${rarity ?? "?"} cost=${costEth}ETH floor=${floorEth}ETH pnl=${pnlUsd?.toFixed(2)}`,
     );
   }
 }

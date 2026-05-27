@@ -103,8 +103,10 @@ export const CAMBRIA_ISLANDS: TrackedCollection = {
   // 0.1 ETH public mint price.
   mintPriceRon: 0.1,
   mintDate: "2025-10-23",
-  // Rarity trait unknown until first metadata fetch. Update once known.
-  traitName: "Rarity",
+  // Size Class tier (T1 → T5, each with a thematic name like "Cove (T1)",
+  // "Admiralty (T3)"). OpenSea returns this as "Size Class" (Title Case)
+  // in the API even though the marketplace UI renders it uppercase.
+  traitName: "Size Class",
 };
 
 /** Ronin-only collections (Sky Mavis pipeline). */
