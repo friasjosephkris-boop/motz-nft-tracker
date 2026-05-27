@@ -277,7 +277,12 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
           }
         }
         // Helper: pull previous rows for one wallet tag into the new
-        // byContract map. Returns total rows preserved.
+        // byContract map. Fresh rows always WIN — we only splice in
+        // previous rows whose (contract, tokenId) doesn't already exist
+        // in the fresh load for that wallet. That way a structurally
+        // partial wallet (loaded some tokens but a structural call
+        // failed) doesn't lose the staked tokens that didn't make the
+        // round-trip, but its fresh, more-accurate rows stay primary.
         function preservePreviousFor(addr: string): number {
           let preserved = 0;
           for (const prevCol of previous!.collections) {
@@ -287,7 +292,14 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             if (prevRows.length === 0) continue;
             const target = byContract.get(prevCol.contract);
             if (target) {
-              target.rows.push(...prevRows);
+              const freshIds = new Set(
+                target.rows
+                  .filter((r) => r.walletTag === addr)
+                  .map((r) => r.tokenId),
+              );
+              const novel = prevRows.filter((r) => !freshIds.has(r.tokenId));
+              target.rows.push(...novel);
+              preserved += novel.length;
             } else {
               byContract.set(prevCol.contract, {
                 contract: prevCol.contract,
@@ -296,8 +308,8 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
                 slug: prevCol.slug,
                 rows: [...prevRows],
               });
+              preserved += prevRows.length;
             }
-            preserved += prevRows.length;
           }
           if (preserved > 0) {
             console.log(
@@ -332,11 +344,17 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
           return null;
         }
 
-        // 1) Partial wallets — resolved but loaded 0 tokens with warnings.
+        // 1) Partial wallets — structural failure during the load. ALWAYS
+        // run preservation (even when some tokens loaded successfully),
+        // because a structural failure typically means an entire pipeline
+        // dropped: e.g. userStakingDepositsFor failing means all that
+        // wallet's STAKED tokens never got included this run. The fresh
+        // rows still win on (contract, tokenId); previous-only rows get
+        // spliced in to cover the gap. Without this we silently lose
+        // hundreds of staked tokens on every flaky refresh.
         for (const p of partials) {
-          if ((p.tokens ?? 0) > 0) continue;
           const prevResolved = resolveInputFromPrevious(p.input);
-          if (prevResolved && !freshRowsByTag.get(prevResolved)) {
+          if (prevResolved) {
             preservePreviousFor(prevResolved);
             if (!resolved.includes(prevResolved)) resolved.push(prevResolved);
           }
