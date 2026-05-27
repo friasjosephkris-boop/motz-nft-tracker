@@ -97,7 +97,9 @@ type SortKey = "tokenId" | "rarity" | "acquired" | "pnl";
 type SortDir = "asc" | "desc";
 
 export function CollectionSection({ c }: { c: TaggedCollectionHoldings }) {
-  const [expanded, setExpanded] = useState(true);
+  // Collapsed by default so the dashboard opens to a quick summary view.
+  // User clicks the chevron to expand any collection they want to drill into.
+  const [expanded, setExpanded] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>("tokenId");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [rarityFilter, setRarityFilter] = useState<string>("all");
