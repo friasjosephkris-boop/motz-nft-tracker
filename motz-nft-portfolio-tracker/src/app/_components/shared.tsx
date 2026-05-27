@@ -110,11 +110,24 @@ function numericCompare(
   b: number | null | undefined,
   dir: 1 | -1,
 ): number {
-  if (a == null && b == null) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
-  return (a - b) * dir;
+  const aN = typeof a === "number" && Number.isFinite(a) ? a : null;
+  const bN = typeof b === "number" && Number.isFinite(b) ? b : null;
+  if (aN == null && bN == null) return 0;
+  if (aN == null) return 1;
+  if (bN == null) return -1;
+  return (aN - bN) * dir;
 }
+
+// Columns where "biggest first" is the conventional default. First click on
+// these jumps to DESC so users immediately see the largest cost / floor /
+// pnl rows. Subsequent clicks toggle.
+const DESC_FIRST_COLUMNS: ReadonlySet<string> = new Set([
+  "acquired",
+  "costRon",
+  "costUsd",
+  "floor",
+  "pnl",
+]);
 type SortDir = "asc" | "desc";
 
 export function CollectionSection({
@@ -205,7 +218,7 @@ export function CollectionSection({
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(k);
-      setSortDir("asc");
+      setSortDir(DESC_FIRST_COLUMNS.has(k) ? "desc" : "asc");
     }
   }
   function sortIndicator(k: SortKey) {
