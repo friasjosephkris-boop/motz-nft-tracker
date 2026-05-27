@@ -453,7 +453,7 @@ function StatusPill({ status }: { status: WalletStatus }) {
  *
  * Disconnect link lets them switch wallets without leaving the page.
  */
-function ConnectWalletHelper({
+export function ConnectWalletHelper({
   onUseAddress,
   primaryLabel = "Use this wallet",
 }: {

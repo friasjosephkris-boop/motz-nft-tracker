@@ -13,6 +13,7 @@ import {
   shortAddr,
   sumRows,
 } from "./shared";
+import { ConnectWalletHelper } from "./WalletsView";
 
 export function DashboardView({
   loaded,
@@ -86,7 +87,23 @@ export function DashboardView({
 
   return (
     <div className="space-y-8">
-      {!isConnected && (
+      {!isConnected && holderMode && (
+        <section className="glass-card p-6 space-y-3">
+          <h2 className="font-display text-lg font-semibold text-zinc-100">
+            Connect your wallet
+          </h2>
+          <p className="text-sm text-zinc-400">
+            Connect a Ronin-compatible wallet to view your MoTZ ecosystem
+            holdings.
+          </p>
+          <ConnectWalletHelper
+            onUseAddress={(addr) => load(addr)}
+            primaryLabel="Load my wallet"
+          />
+        </section>
+      )}
+
+      {!isConnected && !holderMode && (
         <section className="glass-card p-6 space-y-3">
           <h2 className="font-display text-lg font-semibold text-zinc-100">
             Drop a Ronin address or RNS
