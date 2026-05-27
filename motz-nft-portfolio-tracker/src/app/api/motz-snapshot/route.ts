@@ -477,16 +477,17 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
               acquiredVia = "transfer";
             } else {
               // No sale history. Could be either:
-              //   (a) Direct mint by the current owner (genuinely 0.1 ETH)
-              //   (b) Mint by someone else + private/off-marketplace
-              //       transfer to current owner (cost unknown, mark as
-              //       "transfer" with 0 cost since we have no signal)
+              //   (a) Direct mint by ANY tracked MoTZ wallet (mint price
+              //       counts as cost basis — the ecosystem paid it).
+              //   (b) Mint by an untracked wallet + private/off-marketplace
+              //       transfer to current MoTZ owner (we never paid for it,
+              //       cost = 0, label = "transfer").
               // Check the original minter via transfer events.
-              let isDirectMint = true;
+              let mintedByTracked = true;
               try {
                 const minter = await originalMinterEth(c.address, n.tokenId);
-                if (minter && minter !== addr.toLowerCase()) {
-                  isDirectMint = false;
+                if (minter && !motzHexSet.has(minter)) {
+                  mintedByTracked = false;
                 }
               } catch (err) {
                 console.warn(
@@ -494,14 +495,17 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
                   (err as Error).message,
                 );
               }
-              if (isDirectMint) {
+              if (mintedByTracked) {
+                // Minted by a tracked wallet (current owner OR another
+                // MoTZ wallet) — label "mint" with mint price as cost.
                 acquiredAt = Math.floor(
                   new Date(`${c.mintDate}T00:00:00Z`).getTime() / 1000,
                 );
                 // costEth stays at mint price, acquiredVia stays "mint".
               } else {
-                // Off-marketplace transfer in. No sale price = no cost
-                // basis available. Label as transfer with cost = 0.
+                // Minted by an untracked wallet then transferred in
+                // off-market. No sale price = no cost basis. Label as
+                // transfer with cost = 0.
                 acquiredAt = Math.floor(
                   new Date(`${c.mintDate}T00:00:00Z`).getTime() / 1000,
                 );

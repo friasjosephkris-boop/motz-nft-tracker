@@ -172,7 +172,10 @@ for (const addr of WALLETS) {
         acquiredTxHash = latest.transaction ?? null;
         acquiredVia = "transfer";
       } else {
-        // No sale history. Check the original minter.
+        // No sale history. Check who originally minted: if it's any
+        // tracked MoTZ wallet, count as "mint" with mint-price cost.
+        // Otherwise it was minted by a non-tracked wallet then
+        // transferred in — "transfer" with cost 0.
         try {
           const tev = await os(
             `/events/chain/ethereum/contract/${CONTRACT}/nfts/${n.identifier}?event_type=transfer&limit=20`,
@@ -180,10 +183,11 @@ for (const addr of WALLETS) {
           const mint = (tev.asset_events ?? []).find((e) =>
             /^0x0+$/i.test(e.from_address ?? ""),
           );
+          const motzSetAll = new Set(WALLETS.map((w) => w.toLowerCase()));
           if (
             mint &&
             mint.to_address &&
-            mint.to_address.toLowerCase() !== addr.toLowerCase()
+            !motzSetAll.has(mint.to_address.toLowerCase())
           ) {
             acquiredVia = "transfer";
             costEth = 0;
