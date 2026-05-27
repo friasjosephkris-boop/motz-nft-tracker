@@ -1,0 +1,155 @@
+;!function(){try { var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof global?global:"undefined"!=typeof window?window:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&((e._debugIds|| (e._debugIds={}))[n]="0810de23-d9bb-7083-3fa9-36b921b3e33f")}catch(e){}}();
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,598777,e=>{"use strict";var t=e.i(828226),r=e.i(177705),l=e.i(5968);e.i(500598);var i=e.i(207225),s=e.i(71105);let n={requestPolicy:"cache-and-network"};e.s(["useAuthenticatedQuery",0,function(e){let o,a,c,d,u,m,f,h,p,x,g,w=(0,t.c)(34),y=(0,i.useAddress)(),b=(0,s.useAuthenticated)(),j=b&&y?`authenticated:${y}`:void 0;w[0]!==e?({variables:d,pause:a,context:o,...c}=e,w[0]=e,w[1]=o,w[2]=a,w[3]=c,w[4]=d):(o=w[1],a=w[2],c=w[3],d=w[4]);let v=!!a||!(b&&y);w[5]!==j?(u=j&&{_authKey:j},w[5]=j,w[6]=u):u=w[6],w[7]!==u||w[8]!==d?(m={...d,...u},w[7]=u,w[8]=d,w[9]=m):m=w[9];let F=m,N=o??n;w[10]!==c||w[11]!==v||w[12]!==F||w[13]!==N?(f={...c,variables:F,pause:v,context:N},w[10]=c,w[11]=v,w[12]=F,w[13]=N,w[14]=f):f=w[14];let[P,S]=(0,l.useQueryV2)(f);w[15]!==P?(h=(0,r.getQueryData)(P),w[15]=P,w[16]=h):h=w[16];let _=h;w[17]!==P?(p=(0,r.getQueryError)(P),w[17]=P,w[18]=p):p=w[18];let I=p,k=!v&&P.fetching;if(!(b&&y)){let e,t;return w[19]!==I||w[20]!==k||w[21]!==P?(e={...P,data:void 0,error:I,fetching:k},w[19]=I,w[20]=k,w[21]=P,w[22]=e):e=w[22],w[23]!==S||w[24]!==e?(t=[e,S],w[23]=S,w[24]=e,w[25]=t):t=w[25],t}return w[26]!==_||w[27]!==I||w[28]!==k||w[29]!==P?(x={...P,data:_,error:I,fetching:k},w[26]=_,w[27]=I,w[28]=k,w[29]=P,w[30]=x):x=w[30],w[31]!==S||w[32]!==x?(g=[x,S],w[31]=S,w[32]=x,w[33]=g):g=w[33],g}])},731294,738796,996306,e=>{"use strict";var t=e.i(647870),r=e.i(828226),l=e.i(885530),i=e.i(459527),s=e.i(502732),n=e.i(437153),o=e.i(254842),a=e.i(683269),c=e.i(722934),d=e.i(386604),u=e.i(812222),m=e.i(751712);let f=(0,l.graphql)(`
+  mutation FollowProfileButtonFollowMutation($input: FollowProfileInput!) {
+    followProfile(input: $input) {
+      status
+      profile {
+        accountId
+        address
+        isFollowing
+        isWatching
+      }
+    }
+  }
+`),h=(0,l.graphql)(`
+  mutation FollowProfileButtonUnfollowMutation($input: UnfollowProfileInput!) {
+    unfollowProfile(input: $input) {
+      status
+      profile {
+        accountId
+        address
+        isFollowing
+        isWatching
+      }
+    }
+  }
+`),p=(0,l.graphql)(`
+  mutation FollowProfileButtonWatchMutation($input: WatchProfileInput!) {
+    watchProfile(input: $input) {
+      status
+    }
+  }
+`),x=(0,l.graphql)(`
+  mutation FollowProfileButtonUnwatchMutation($input: UnwatchProfileInput!) {
+    unwatchProfile(input: $input) {
+      status
+    }
+  }
+`),g=e=>{let l,i,s,n,o,a,c,d=(0,r.c)(12);d[0]!==e?({size:s,fillAttribute:n,className:l,...i}=e,d[0]=e,d[1]=l,d[2]=i,d[3]=s,d[4]=n):(l=d[1],i=d[2],s=d[3],n=d[4]);let u=void 0===s?24:s,m=void 0===n?"currentColor":n;return d[5]===Symbol.for("react.memo_cache_sentinel")?(o=(0,t.jsx)("path",{d:"M160-200v-80h80v-280q0-83 50-147.5T420-792v-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v28q80 20 130 84.5T720-560v280h80v80H160Zm320-300Zm0 420q-33 0-56.5-23.5T400-160h160q0 33-23.5 56.5T480-80ZM320-280h320v-280q0-66-47-113t-113-47q-66 0-113 47t-47 113v280Z"}),a=(0,t.jsx)("path",{d:"M760-640v-120H640v-80h120v-120h80v120h120v80H840v120h-80Z"}),d[5]=o,d[6]=a):(o=d[5],a=d[6]),d[7]!==l||d[8]!==m||d[9]!==i||d[10]!==u?(c=(0,t.jsxs)("svg",{"aria-label":"Watch notifications",className:l,fill:m,height:u,role:"img",viewBox:"0 -960 960 960",width:u,xmlns:"http://www.w3.org/2000/svg",...i,children:[o,a]}),d[7]=l,d[8]=m,d[9]=i,d[10]=u,d[11]=c):c=d[11],c},w=e=>{let l,i,s,n,o,a,c,d=(0,r.c)(14);d[0]!==e?({size:s,fillAttribute:n,className:l,...i}=e,d[0]=e,d[1]=l,d[2]=i,d[3]=s,d[4]=n):(l=d[1],i=d[2],s=d[3],n=d[4]);let u=void 0===s?24:s,m=void 0===n?"currentColor":n;return d[5]===Symbol.for("react.memo_cache_sentinel")?(o=(0,t.jsx)("path",{d:"M160-200v-80h80v-280q0-83 50-147.5T420-792v-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v28q80 20 130 84.5T720-560v280h80v80H160Zm320-300Zm0 420q-33 0-56.5-23.5T400-160h160q0 33-23.5 56.5T480-80ZM320-280h320v-280q0-66-47-113t-113-47q-66 0-113 47t-47 113v280Z"}),d[5]=o):o=d[5],d[6]!==m?(a=(0,t.jsx)("line",{stroke:m,strokeLinecap:"round",strokeWidth:"76",x1:"164",x2:"796",y1:"-844",y2:"-116"}),d[6]=m,d[7]=a):a=d[7],d[8]!==l||d[9]!==m||d[10]!==i||d[11]!==u||d[12]!==a?(c=(0,t.jsxs)("svg",{"aria-label":"Unwatch notifications",className:l,fill:m,height:u,role:"img",viewBox:"0 -960 960 960",width:u,xmlns:"http://www.w3.org/2000/svg",...i,children:[o,a]}),d[8]=l,d[9]=m,d[10]=i,d[11]=u,d[12]=a,d[13]=c):c=d[13],c};function y({targetAccountId:e,targetAddress:r,initialIsFollowing:l,initialIsWatching:b,profileName:j,size:v="sm",variant:F="secondary",className:N,fullWidth:P,followingVariant:S,onFollowSuccess:_}){let I=(0,d.useTranslations)("FollowProfileButton"),[k,A]=(0,u.useState)(!!l),[C,T]=(0,u.useState)(!!b),[q,L]=(0,u.useState)(!1),[E,B]=(0,u.useState)(!1),[,U]=(0,i.useMutation)(f),[,W]=(0,i.useMutation)(h),[,M]=(0,i.useMutation)(p),[,V]=(0,i.useMutation)(x),{showErrorMessage:z,showSuccessMessage:O}=(0,a.useToasts)(),$=(0,u.useRef)(null),H=(0,u.useRef)(null);(0,u.useEffect)(()=>{$.current=null,H.current=null},[e,r]),(0,u.useEffect)(()=>{(null==$.current||!!l===$.current)&&($.current=null,A(!!l))},[l]),(0,u.useEffect)(()=>{(null==H.current||!!b===H.current)&&(H.current=null,T(!!b))},[b]),(0,u.useEffect)(()=>{k||T(!1)},[k]);let Q=e?.trim(),R={targetAccountId:Q||"",...r?{targetAddress:r}:{}},D=!!(Q||r),Z=(0,m.useAuthenticatedCallback)(async e=>{if(e?.preventDefault(),e?.stopPropagation(),!D||q)return;$.current=!k;let t=!k;A(t),L(!0);try{if(t){let e=await U({input:R}),t=e.data?.followProfile?.status;if("SUCCESS"===t||"ALREADY_FOLLOWING"===t){A(!0),_?.(),O(I("followSuccess",{name:K()}));return}$.current=null,A(!1),z("CANNOT_FOLLOW_SELF"===t?I("cannotFollowSelf"):I("followError"));return}let e=await W({input:R}),r=e.data?.unfollowProfile?.status;if("SUCCESS"===r||"NOT_FOLLOWING"===r){A(!1),T(!1),O(I("unfollowSuccess",{name:K()}));return}$.current=null,A(!0),z(I("unfollowError"))}catch{$.current=null,A(k),z(t?I("followError"):I("unfollowError"))}finally{L(!1)}},{source:"Follow Profile"}),G=(0,m.useAuthenticatedCallback)(async e=>{if(e?.preventDefault(),e?.stopPropagation(),!(D&&k)||q||E)return;H.current=!C;let t=!C;T(t),B(!0);try{if(t){let e=await M({input:R}),t=e.data?.watchProfile?.status;if("SUCCESS"===t){T(!0),O(I("watchSuccess",{name:K()}));return}"NOT_FOLLOWING"===t&&($.current=null,A(!1)),H.current=null,T(!1),z(I("watchError"));return}let e=await V({input:R}),r=e.data?.unwatchProfile?.status;if("SUCCESS"===r||"NOT_FOLLOWING"===r){"NOT_FOLLOWING"===r&&($.current=null,A(!1)),T(!1),O(I("unwatchSuccess",{name:K()}));return}H.current=null,T(!0),z(I("watchError"))}catch{H.current=null,T(C),z(I("watchError"))}finally{B(!1)}},{source:"Watch Profile"}),K=()=>j||I("fallbackName"),Y=k?S??F:F,J=k?{icon:c.Check}:{},X=(0,t.jsx)(s.Button,{...J,className:(0,n.classNames)("shrink-0",P&&k&&"min-w-0 flex-1",P&&!k&&"w-full",!P&&"min-w-24",!k&&N),disabled:!D||E,isLoading:q,onClick:Z,size:v,variant:Y,children:k?I("following"):I("follow")});return k?(0,t.jsxs)(o.Flex,{className:(0,n.classNames)("shrink-0 items-center gap-2",P&&"w-full",N),children:[X,(0,t.jsx)(s.Button,{"aria-label":I(C?"unwatchLabel":"watchLabel",{name:K()}),className:"shrink-0",disabled:!D||q||E,icon:C?w:g,isLoading:E,onClick:G,size:v,variant:Y})]}):X}e.s(["FollowProfileButton",0,y],738796);var b=e.i(916511),j=e.i(189699),v=e.i(177705),F=e.i(455480),N=e.i(5968),P=e.i(155757),S=e.i(491150),_=e.i(104062),I=e.i(39771),k=e.i(965523),A=e.i(838820),C=e.i(972483),T=e.i(310578),q=e.i(950293),L=e.i(648091),E=e.i(861316),B=e.i(347352),U=e.i(723767),W=e.i(543013),M=e.i(806056);e.i(500598);var V=e.i(207225);let z=(0,l.graphql)(`
+  fragment ProfileFollowListProfile on Profile {
+    accountId
+    address
+    kind
+    displayName
+    username
+    imageUrl
+    isVerified
+    isFollowing
+    isWatching
+    followerCount
+    nftPfp {
+      imageUrl
+      isVerified
+    }
+    ...ProfilePreviewTooltip
+  }
+`,[W.ProfilePreviewTooltipFragment]),O=(0,l.graphql)(`
+    query ProfileFollowersListQuery($identifier: String!, $limit: Int!) {
+      profileByIdentifierV2(identifier: $identifier) {
+        __typename
+        ... on Profile {
+          followers(limit: $limit) {
+            items {
+              id
+              profile {
+                __typename
+                ... on Profile {
+                  ...ProfileFollowListProfile
+                }
+              }
+            }
+            nextPageCursor
+          }
+        }
+      }
+    }
+  `,[z]),$=(0,l.graphql)(`
+    query ProfileFollowingListQuery($identifier: String!, $limit: Int!) {
+      profileByIdentifierV2(identifier: $identifier) {
+        __typename
+        ... on Profile {
+          following(limit: $limit) {
+            items {
+              id
+              profile {
+                __typename
+                ... on Profile {
+                  ...ProfileFollowListProfile
+                }
+              }
+            }
+            nextPageCursor
+          }
+        }
+      }
+    }
+  `,[z]),H={suspense:!1};function Q(e){return e?.flatMap(e=>e.profile?.__typename==="Profile"?[{id:e.id,profile:e.profile}]:[])}function R(e){let l,i,s,n,o,a,c,u,m,f,h,p,x=(0,r.c)(33),{identifier:g,kind:w,open:y}=e,b=(0,d.useTranslations)("ProfileFollowListModal"),j=(0,M.useIsWebNftPfpHexagonGlowEnabled)();x[0]!==g?(i={identifier:g,limit:50},x[0]=g,x[1]=i):i=x[1],l=i;let F=!y||"followers"!==w;x[2]!==l||x[3]!==F?(s={query:O,variables:l,pause:F,context:H},x[2]=l,x[3]=F,x[4]=s):s=x[4];let[P]=(0,N.useQueryV2)(s),S=!y||"following"!==w;x[5]!==l||x[6]!==S?(n={query:$,variables:l,pause:S,context:H},x[5]=l,x[6]=S,x[7]=n):n=x[7];let[_]=(0,N.useQueryV2)(n);if(x[8]!==P||x[9]!==_||x[10]!==j||x[11]!==w||x[12]!==b){let e,r=(0,v.getQueryData)(P),l=(0,v.getQueryData)(_),i="followers"===w?(0,v.getQueryError)(P):(0,v.getQueryError)(_),s="followers"===w?P.fetching:_.fetching,n="followers"===w?r?.profileByIdentifierV2?.__typename==="Profile"?Q(r.profileByIdentifierV2.followers?.items):void 0:l?.profileByIdentifierV2?.__typename==="Profile"?Q(l.profileByIdentifierV2.following?.items):void 0;a=k.FlexColumn,f="md:h-[60vh]",x[19]!==w||x[20]!==b?(e=b("followers"===w?"followersTitle":"followingTitle"),x[19]=w,x[20]=b,x[21]=e):e=x[21],x[22]!==e?(c=(0,t.jsx)(C.ModalHeader,{className:"justify-start pr-6 pl-16",children:(0,t.jsx)(C.ModalHeaderTitle,{children:e})}),x[22]=e,x[23]=c):c=x[23],o=C.ModalBody,u="min-h-0 flex-1 p-0",m=s&&!n?(0,t.jsx)(K,{}):i?(0,t.jsx)(J,{description:b("errorDescription"),title:b("errorTitle"),variant:"error"}):n?.length?(0,t.jsx)(k.FlexColumn,{children:n.map(e=>(0,t.jsx)(D,{isNftPfpHexagonEnabled:j,profile:e.profile},e.id))}):(0,t.jsx)(J,{description:b("followers"===w?"emptyFollowersDescription":"emptyFollowingDescription"),title:b("followers"===w?"emptyFollowersTitle":"emptyFollowingTitle"),variant:"no-data"}),x[8]=P,x[9]=_,x[10]=j,x[11]=w,x[12]=b,x[13]=o,x[14]=a,x[15]=c,x[16]=u,x[17]=m,x[18]=f}else o=x[13],a=x[14],c=x[15],u=x[16],m=x[17],f=x[18];return x[24]!==o||x[25]!==u||x[26]!==m?(h=(0,t.jsx)(o,{className:u,children:m}),x[24]=o,x[25]=u,x[26]=m,x[27]=h):h=x[27],x[28]!==a||x[29]!==c||x[30]!==h||x[31]!==f?(p=(0,t.jsxs)(a,{className:f,children:[c,h]}),x[28]=a,x[29]=c,x[30]=h,x[31]=f,x[32]=p):p=x[32],p}function D(e){let l,i,s,n,a,c,u,m,f,h,p,x=(0,r.c)(39),{isNftPfpHexagonEnabled:g,profile:w}=e,v=(0,d.useTranslations)("ProfileFollowListModal"),N=(0,F.readFragment)(z,w),_=(0,V.useAddress)(),C=(0,B.useLinkedAccounts)(),T=N.displayName||N.username||(0,A.formatAddress)(N.address),W=(0,b.getProfileUrlWithIdentifier)(N.username||N.address),M=[_,...(C??[]).map(G)].filter(Z).some(e=>(0,E.isAddressEqual)(e,N.address)),O=N.nftPfp?.isVerified?N.nftPfp.imageUrl:null,$=g&&!!O;x[0]!==T||x[1]!==N.address||x[2]!==N.imageUrl||x[3]!==$||x[4]!==O?(l=$&&O?(0,t.jsx)(j.HexagonAvatar,{alt:T,className:"bg-bg-secondary",size:44,src:O}):(0,t.jsx)(P.Avatar,{alt:T,className:"bg-bg-secondary",rounded:!0,seed:N.address,size:44,src:N.imageUrl}),x[0]=T,x[1]=N.address,x[2]=N.imageUrl,x[3]=$,x[4]=O,x[5]=l):l=x[5],x[6]!==W||x[7]!==l?(i=(0,t.jsx)(S.Link,{className:"shrink-0",href:W,variant:"unstyled",children:l}),x[6]=W,x[7]=l,x[8]=i):i=x[8],x[9]!==T||x[10]!==W?(s=(0,t.jsx)(S.Link,{className:"truncate text-body-md-bold text-text-primary hover:underline",href:W,variant:"unstyled",children:T}),x[9]=T,x[10]=W,x[11]=s):s=x[11],x[12]!==N||x[13]!==s?(n=(0,t.jsx)(U.ProfilePreviewTooltip,{profile:N,children:s}),x[12]=N,x[13]=s,x[14]=n):n=x[14],x[15]!==N.isVerified?(a=N.isVerified?(0,t.jsx)(L.Verified,{className:"shrink-0",size:14}):null,x[15]=N.isVerified,x[16]=a):a=x[16],x[17]!==n||x[18]!==a?(c=(0,t.jsxs)(I.FlexCenter,{className:"min-w-0 justify-start gap-1.5",children:[n,a]}),x[17]=n,x[18]=a,x[19]=c):c=x[19];let H=N.followerCount??0;return x[20]!==v||x[21]!==H?(u=v("followersCount",{count:H}),x[20]=v,x[21]=H,x[22]=u):u=x[22],x[23]!==u?(m=(0,t.jsx)(q.TextBody,{className:"truncate",color:"text-secondary",size:"sm",children:u}),x[23]=u,x[24]=m):m=x[24],x[25]!==c||x[26]!==m?(f=(0,t.jsxs)(k.FlexColumn,{className:"min-w-0 flex-1 gap-0.5",children:[c,m]}),x[25]=c,x[26]=m,x[27]=f):f=x[27],x[28]!==M||x[29]!==T||x[30]!==N.accountId||x[31]!==N.address||x[32]!==N.isFollowing||x[33]!==N.isWatching?(h=M?null:(0,t.jsx)(y,{followingVariant:"secondary",initialIsFollowing:N.isFollowing,initialIsWatching:N.isWatching,profileName:T,size:"xs",targetAccountId:N.accountId,targetAddress:N.address,variant:"primary"}),x[28]=M,x[29]=T,x[30]=N.accountId,x[31]=N.address,x[32]=N.isFollowing,x[33]=N.isWatching,x[34]=h):h=x[34],x[35]!==f||x[36]!==h||x[37]!==i?(p=(0,t.jsxs)(o.Flex,{className:"items-center gap-3 border-border-1 border-b px-5 py-3 last:border-b-0",children:[i,f,h]}),x[35]=f,x[36]=h,x[37]=i,x[38]=p):p=x[38],p}function Z(e){return!!e}function G(e){return e.address}function K(){let e,l=(0,r.c)(1);return l[0]===Symbol.for("react.memo_cache_sentinel")?(e=(0,t.jsx)(k.FlexColumn,{children:Array.from({length:8},Y)}),l[0]=e):e=l[0],e}function Y(e,r){return(0,t.jsxs)(o.Flex,{className:"items-center gap-3 border-border-1 border-b px-5 py-3 last:border-b-0",children:[(0,t.jsx)(T.SkeletonBlock,{className:"size-11 rounded-full"}),(0,t.jsxs)(k.FlexColumn,{className:"flex-1 gap-2",children:[(0,t.jsx)(T.SkeletonLine,{className:"h-4 w-32"}),(0,t.jsx)(T.SkeletonLine,{className:"h-3 w-44"})]}),(0,t.jsx)(T.SkeletonLine,{className:"h-6 w-20 rounded-full"})]},r)}function J(e){let l,i=(0,r.c)(4),{description:s,title:n,variant:o}=e;return i[0]!==s||i[1]!==n||i[2]!==o?(l=(0,t.jsx)(_.EmptyState,{className:"min-h-[360px] px-8",description:s,title:n,variant:o}),i[0]=s,i[1]=n,i[2]=o,i[3]=l):l=i[3],l}e.s(["ProfileFollowListModal",0,function(e){let l,i,s,n=(0,r.c)(9),{identifier:o,kind:a,onOpenChange:c,open:d}=e;return n[0]!==o||n[1]!==a||n[2]!==d?(l=(0,t.jsx)(R,{identifier:o,kind:a,open:d}),n[0]=o,n[1]=a,n[2]=d,n[3]=l):l=n[3],n[4]===Symbol.for("react.memo_cache_sentinel")?(i={CloseButton:{className:"right-auto left-6"}},n[4]=i):i=n[4],n[5]!==c||n[6]!==d||n[7]!==l?(s=(0,t.jsx)(C.Modal,{content:l,disableHeightAnimation:!0,onOpenChange:c,open:d,overrides:i}),n[5]=c,n[6]=d,n[7]=l,n[8]=s):s=n[8],s}],996306),e.s([],731294)},470399,766542,e=>{"use strict";var t=e.i(647870),r=e.i(828226),l=e.i(916511),i=e.i(189699),s=e.i(885530),n=e.i(455480),o=e.i(155757),a=e.i(502732),c=e.i(491150),d=e.i(36829),u=e.i(104062),m=e.i(254842),f=e.i(39771),h=e.i(965523),p=e.i(838820),x=e.i(284296),g=e.i(972483),w=e.i(310578),y=e.i(258343),b=e.i(950293),j=e.i(28155),v=e.i(457628),F=e.i(230834),N=e.i(992769),P=e.i(734630),S=e.i(648091),_=e.i(861316),I=e.i(347352),k=e.i(386604),A=e.i(812222);e.i(731294);var C=e.i(738796),T=e.i(598777),q=e.i(806056);e.i(500598);var L=e.i(207225);e.i(384337);var E=e.i(907755),B=e.i(708969),U=e.i(840651);let W=(0,s.graphql)(`
+  fragment RecommendedFollowerProfile on Profile {
+    accountId
+    address
+    displayName
+    username
+    imageUrl
+    isVerified
+    isFollowing
+    isWatching
+    followerCount
+    nftPfp {
+      imageUrl
+      isVerified
+    }
+  }
+`),M=(0,s.graphql)(`
+    query RecommendedFollowersShelfQuery($limit: Int!) {
+      recommendedFollowers(limit: $limit) {
+        items {
+          targetAccountId
+          profile {
+            __typename
+            ... on Profile {
+              ...RecommendedFollowerProfile
+            }
+          }
+        }
+      }
+    }
+  `,[W]),V=(0,s.graphql)(`
+    query RecommendedFollowersModalQuery($limit: Int!) {
+      recommendedFollowers(limit: $limit) {
+        items {
+          targetAccountId
+          profile {
+            __typename
+            ... on Profile {
+              ...RecommendedFollowerProfile
+            }
+          }
+        }
+      }
+    }
+  `,[W]),z=(0,s.graphql)(`
+    query RecommendedFollowersAccountSearchQuery(
+      $query: String!
+      $limit: Int!
+    ) {
+      searchUniversal(query: $query, limit: $limit, assetTypes: [ACCOUNTS]) {
+        __typename
+        ... on Profile {
+          ...RecommendedFollowerProfile
+        }
+      }
+    }
+  `,[W]),O={limit:25},$={limit:50},H={requestPolicy:"cache-and-network",suspense:!1};function Q(e){return e?.flatMap(e=>e.profile?.__typename==="Profile"?[{key:e.targetAccountId,targetAccountId:e.targetAccountId,profile:e.profile}]:[])}function R(e){let s,a,u,m,x,g,w,y,v,F,N,P,_,I,k,A,T,q,L,E=(0,r.c)(45),{isNftPfpHexagonEnabled:B,item:U}=e;if(E[0]!==B||E[1]!==U.profile){m=(x=(0,n.readFragment)(W,U.profile)).displayName||x.username||(0,p.formatAddress)(x.address),g=(0,l.getProfileUrlWithIdentifier)(x.username||x.address);let e=x.nftPfp?.isVerified?x.nftPfp.imageUrl:null,r=B&&!!e;u=h.FlexColumn,N="w-[184px] shrink-0 items-center rounded-lg border border-border-1-transparent bg-bg-primary-transparent p-4",a=h.FlexColumn,F="w-full min-w-0 flex-1 items-center gap-3",s=c.Link,w=g,y="unstyled",v=r&&e?(0,t.jsx)(i.HexagonAvatar,{alt:m,className:"bg-bg-secondary",size:72,src:(0,d.optimize)(e,{width:144,height:144})}):(0,t.jsx)(o.Avatar,{alt:m,boost:2,className:"bg-bg-secondary",rounded:!0,seed:x.address,size:72,src:x.imageUrl}),E[0]=B,E[1]=U.profile,E[2]=s,E[3]=a,E[4]=u,E[5]=m,E[6]=x,E[7]=g,E[8]=w,E[9]=y,E[10]=v,E[11]=F,E[12]=N}else s=E[2],a=E[3],u=E[4],m=E[5],x=E[6],g=E[7],w=E[8],y=E[9],v=E[10],F=E[11],N=E[12];E[13]!==s||E[14]!==w||E[15]!==y||E[16]!==v?(P=(0,t.jsx)(s,{href:w,variant:y,children:v}),E[13]=s,E[14]=w,E[15]=y,E[16]=v,E[17]=P):P=E[17],E[18]!==m||E[19]!==g?(_=(0,t.jsx)(b.TextBody,{asChild:!0,color:"text-primary",size:"sm",weight:"semibold",children:(0,t.jsx)(c.Link,{className:"block truncate hover:underline",href:g,variant:"unstyled",children:m})}),E[18]=m,E[19]=g,E[20]=_):_=E[20],E[21]!==m||E[22]!==_?(I=(0,t.jsx)(j.TextOverflowTooltip,{className:"min-w-0",content:m,children:_}),E[21]=m,E[22]=_,E[23]=I):I=E[23],E[24]!==x.isVerified?(k=x.isVerified?(0,t.jsx)(S.Verified,{className:"shrink-0",size:14}):null,E[24]=x.isVerified,E[25]=k):k=E[25],E[26]!==I||E[27]!==k?(A=(0,t.jsxs)(f.FlexCenter,{className:"w-full min-w-0 justify-center gap-1.5 px-1",children:[I,k]}),E[26]=I,E[27]=k,E[28]=A):A=E[28],E[29]!==a||E[30]!==A||E[31]!==F||E[32]!==P?(T=(0,t.jsxs)(a,{className:F,children:[P,A]}),E[29]=a,E[30]=A,E[31]=F,E[32]=P,E[33]=T):T=E[33];let M=x.accountId||U.targetAccountId;return E[34]!==m||E[35]!==x.address||E[36]!==x.isFollowing||E[37]!==x.isWatching||E[38]!==M?(q=(0,t.jsx)(C.FollowProfileButton,{className:"mt-4",fullWidth:!0,initialIsFollowing:x.isFollowing,initialIsWatching:x.isWatching,profileName:m,size:"sm",targetAccountId:M,targetAddress:x.address,variant:"secondary-transparent"}),E[34]=m,E[35]=x.address,E[36]=x.isFollowing,E[37]=x.isWatching,E[38]=M,E[39]=q):q=E[39],E[40]!==u||E[41]!==T||E[42]!==q||E[43]!==N?(L=(0,t.jsxs)(u,{className:N,children:[T,q]}),E[40]=u,E[41]=T,E[42]=q,E[43]=N,E[44]=L):L=E[44],L}function D(e){let l,i,s,n=(0,r.c)(8),{isNftPfpHexagonEnabled:o,onOpenChange:a,open:c}=e;return n[0]!==o||n[1]!==c?(l=(0,t.jsx)(Z,{isNftPfpHexagonEnabled:o,open:c}),n[0]=o,n[1]=c,n[2]=l):l=n[2],n[3]===Symbol.for("react.memo_cache_sentinel")?(i={CloseButton:{className:"right-auto left-6"}},n[3]=i):i=n[3],n[4]!==a||n[5]!==c||n[6]!==l?(s=(0,t.jsx)(g.Modal,{content:l,disableHeightAnimation:!0,onOpenChange:a,open:c,overrides:i}),n[4]=a,n[5]=c,n[6]=l,n[7]=s):s=n[7],s}function Z(e){let l,i,s,o,a,c,d,u,f,p,w,y,b,j,v,N,S=(0,r.c)(54),{isNftPfpHexagonEnabled:_,open:I}=e,C=(0,k.useTranslations)("RecommendedFollowersShelf"),[q,L]=(0,A.useState)(""),[E]=(0,F.useDebounceValue)(q,300),B=q.trim();S[0]!==E?(l=E.trim(),S[0]=E,S[1]=l):l=S[1];let U=l,M=B.length>=2,O=U.length>=2,R=M&&B!==U;S[2]!==U?(s={limit:25,query:U},S[2]=U,S[3]=s):s=S[3],i=s;let D=!I;S[4]!==D?(o={query:V,variables:$,context:H,pause:D},S[4]=D,S[5]=o):o=S[5];let[Z]=(0,T.useAuthenticatedQuery)(o),{data:K,error:Y,fetching:X}=Z,et=!(I&&M&&O);S[6]!==i||S[7]!==et?(a={query:z,variables:i,context:H,pause:et},S[6]=i,S[7]=et,S[8]=a):a=S[8];let[er]=(0,T.useAuthenticatedQuery)(a),{data:el,error:ei,fetching:es}=er;S[9]!==I?(c=()=>{I||L("")},d=[I],S[9]=I,S[10]=c,S[11]=d):(c=S[10],d=S[11]),(0,A.useEffect)(c,d);let en=K?.recommendedFollowers?.items;if(S[12]!==Y||S[13]!==X||S[14]!==M||S[15]!==_||S[16]!==R||S[17]!==el?.searchUniversal||S[18]!==ei||S[19]!==es||S[20]!==q||S[21]!==C||S[22]!==en){var eo;let e,r,l,i,s,o=Q(en),a=(eo=el?.searchUniversal,eo?.flatMap(e=>{if(e?.__typename!=="Profile")return[];let t=(0,n.readFragment)(W,e);return[{key:t.accountId||t.address,targetAccountId:t.accountId,profile:e}]})),c=M?a:o,d=M?ei:Y,v=M?es||R:X;f=h.FlexColumn,y="md:h-[60vh]",S[30]!==C?(e=C("title"),S[30]=C,S[31]=e):e=S[31],S[32]!==e?(b=(0,t.jsx)(g.ModalHeader,{className:"justify-start pr-6 pl-16",children:(0,t.jsx)(g.ModalHeaderTitle,{children:e})}),S[32]=e,S[33]=b):b=S[33],S[34]!==C?(r=C("searchAriaLabel"),S[34]=C,S[35]=r):r=S[35],S[36]===Symbol.for("react.memo_cache_sentinel")?(l=e=>L(e.target.value),S[36]=l):l=S[36],S[37]!==C?(i=C("searchPlaceholder"),S[37]=C,S[38]=i):i=S[38],S[39]===Symbol.for("react.memo_cache_sentinel")?(s=(0,t.jsx)(P.Search,{fill:"text-secondary",size:18}),S[39]=s):s=S[39],S[40]!==q||S[41]!==r||S[42]!==i?(j=(0,t.jsx)(m.Flex,{className:"border-border-1 border-b px-5 pb-4",children:(0,t.jsx)(x.Input,{"aria-label":r,className:"w-full",onChange:l,placeholder:i,size:"sm",startEnhancer:s,type:"search",value:q})}),S[40]=q,S[41]=r,S[42]=i,S[43]=j):j=S[43],u=g.ModalBody,p="min-h-0 flex-1 p-0",w=v&&!c?(0,t.jsx)(J,{}):d?(0,t.jsx)(ee,{description:C("errorDescription"),title:C("errorTitle"),variant:"error"}):c?.length?(0,t.jsx)(h.FlexColumn,{children:c.map(e=>(0,t.jsx)(G,{isNftPfpHexagonEnabled:_,item:e},e.key))}):(0,t.jsx)(ee,{description:C(M?"searchEmptyDescription":"emptyDescription"),title:C(M?"searchEmptyTitle":"emptyTitle"),variant:"no-data"}),S[12]=Y,S[13]=X,S[14]=M,S[15]=_,S[16]=R,S[17]=el?.searchUniversal,S[18]=ei,S[19]=es,S[20]=q,S[21]=C,S[22]=en,S[23]=u,S[24]=f,S[25]=p,S[26]=w,S[27]=y,S[28]=b,S[29]=j}else u=S[23],f=S[24],p=S[25],w=S[26],y=S[27],b=S[28],j=S[29];return S[44]!==u||S[45]!==p||S[46]!==w?(v=(0,t.jsx)(u,{className:p,children:w}),S[44]=u,S[45]=p,S[46]=w,S[47]=v):v=S[47],S[48]!==f||S[49]!==y||S[50]!==b||S[51]!==j||S[52]!==v?(N=(0,t.jsxs)(f,{className:y,children:[b,j,v]}),S[48]=f,S[49]=y,S[50]=b,S[51]=j,S[52]=v,S[53]=N):N=S[53],N}function G(e){let s,a,u,x,g,w,y,v=(0,r.c)(26),{isNftPfpHexagonEnabled:F,item:N}=e,P=(0,k.useTranslations)("RecommendedFollowersShelf"),A=(0,n.readFragment)(W,N.profile),T=(0,L.useAddress)(),q=(0,I.useLinkedAccounts)(),E=A.displayName||A.username||(0,p.formatAddress)(A.address),B=(0,l.getProfileUrlWithIdentifier)(A.username||A.address),U=[T,...(q??[]).map(Y)].filter(K).some(e=>(0,_.isAddressEqual)(e,A.address)),M=A.nftPfp?.isVerified?A.nftPfp.imageUrl:null,V=F&&!!M,z=m.Flex,O=V&&M?(0,t.jsx)(i.HexagonAvatar,{alt:E,className:"bg-bg-secondary",size:44,src:(0,d.optimize)(M,{width:88,height:88})}):(0,t.jsx)(o.Avatar,{alt:E,boost:2,className:"bg-bg-secondary",rounded:!0,seed:A.address,size:44,src:A.imageUrl});v[0]!==B||v[1]!==O?(s=(0,t.jsx)(c.Link,{className:"shrink-0",href:B,variant:"unstyled",children:O}),v[0]=B,v[1]=O,v[2]=s):s=v[2];let $=h.FlexColumn;v[3]!==E||v[4]!==B?(a=(0,t.jsx)(j.TextOverflowTooltip,{children:(0,t.jsx)(c.Link,{className:"truncate text-body-md-bold text-text-primary hover:underline",href:B,variant:"unstyled",children:E})}),v[3]=E,v[4]=B,v[5]=a):a=v[5];let H=A.isVerified?(0,t.jsx)(S.Verified,{className:"shrink-0",size:14}):null;v[6]!==a||v[7]!==H?(u=(0,t.jsxs)(f.FlexCenter,{className:"min-w-0 justify-start gap-1.5",children:[a,H]}),v[6]=a,v[7]=H,v[8]=u):u=v[8];let Q=b.TextBody,R=P("followersCount",{count:A.followerCount??0});return v[9]!==Q||v[10]!==R?(x=(0,t.jsx)(Q,{className:"truncate",color:"text-secondary",size:"sm",children:R}),v[9]=Q,v[10]=R,v[11]=x):x=v[11],v[12]!==$||v[13]!==x||v[14]!==u?(g=(0,t.jsxs)($,{className:"min-w-0 flex-1 gap-0.5",children:[u,x]}),v[12]=$,v[13]=x,v[14]=u,v[15]=g):g=v[15],v[16]!==U||v[17]!==N.targetAccountId||v[18]!==E||v[19]!==A?(w=U?null:(0,t.jsx)(C.FollowProfileButton,{followingVariant:"secondary",initialIsFollowing:A.isFollowing,initialIsWatching:A.isWatching,profileName:E,size:"xs",targetAccountId:A.accountId||N.targetAccountId,targetAddress:A.address,variant:"primary"}),v[16]=U,v[17]=N.targetAccountId,v[18]=E,v[19]=A,v[20]=w):w=v[20],v[21]!==z||v[22]!==g||v[23]!==w||v[24]!==s?(y=(0,t.jsxs)(z,{className:"items-center gap-3 border-border-1 border-b px-5 py-3 last:border-b-0",children:[s,g,w]}),v[21]=z,v[22]=g,v[23]=w,v[24]=s,v[25]=y):y=v[25],y}function K(e){return!!e}function Y(e){return e.address}function J(){let e,l=(0,r.c)(1);return l[0]===Symbol.for("react.memo_cache_sentinel")?(e=(0,t.jsx)(h.FlexColumn,{children:Array.from({length:8},X)}),l[0]=e):e=l[0],e}function X(e,r){return(0,t.jsxs)(m.Flex,{className:"items-center gap-3 border-border-1 border-b px-5 py-3 last:border-b-0",children:[(0,t.jsx)(w.SkeletonBlock,{className:"size-11 rounded-full"}),(0,t.jsxs)(h.FlexColumn,{className:"flex-1 gap-2",children:[(0,t.jsx)(w.SkeletonLine,{className:"h-4 w-32"}),(0,t.jsx)(w.SkeletonLine,{className:"h-3 w-44"})]}),(0,t.jsx)(w.SkeletonLine,{className:"h-6 w-20 rounded-full"})]},r)}function ee(e){let l,i=(0,r.c)(4),{description:s,title:n,variant:o}=e;return i[0]!==s||i[1]!==n||i[2]!==o?(l=(0,t.jsx)(u.EmptyState,{className:"min-h-[360px] px-8",description:s,title:n,variant:o}),i[0]=s,i[1]=n,i[2]=o,i[3]=l):l=i[3],l}function et(){let e,l,i,s=(0,r.c)(3);return s[0]===Symbol.for("react.memo_cache_sentinel")?(e=(0,B.discoverShelfVariants)().container(),l=(0,t.jsx)(U.ShelfHeader,{title:""}),s[0]=e,s[1]=l):(e=s[0],l=s[1]),s[2]===Symbol.for("react.memo_cache_sentinel")?(i=(0,t.jsxs)(h.FlexColumn,{className:e,children:[l,(0,t.jsx)(m.Flex,{className:"gap-3 overflow-hidden",children:Array.from({length:4},er)})]}),s[2]=i):i=s[2],i}function er(e,r){return(0,t.jsxs)(h.FlexColumn,{className:"w-[184px] shrink-0 items-center rounded-lg border border-border-1-transparent bg-bg-primary-transparent p-4",children:[(0,t.jsx)(w.SkeletonBlock,{className:"size-[72px] rounded-full"}),(0,t.jsx)(w.SkeletonLine,{className:"mt-3 h-4 w-28"}),(0,t.jsx)(w.SkeletonLine,{className:"mt-4 h-8 rounded-full"})]},r)}e.s(["RecommendedFollowersModal",0,D,"RecommendedFollowersShelf",0,function(){let e,l,i,s,n,o,c,d,u,f,p,x,g,w,j=(0,r.c)(56),F=(0,k.useTranslations)("RecommendedFollowersShelf"),[P,S]=(0,A.useState)(!1),_=(0,E.useFlagsReady)(),I=(0,q.useIsWebSocialFeaturesEnabled)(),C=(0,q.useIsWebNftPfpHexagonGlowEnabled)(),L=_&&I,W=!L;j[0]!==W?(e={query:M,variables:O,pause:W},j[0]=W,j[1]=e):e=j[1];let[V]=(0,T.useAuthenticatedQuery)(e),{data:z,fetching:$}=V;if(j[2]!==z?.recommendedFollowers?.items||j[3]!==$||j[4]!==C||j[5]!==L||j[6]!==F){u=Symbol.for("react.early_return_sentinel");e:{let e,r,a,f,p,x,g,w,P,_=Q(z?.recommendedFollowers?.items)?.slice(0,25);if(!L){u=null;break e}if($&&!_){let e;j[15]===Symbol.for("react.memo_cache_sentinel")?(e=(0,t.jsx)(et,{}),j[15]=e):e=j[15],u=e;break e}if(!_?.length){u=null;break e}j[16]===Symbol.for("react.memo_cache_sentinel")?(e=e=>{e.preventDefault(),e.stopPropagation(),S(!0)},j[16]=e):e=j[16],s=e,i=h.FlexColumn,j[17]===Symbol.for("react.memo_cache_sentinel")?(c=(0,B.discoverShelfVariants)().container(),j[17]=c):c=j[17],j[18]!==F?(r=F("description"),j[18]=F,j[19]=r):r=j[19],j[20]!==F?(a=F("title"),j[20]=F,j[21]=a):a=j[21],j[22]!==a||j[23]!==r?(f=(0,t.jsx)(U.ShelfHeader,{description:r,title:a}),j[22]=a,j[23]=r,j[24]=f):f=j[24],j[25]!==F?(p=F("viewMore"),j[25]=F,j[26]=p):p=j[26],j[27]!==p?(x=(0,t.jsx)(b.TextBody,{color:"inherit",size:"md",weight:"semibold",children:p}),j[27]=p,j[28]=x):x=j[28],j[29]===Symbol.for("react.memo_cache_sentinel")?(g=(0,t.jsx)(N.ArrowForwardIos,{size:14}),j[29]=g):g=j[29],j[30]!==x?(w=(0,t.jsxs)(v.UnstyledButton,{className:"hidden shrink-0 items-center gap-1 text-text-secondary transition-colors hover:text-text-primary md:flex",onClick:s,type:"button",children:[x,g]}),j[30]=x,j[31]=w):w=j[31],j[32]!==f||j[33]!==w?(d=(0,t.jsxs)(y.SpaceBetween,{className:"items-center gap-4",children:[f,w]}),j[32]=f,j[33]=w,j[34]=d):d=j[34],l=m.Flex,n="scrollbar-hidden w-full gap-3 overflow-x-auto pb-1",j[35]!==C?(P=e=>(0,t.jsx)(R,{isNftPfpHexagonEnabled:C,item:e},e.key),j[35]=C,j[36]=P):P=j[36],o=_.map(P)}j[2]=z?.recommendedFollowers?.items,j[3]=$,j[4]=C,j[5]=L,j[6]=F,j[7]=l,j[8]=i,j[9]=s,j[10]=n,j[11]=o,j[12]=c,j[13]=d,j[14]=u}else l=j[7],i=j[8],s=j[9],n=j[10],o=j[11],c=j[12],d=j[13],u=j[14];return u!==Symbol.for("react.early_return_sentinel")?u:(j[37]!==l||j[38]!==n||j[39]!==o?(f=(0,t.jsx)(l,{className:n,children:o}),j[37]=l,j[38]=n,j[39]=o,j[40]=f):f=j[40],j[41]!==F?(p=F("viewMore"),j[41]=F,j[42]=p):p=j[42],j[43]!==s||j[44]!==p?(x=(0,t.jsx)(a.Button,{className:"md:hidden",onClick:s,size:"sm",type:"button",variant:"secondary",children:p}),j[43]=s,j[44]=p,j[45]=x):x=j[45],j[46]!==P||j[47]!==C?(g=(0,t.jsx)(D,{isNftPfpHexagonEnabled:C,onOpenChange:S,open:P}),j[46]=P,j[47]=C,j[48]=g):g=j[48],j[49]!==i||j[50]!==x||j[51]!==g||j[52]!==c||j[53]!==d||j[54]!==f?(w=(0,t.jsxs)(i,{className:c,children:[d,f,x,g]}),j[49]=i,j[50]=x,j[51]=g,j[52]=c,j[53]=d,j[54]=f,j[55]=w):w=j[55],w)}],766542),e.s([],470399)}]);
+
+//# debugId=0810de23-d9bb-7083-3fa9-36b921b3e33f
+//# sourceMappingURL=0rfoz-pf6ohpj.js.map

@@ -89,6 +89,14 @@ export type HoldingRow = {
    * being attributed to them.
    */
   excludeFromTotals?: boolean;
+  /**
+   * Display currency for cost/floor values on this row. Defaults to RON
+   * for Ronin-chain collections; "ETH" for Ethereum-chain collections
+   * (Cambria Islands, etc.). The underlying numeric fields are still
+   * called costRon / floorRon / currentRonUsd for back-compat — they
+   * hold ETH for ETH-chain rows.
+   */
+  currencySymbol?: string;
 };
 
 export type CollectionHoldings = {

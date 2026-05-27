@@ -1,0 +1,254 @@
+;!function(){try { var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof global?global:"undefined"!=typeof window?window:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&((e._debugIds|| (e._debugIds={}))[n]="dde341f1-b3cc-fba6-792c-3d14da4f2a97")}catch(e){}}();
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,818304,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+  fragment CurrencySparkLineChart on CurrencyV2 {
+    sparkline(timeframe: ONE_DAY) {
+      price {
+        usd
+      }
+      time
+    }
+  }
+`);e.s(["CurrencySparkLineChartFragment",0,r])},730098,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+  fragment CurrencySparkLineChartOneHour on CurrencyV2 {
+    sparklineOneHour: sparkline(timeframe: ONE_HOUR) {
+      price {
+        usd
+      }
+      time
+    }
+  }
+`);e.s(["CurrencySparkLineChartOneHourFragment",0,r])},378874,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(885530),n=e.i(455480),i=e.i(209959);let s=(0,a.graphql)(`
+  fragment CurrencyStatsTableRowOneDayPriceChange on CurrencyV2 {
+    stats {
+      oneDay {
+        priceChange
+      }
+    }
+    tokenGroup {
+      stats {
+        rollingStats {
+          priceChange1d
+        }
+      }
+    }
+  }
+`);e.s(["CurrencyStatsTableRowOneDayPriceChange",0,function(e){let a,l,c=(0,t.c)(4),{currency:o}=e;c[0]!==o?(a=(0,n.readFragment)(s,o),c[0]=o,c[1]=a):a=c[1];let u=a,C=u.tokenGroup?.stats?.rollingStats?.priceChange1d,d=null==C?u.stats?.oneDay.priceChange:Number(C);return c[2]!==d?(l=(0,r.jsx)(i.StatChange,{change:d}),c[2]=d,c[3]=l):l=c[3],l},"CurrencyStatsTableRowOneDayPriceChangeFragment",0,s])},678537,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(885530),n=e.i(455480),i=e.i(34331),s=e.i(165102),l=e.i(465172);e.i(652565);var c=e.i(132553),o=e.i(439870);let u=(0,a.graphql)(`
+    fragment CurrencyStatsTableRowPrice on CurrencyV2 {
+      usdPrice
+      ...CurrencyPrice
+    }
+  `,[o.CurrencyPriceFragment]);e.s(["CurrencyStatsTableRowPrice",0,function(e){let a,o,C,d,m,y,h,S=(0,t.c)(14),{currency:p}=e;if(S[0]!==p){let e=(0,n.readFragment)(u,p);m="whitespace-nowrap",a=i.ChangeAnimation,o="usd-compact",C=Number(e.usdPrice),d=(0,l.bn)(e.usdPrice).gte(1)?(0,r.jsx)(c.CurrencyPrice,{currency:e}):(0,r.jsxs)(r.Fragment,{children:[(0,r.jsx)(s.Media,{lessThan:"md",children:(0,r.jsx)(c.CurrencyPrice,{currency:e,custom:{maximumFractionDigits:4,roundingPriority:"lessPrecision"}})}),(0,r.jsx)(s.Media,{between:["md","4xl"],children:(0,r.jsx)(c.CurrencyPrice,{currency:e,custom:{maximumFractionDigits:5,roundingPriority:"lessPrecision"}})}),(0,r.jsx)(s.Media,{greaterThanOrEqual:"4xl",children:(0,r.jsx)(c.CurrencyPrice,{currency:e,custom:{maximumFractionDigits:7,roundingPriority:"lessPrecision"}})})]}),S[0]=p,S[1]=a,S[2]=o,S[3]=C,S[4]=d,S[5]=m}else a=S[1],o=S[2],C=S[3],d=S[4],m=S[5];return S[6]!==a||S[7]!==o||S[8]!==C||S[9]!==d?(y=(0,r.jsx)(a,{display:o,value:C,children:d}),S[6]=a,S[7]=o,S[8]=C,S[9]=d,S[10]=y):y=S[10],S[11]!==m||S[12]!==y?(h=(0,r.jsx)("span",{className:m,children:y}),S[11]=m,S[12]=y,S[13]=h):h=S[13],h},"CurrencyStatsTableRowPriceFragment",0,u])},22764,e=>{"use strict";var r=e.i(392024);e.s(["CurrencyLockupContent",()=>r.LockupContent])},627453,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(155757),n=e.i(194153),i=e.i(307798),s=e.i(738480),l=e.i(950293),c=e.i(967593),o=e.i(433704),u=e.i(812222),C=e.i(147850);let d={xs:{size:16,overlap:8,gap:2,textSize:"xs"},sm:{size:24,overlap:12,gap:4,textSize:"xs"},md:{size:36,overlap:9,gap:8,textSize:"xs"}},m=["ethereum","solana","base","abstract","ape_chain","arbitrum","avalanche","hyperevm","ronin","optimism","polygon"];function y(e){return void 0!==e}function h(e){return e.name}function S(e){return void 0!==e}function p(e){return!m.includes(e.identifier)}e.s(["StackedChainLogos",0,e=>{let g,T,x,b,E,_,f,w=(0,t.c)(43),{limit:v,size:D,chains:A,disableHoverAnimation:j,disableTooltips:R}=e,k=void 0===v?1/0:v,N=void 0===D?"md":D,O=void 0!==j&&j,P=void 0!==R&&R,{size:F,overlap:V,gap:I,textSize:L}=d[N],[H,M]=(0,u.useState)(!1),{getLogo:B,getChain:U}=(0,C.useChains)(),G=(()=>{let e,r=(0,t.c)(5),{chains:a,getChain:n}=(0,C.useChains)();if(r[0]!==a||r[1]!==n){let t;r[3]!==n?(t=e=>n(e),r[3]=n,r[4]=t):t=r[4],e=[...m.map(t).filter(S),...a.filter(p)],r[0]=a,r[1]=n,r[2]=e}else e=r[2];return e})();w[0]!==A||w[1]!==G||w[2]!==U?(g=A?A.map(e=>U(e)).filter(y):G,w[0]=A,w[1]=G,w[2]=U,w[3]=g):g=w[3];let q=g;w[4]===Symbol.for("react.memo_cache_sentinel")?(T={type:"spring",duration:.35,bounce:0},w[4]=T):T=w[4];let z=T;if(w[5]!==O?(x=O?void 0:()=>M(!0),w[5]=O,w[6]=x):x=w[6],w[7]!==O?(b=O?void 0:()=>M(!1),w[7]=O,w[8]=b):b=w[8],w[9]!==F||w[10]!==q||w[11]!==O||w[12]!==P||w[13]!==I||w[14]!==B||w[15]!==H||w[16]!==k||w[17]!==V){let e;w[19]!==F||w[20]!==O||w[21]!==P||w[22]!==I||w[23]!==B||w[24]!==H||w[25]!==V?(e=(e,t)=>(0,r.jsx)(c.Tooltip,{content:P?void 0:(0,r.jsx)(n.CenterAligned,{className:"max-w-[480px] text-center",children:(0,r.jsx)(l.TextBody,{size:"sm",children:e.name})}),children:(0,r.jsx)(o.motion.div,{animate:{marginLeft:t>0?H&&!O?I:-V:0},className:"relative will-change-transform",initial:!1,layout:!O,transition:O?{duration:0}:z,children:(0,r.jsx)(a.Avatar,{className:"rounded-full border border-border-2",...B(e.identifier,{circle:!0}),size:F})})},e.identifier),w[19]=F,w[20]=O,w[21]=P,w[22]=I,w[23]=B,w[24]=H,w[25]=V,w[26]=e):e=w[26],E=q.slice(0,k).map(e),w[9]=F,w[10]=q,w[11]=O,w[12]=P,w[13]=I,w[14]=B,w[15]=H,w[16]=k,w[17]=V,w[18]=E}else E=w[18];return w[27]!==F||w[28]!==q||w[29]!==O||w[30]!==P||w[31]!==I||w[32]!==H||w[33]!==k||w[34]!==V||w[35]!==N||w[36]!==L?(_=q.length>k&&(0,r.jsx)(c.Tooltip,{content:P?void 0:(0,r.jsx)(n.CenterAligned,{className:"max-w-[480px] text-center",children:(0,r.jsx)(l.TextBody,{size:"sm",children:q.slice(k).map(h).join(", ")})}),children:(0,r.jsx)(o.motion.div,{animate:{marginLeft:H&&!O?I:-V},className:"will-change-transform",initial:!1,layout:!O,transition:O?{duration:0}:z,children:(0,r.jsx)(a.Avatar,{className:"rounded-full border border-border-2 bg-bg-app",size:F,children:(0,r.jsx)(n.CenterAligned,{children:(0,r.jsx)(l.TextBody,{color:"text-secondary",size:L,style:{fontSize:"sm"===N||"xs"===N?9:void 0},weight:"semibold",children:(0,r.jsx)(s.NumberDisplay,{display:"quantity",prefix:"+",value:q.length-k})})})})})}),w[27]=F,w[28]=q,w[29]=O,w[30]=P,w[31]=I,w[32]=H,w[33]=k,w[34]=V,w[35]=N,w[36]=L,w[37]=_):_=w[37],w[38]!==_||w[39]!==x||w[40]!==b||w[41]!==E?(f=(0,r.jsxs)(i.InlineFlex,{onMouseEnter:x,onMouseLeave:b,children:[E,_]}),w[38]=_,w[39]=x,w[40]=b,w[41]=E,w[42]=f):f=w[42],f},"setDefaultChainOrder",0,function(e){return e.sort((e,r)=>{let t=m.indexOf(e),a=m.indexOf(r);return -1===t?1/0:-1===a?-1/0:t-a})}])},751989,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(627453),n=e.i(147850),i=e.i(455480),s=e.i(165102),l=e.i(738480),c=e.i(999258),o=e.i(209959),u=e.i(967593),C=e.i(692632),d=e.i(386604),m=e.i(812222);e.i(676104);var y=e.i(177464),h=e.i(720861);function S(e){return e.chainIdentifier}function p(e,t){return(0,r.jsx)(y.StatDisplaySkeleton,{},t)}e.s(["CurrencyStats",0,function(e){let C,p,g,T,x,b,E,_,f,w=(0,t.c)(38),{currency:v,className:D,variant:A,dividers:j,size:R}=e,k=void 0===A?"default":A,N=void 0===R?"md":R,O=(0,i.readFragment)(h.CurrencyStatsFragment,v),P=(0,d.useTranslations)("CurrencyStats"),F=(0,a.setDefaultChainOrder)(Array.from(new Set(O.tokenGroup?.currencies.map(S)))),{getChainName:V}=(0,n.useChains)(),I=O.tokenGroup?.stats,L=I?.marketCapUsd??O.stats?.marketCapUsd,H=I?.rollingStats?.volume1d??O.stats?.oneDay.volume,M=I?.rollingStats?.priceChange1d??O.stats?.oneDay.priceChange,B=I?.rollingStats?.volume7d??O.stats?.sevenDay.volume,U=I?.rollingStats?.priceChange7d??O.stats?.sevenDay.priceChange,G=O.tokenGroup&&F.length>1?(0,r.jsxs)(y.StatDisplayItem,{className:"items-start",children:[(0,r.jsx)(y.StatDisplayItemLabel,{children:P("networks")}),(0,r.jsx)(u.Tooltip,{content:(0,r.jsx)("div",{className:"max-w-[250px] text-center",children:F.map(e=>V(e)).join(", ")}),children:(0,r.jsxs)(y.StatDisplayItemValue,{children:[(0,r.jsx)("span",{className:"pr-1",children:F.length}),(0,r.jsx)(a.StackedChainLogos,{chains:F.slice(0,4),disableHoverAnimation:!0,disableTooltips:!0,size:"sm"})]})})]},"networks"):null;w[0]!==L||w[1]!==P?(C=L?(0,r.jsxs)(y.StatDisplayItem,{className:"items-start",children:[(0,r.jsx)(y.StatDisplayItemLabel,{children:P("fdv")}),(0,r.jsx)(y.StatDisplayItemValue,{children:(0,r.jsx)(l.NumberDisplay,{bounded:!1,display:"usd",value:L})})]},"fdv"):null,w[0]=L,w[1]=P,w[2]=C):C=w[2],w[3]!==O.holdersCount||w[4]!==O.tokenGroup||w[5]!==F||w[6]!==P?(p=O.holdersCount&&!(O.tokenGroup&&F.length>1)?(0,r.jsxs)(y.StatDisplayItem,{className:"items-start",children:[(0,r.jsx)(y.StatDisplayItemLabel,{children:P("holders")}),(0,r.jsx)(y.StatDisplayItemValue,{children:(0,r.jsx)(l.NumberDisplay,{bounded:!1,display:"full",value:O.holdersCount})})]},"holders"):null,w[3]=O.holdersCount,w[4]=O.tokenGroup,w[5]=F,w[6]=P,w[7]=p):p=w[7],w[8]!==H||w[9]!==P?(g=H?(0,r.jsxs)(y.StatDisplayItem,{className:"items-start",children:[(0,r.jsx)(s.Media,{lessThan:"md",children:(0,r.jsx)(y.StatDisplayItemLabel,{children:P("oneDayVolumeShort")})}),(0,r.jsx)(s.Media,{greaterThanOrEqual:"md",children:(0,r.jsx)(y.StatDisplayItemLabel,{children:P("oneDayVolume")})}),(0,r.jsx)(y.StatDisplayItemValue,{children:(0,r.jsx)(l.NumberDisplay,{bounded:!1,display:"usd",value:H})})]},"volume"):null,w[8]=H,w[9]=P,w[10]=g):g=w[10],w[11]!==M||w[12]!==P||w[13]!==k?(T=M&&"default"===k?(0,r.jsxs)(y.StatDisplayItem,{className:"items-start",children:[(0,r.jsx)(s.Media,{lessThan:"md",children:(0,r.jsx)(y.StatDisplayItemLabel,{children:P("oneDayFdvChangeShort")})}),(0,r.jsx)(s.Media,{greaterThanOrEqual:"md",children:(0,r.jsx)(y.StatDisplayItemLabel,{children:P("oneDayFdvChange")})}),(0,r.jsx)(y.StatDisplayItemValue,{children:(0,r.jsx)(o.StatChange,{change:M})})]},"fdvChange"):null,w[11]=M,w[12]=P,w[13]=k,w[14]=T):T=w[14],w[15]!==B||w[16]!==P||w[17]!==k?(x=B&&"default"===k?(0,r.jsxs)(y.StatDisplayItem,{className:"items-start",children:[(0,r.jsx)(s.Media,{lessThan:"md",children:(0,r.jsx)(y.StatDisplayItemLabel,{children:P("sevenDayVolumeShort")})}),(0,r.jsx)(s.Media,{greaterThanOrEqual:"md",children:(0,r.jsx)(y.StatDisplayItemLabel,{children:P("sevenDayVolume")})}),(0,r.jsx)(y.StatDisplayItemValue,{children:(0,r.jsx)(l.NumberDisplay,{bounded:!1,display:"usd",value:B})})]},"sevenDayVolume"):null,w[15]=B,w[16]=P,w[17]=k,w[18]=x):x=w[18],w[19]!==U||w[20]!==P||w[21]!==k?(b=U&&"default"===k?(0,r.jsxs)(y.StatDisplayItem,{className:"items-start",children:[(0,r.jsx)(s.Media,{lessThan:"md",children:(0,r.jsx)(y.StatDisplayItemLabel,{children:P("sevenDayFdvChangeShort")})}),(0,r.jsx)(s.Media,{greaterThanOrEqual:"md",children:(0,r.jsx)(y.StatDisplayItemLabel,{children:P("sevenDayFdvChange")})}),(0,r.jsx)(y.StatDisplayItemValue,{children:(0,r.jsx)(o.StatChange,{change:U})})]},"sevenDayFdvChange"):null,w[19]=U,w[20]=P,w[21]=k,w[22]=b):b=w[22],w[23]!==G||w[24]!==C||w[25]!==p||w[26]!==g||w[27]!==T||w[28]!==x||w[29]!==b?(E=[G,C,p,g,T,x,b].filter(Boolean),w[23]=G,w[24]=C,w[25]=p,w[26]=g,w[27]=T,w[28]=x,w[29]=b,w[30]=E):E=w[30];let q=E;return w[31]!==j||w[32]!==q?(_=q.map((e,t)=>(0,r.jsxs)(m.Fragment,{children:[e,j&&t<q.length-1?(0,r.jsx)(c.Separator,{className:"h-auto",orientation:"vertical"}):null]},e?.key||t)),w[31]=j,w[32]=q,w[33]=_):_=w[33],w[34]!==D||w[35]!==N||w[36]!==_?(f=(0,r.jsx)(y.StatDisplay,{className:D,size:N,children:_}),w[34]=D,w[35]=N,w[36]=_,w[37]=f):f=w[37],f},"CurrencyStatsSkeleton",0,function(){let e,a=(0,t.c)(1);return a[0]===Symbol.for("react.memo_cache_sentinel")?(e=(0,r.jsx)(y.StatDisplay,{children:(0,C.range)(4).map(p)}),a[0]=e):e=a[0],e}])},146941,147746,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+  fragment CurrencyPreviewTooltipContent on CurrencyV2 {
+    contractAddress
+    chainIdentifier
+  }
+`,[]);e.s(["CurrencyPreviewTooltipContentFragment",0,r],146941);var t=e.i(647870),a=e.i(828226),n=e.i(254842),i=e.i(39771),s=e.i(965523),l=e.i(999258),c=e.i(310578),o=e.i(950293),u=e.i(692632),C=e.i(740743),d=e.i(434018);function m(){let e,r=(0,a.c)(1);return r[0]===Symbol.for("react.memo_cache_sentinel")?(e=(0,t.jsxs)("div",{className:"flex w-24 flex-col items-start gap-1",children:[(0,t.jsx)(o.TextBodySkeleton,{className:"h-3 w-15",size:"xs"}),(0,t.jsx)(o.TextBodySkeleton,{className:"h-3 w-12",size:"xs"})]}),r[0]=e):e=r[0],e}function y(e){return(0,t.jsx)(m,{},e)}e.s(["CurrencyPreviewTooltipContentSkeleton",0,function(e){let r,m,h,S,p,g=(0,a.c)(7),{statCount:T}=e,x=void 0===T?3:T;return g[0]===Symbol.for("react.memo_cache_sentinel")?(r=(0,t.jsxs)(i.FlexCenter,{className:"gap-2",children:[(0,t.jsx)(c.SkeletonBlock,{className:"size-9 rounded-full"}),(0,t.jsx)(o.TextBodySkeleton,{className:"h-4 w-20",size:"sm"}),(0,t.jsx)(o.TextBodySkeleton,{className:"h-3 w-12",size:"xs"}),(0,t.jsx)(c.SkeletonBlock,{className:"h-5 w-15 rounded-full"})]}),g[0]=r):r=g[0],g[1]===Symbol.for("react.memo_cache_sentinel")?(m=(0,t.jsxs)(s.FlexColumn,{className:"gap-2",children:[(0,t.jsx)(l.Separator,{}),(0,t.jsx)(d.CurrencyLineChartSkeleton,{className:"!h-30 w-full"})]}),h=(0,t.jsx)(l.Separator,{}),g[1]=m,g[2]=h):(m=g[1],h=g[2]),g[3]!==x?(S=(0,u.range)(x).map(y),g[3]=x,g[4]=S):S=g[4],g[5]!==S?(p=(0,t.jsxs)(C.PreviewTooltipContent,{className:"min-w-70 flex-col gap-2.5",children:[r,m,h,(0,t.jsx)(n.Flex,{className:"justify-between gap-2",children:S})]}),g[5]=S,g[6]=p):p=g[6],p}],147746)},614055,489669,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(455480),n=e.i(740743),i=e.i(885530),s=e.i(146941);let l=(0,i.graphql)(`
+    fragment CurrencyPreviewTooltip on CurrencyV2 {
+      ...CurrencyPreviewTooltipContent
+    }
+  `,[s.CurrencyPreviewTooltipContentFragment]);e.s(["CurrencyPreviewTooltipFragment",0,l],489669);var c=e.i(803577),o=e.i(508833),u=e.i(81810),C=e.i(177705),d=e.i(5968),m=e.i(39771),y=e.i(209959),h=e.i(967593),S=e.i(386604),p=e.i(389852),g=e.i(116889),T=e.i(314346),x=e.i(751989),b=e.i(720861),E=e.i(132553),_=e.i(355772),f=e.i(916660),w=e.i(446602),v=e.i(147746),D=e.i(965523),A=e.i(999258);function j(e){let a,i,s,l,c=(0,t.c)(9),{lockup:o,chart:u,stats:C}=e;return c[0]!==o?(a=(0,r.jsx)(m.FlexCenter,{className:"justify-between",children:(0,r.jsx)(m.FlexCenter,{className:"gap-1.5",children:o})}),c[0]=o,c[1]=a):a=c[1],c[2]!==u?(i=u&&(0,r.jsxs)(D.FlexColumn,{className:"gap-2",children:[(0,r.jsx)(A.Separator,{}),(0,r.jsx)("div",{className:"h-[120px] w-full overflow-hidden",children:u})]}),c[2]=u,c[3]=i):i=c[3],c[4]===Symbol.for("react.memo_cache_sentinel")?(s=(0,r.jsx)(A.Separator,{}),c[4]=s):s=c[4],c[5]!==C||c[6]!==a||c[7]!==i?(l=(0,r.jsxs)(n.PreviewTooltipContent,{className:"min-w-70 flex-col gap-2.5",children:[a,i,s,C]}),c[5]=C,c[6]=a,c[7]=i,c[8]=l):l=c[8],l}function R(){let e,a,i=(0,t.c)(4),s=(0,S.useTranslations)("CurrencyPreviewTooltipContent");return i[0]!==s?(e=s("error"),i[0]=s,i[1]=e):e=i[1],i[2]!==e?(a=(0,r.jsx)(n.PreviewTooltipContent,{children:(0,r.jsx)(h.TooltipLabel,{children:e})}),i[2]=e,i[3]=a):a=i[3],a}let k=(0,i.graphql)(`
+    query CurrencyPreviewTooltipContentQuery($contract: ContractIdentifierInput!) {
+      currencyV2(contract: $contract) {
+        id
+        usdPrice
+        contractAddress
+        chainIdentifier
+        chain {
+          identifier
+          ...ChainBadge
+        }
+        stats {
+          oneDay {
+            priceChange
+          }
+        }
+        ...CurrencyChartColor
+        ...CurrencyV2Lockup
+        ...CurrencyStats
+        ...CurrencyLineChart
+      }
+      priceHistory24h: currencyPriceHistory(
+        contract: $contract
+        timeframe: ONE_DAY
+      ) {
+        time
+        price {
+          usd
+        }
+      }
+    }
+  `,[c.ChainBadgeFragment,T.CurrencyChartColorFragment,u.CurrencyV2LockupFragment,b.CurrencyStatsFragment,f.CurrencyLineChartFragment]),N=(0,p.withSuspense)(({currency:e})=>{let{contractAddress:t,chainIdentifier:n}=(0,a.readFragment)(s.CurrencyPreviewTooltipContentFragment,e),[i]=(0,d.useQueryV2)({query:k,variables:{contract:{address:t,chain:n}}}),l=(0,C.getQueryData)(i);if(l?.currencyV2){let e=l.currencyV2,t=l.priceHistory24h,a=t&&t.length>1;return(0,r.jsx)(j,{chart:a?(0,r.jsx)(g.CurrencyChartColorProvider,{currency:e,children:(0,r.jsx)(_.CurrencyLineChart,{className:"!h-30 w-full",currency:e,intervalSize:"FIVE_MINUTES",overrides:{XAxis:{tickLabelProps:()=>({className:"text-[10px] fill-text-secondary",textAnchor:"right",dy:8})}},timeRange:{startTime:(0,w.getStartTime)("ONE_DAY"),endTime:new Date}})}):void 0,lockup:(0,r.jsxs)(m.FlexCenter,{className:"gap-2",children:[(0,r.jsx)(o.CurrencyLockup,{currency:e,size:"md"}),(0,r.jsxs)(m.FlexCenter,{className:"gap-1",children:[(0,r.jsx)(E.CurrencyPriceDisplay,{custom:{maximumFractionDigits:2,maximumSignificantDigits:2},value:e.usdPrice}),(0,r.jsx)(y.StatChangeCallout,{change:e.stats?.oneDay?.priceChange,overrides:{StatChange:{className:"font-semibold"}}})]})]}),stats:(0,r.jsx)(x.CurrencyStats,{currency:e,variant:"compact"})})}return(0,r.jsx)(R,{})},{fallback:(0,r.jsx)(v.CurrencyPreviewTooltipContentSkeleton,{}),errorFallback:(0,r.jsx)(R,{})});e.s(["CurrencyPreviewTooltip",0,function(e){let i,s,c,o,u,C,d=(0,t.c)(12);d[0]!==e?({currency:s,children:i,...c}=e,d[0]=e,d[1]=i,d[2]=s,d[3]=c):(i=d[1],s=d[2],c=d[3]),d[4]!==s?(o=(0,a.readFragment)(l,s),d[4]=s,d[5]=o):o=d[5];let m=o;return d[6]!==m?(u=(0,r.jsx)(N,{currency:m}),d[6]=m,d[7]=u):u=d[7],d[8]!==i||d[9]!==c||d[10]!==u?(C=(0,r.jsx)(n.PreviewTooltip,{align:"center",className:"py-2.5",content:u,...c,children:i}),d[8]=i,d[9]=c,d[10]=u,d[11]=C):C=d[11],C}],614055)},1075,e=>{"use strict";e.i(614055),e.s([])},121342,e=>{"use strict";let r={table:"table",tableCompact:"tableCompact"},t=e=>r.table;Object.values(r),e.s(["CREATED_STATS_TABLE_VIEW_COOKIE_NAME",0,"createdStatsTableView","HOME_STATS_TABLE_VIEW_COOKIE_NAME",0,"homeStatsTableView","PERPETUALS_STATS_TABLE_VIEW_COOKIE_NAME",0,"perpetualsStatsTableView","PORTFOLIO_STATS_TABLE_VIEW_COOKIE_NAME",0,"portfolioStatsTableView","STATS_TABLE_VIEW",0,r,"STATS_TABLE_VIEW_COOKIE_NAME",0,"statsTableView","STUDIO_CREATED_STATS_TABLE_VIEW_COOKIE_NAME",0,"studioCreatedStatsTableView","TOKENS_FILTER_SIDE_PANEL_STATE_COOKIE_NAME",0,"tokensFilterSidePanelState","TOKENS_STATS_TABLE_VIEW_COOKIE_NAME",0,"tokensStatsTableView","WATCHLIST_STATS_TABLE_VIEW_COOKIE_NAME",0,"watchlistStatsTableView","getDefaultDiscoverStatsTableView",0,e=>"collector"===e?r.table:r.tableCompact,"getDefaultStatsTableView",0,t,"parseDiscoverStatsTableView",0,function(e,t){return e&&e in r?e:"collector"===t?r.table:r.tableCompact},"parseStatsTableView",0,function(e,a){return e&&e in r?e:t(a)}])},831294,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(121342),n=e.i(976644),i=e.i(669058),s=e.i(35720),l=e.i(812222),c=e.i(241119);let o={discover:a.HOME_STATS_TABLE_VIEW_COOKIE_NAME,stats:a.STATS_TABLE_VIEW_COOKIE_NAME,portfolio:a.PORTFOLIO_STATS_TABLE_VIEW_COOKIE_NAME,watchlist:a.WATCHLIST_STATS_TABLE_VIEW_COOKIE_NAME,created:a.CREATED_STATS_TABLE_VIEW_COOKIE_NAME,tokens:a.TOKENS_STATS_TABLE_VIEW_COOKIE_NAME,perpetuals:a.PERPETUALS_STATS_TABLE_VIEW_COOKIE_NAME},u=(0,l.createContext)({tableView:"table",setTableView:()=>{},size:"sm"});e.s(["StatsTableViewProvider",0,function(e){let l,C,d,m,y,h=(0,t.c)(17),{children:S,tableView:p,page:g}=e,T=void 0===g?"stats":g,{persona:x}=(0,n.usePersona)(),b=o[T],[E,_]=(0,i.useCookie)(b);h[0]!==p||h[1]!==x||h[2]!==E?(l=E??p??(0,a.getDefaultStatsTableView)(x),h[0]=p,h[1]=x,h[2]=E,h[3]=l):l=h[3];let f=l,w="table"===f?"md":"sm";h[4]!==_?(C=function(e){_(e,{expires:c.LONG_LASTING_COOKIE_EXPIRATION})},h[4]=_,h[5]=C):C=h[5];let v=C;h[6]!==T||h[7]!==x||h[8]!==v?(d=()=>{v("discover"===T?(0,a.getDefaultDiscoverStatsTableView)(x):(0,a.getDefaultStatsTableView)(x))},h[6]=T,h[7]=x,h[8]=v,h[9]=d):d=h[9],(0,s.useOnChange)(x,d),h[10]!==f||h[11]!==v||h[12]!==w?(m={tableView:f,setTableView:v,size:w},h[10]=f,h[11]=v,h[12]=w,h[13]=m):m=h[13];let D=m;return h[14]!==S||h[15]!==D?(y=(0,r.jsx)(u.Provider,{value:D,children:S}),h[14]=S,h[15]=D,h[16]=y):y=h[16],y},"useStatsTableView",0,()=>(0,l.useContext)(u)])},960243,e=>{"use strict";var r,t,a,n=((r={}).VOLUME="volume",r.SALES="sales",r.BEST_OFFER="bestOffer",r.FLOOR_PRICE="floorPrice",r.FLOOR_CHANGE="floorChange",r.HELD_VALUE="heldValue",r),i=((t={}).QUANTITY="quantity",t.USD_VALUE="usdValue",t.MARKET_CAP="marketCap",t.PRICE="price",t.PRICE_CHANGE="priceChange",t.ONE_DAY_VOLUME="oneDayVolume",t.ONE_HOUR_VOLUME="oneHourVolume",t.ONE_DAY_PRICE_CHANGE="oneDayPriceChange",t.ONE_HOUR_PRICE_CHANGE="oneHourPriceChange",t.SEVEN_DAY_PRICE_CHANGE="sevenDayPriceChange",t.FOURTEEN_DAY_PRICE_CHANGE="fourteenDayPriceChange",t.THIRTY_DAY_PRICE_CHANGE="thirtyDayPriceChange",t.TWO_HUNDRED_DAY_PRICE_CHANGE="twoHundredDayPriceChange",t.ONE_YEAR_PRICE_CHANGE="oneYearPriceChange",t.GAIN="gain",t.GENESIS_DATE="genesisDate",t.SCORE="score",t),s=((a={}).DEFAULT="default",a.NEW="new",a);e.s(["CurrencyStatsColumnVariant",()=>s,"CurrencyStatsSortBy",()=>i,"StatsSortBy",()=>n])},445329,e=>{"use strict";var r=e.i(828226),t=e.i(437153),a=e.i(831294);e.s(["useStatsSparklineChartClassName",0,()=>{let e,n=(0,r.c)(2),{size:i}=(0,a.useStatsTableView)(),s="sm"===i?"w-16 h-6":"w-20 h-8";return n[0]!==s?(e=(0,t.classNames)(s),n[0]=s,n[1]=e):e=n[1],e}])},980016,e=>{"use strict";var r=e.i(960243);e.s(["getCurrencySortBy",0,function(e){switch(e){case r.CurrencyStatsSortBy.ONE_DAY_VOLUME:return"ONE_DAY_VOLUME";case r.CurrencyStatsSortBy.ONE_HOUR_VOLUME:return"ONE_HOUR_VOLUME";case r.CurrencyStatsSortBy.MARKET_CAP:return"MARKET_CAP";case r.CurrencyStatsSortBy.PRICE:return"PRICE";case r.CurrencyStatsSortBy.ONE_DAY_PRICE_CHANGE:return"ONE_DAY_PRICE_CHANGE";case r.CurrencyStatsSortBy.ONE_HOUR_PRICE_CHANGE:return"ONE_HOUR_PRICE_CHANGE";case r.CurrencyStatsSortBy.SEVEN_DAY_PRICE_CHANGE:return"SEVEN_DAY_PRICE_CHANGE";case r.CurrencyStatsSortBy.FOURTEEN_DAY_PRICE_CHANGE:return"FOURTEEN_DAY_PRICE_CHANGE";case r.CurrencyStatsSortBy.THIRTY_DAY_PRICE_CHANGE:return"THIRTY_DAY_PRICE_CHANGE";case r.CurrencyStatsSortBy.USD_VALUE:return"USD_VALUE";case r.CurrencyStatsSortBy.GENESIS_DATE:return"GENESIS_DATE";case r.CurrencyStatsSortBy.SCORE:return"SCORE";case r.CurrencyStatsSortBy.GAIN:return"GAIN";default:return"ONE_DAY_VOLUME"}}])},675425,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(885530),n=e.i(455480),i=e.i(34331),s=e.i(738480);let l=(0,a.graphql)(`
+  fragment CurrencyStatsTableRowMarketCap on CurrencyV2 {
+    stats {
+      marketCapUsd
+    }
+    tokenGroup {
+      stats {
+        marketCapUsd
+      }
+    }
+  }
+`);e.s(["CurrencyStatsTableRowMarketCap",0,function(e){let a,c,o,u=(0,t.c)(7),{currency:C}=e;u[0]!==C?(a=(0,n.readFragment)(l,C),u[0]=C,u[1]=a):a=u[1];let d=a,m=d.tokenGroup?.stats?.marketCapUsd??d.stats?.marketCapUsd,y=m?Number(m):void 0;return u[2]!==y?(c=(0,r.jsx)(s.NumberDisplay,{bounded:!1,display:"usd",value:y}),u[2]=y,u[3]=c):c=u[3],u[4]!==y||u[5]!==c?(o=(0,r.jsx)(i.ChangeAnimation,{display:"usd",value:y,children:c}),u[4]=y,u[5]=c,u[6]=o):o=u[6],o},"CurrencyStatsTableRowMarketCapFragment",0,l])},456965,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(885530),n=e.i(455480),i=e.i(34331),s=e.i(209959);let l=(0,a.graphql)(`
+  fragment CurrencyStatsTableRowSevenDayPriceChange on CurrencyV2 {
+    stats {
+      sevenDay {
+        priceChange
+      }
+    }
+  }
+`);e.s(["CurrencyStatsTableRowSevenDayPriceChange",0,function(e){let a,c,o,u=(0,t.c)(7),{currency:C}=e;u[0]!==C?(a=(0,n.readFragment)(l,C),u[0]=C,u[1]=a):a=u[1];let d=a,m=d.stats?.sevenDay.priceChange,y=d.stats?.sevenDay.priceChange;return u[2]!==y?(c=(0,r.jsx)(s.StatChange,{change:y}),u[2]=y,u[3]=c):c=u[3],u[4]!==m||u[5]!==c?(o=(0,r.jsx)(i.ChangeAnimation,{display:"percent",value:m,children:c}),u[4]=m,u[5]=c,u[6]=o):o=u[6],o},"CurrencyStatsTableRowSevenDayPriceChangeFragment",0,l])},581808,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(885530),n=e.i(455480),i=e.i(745841);let s=(0,a.graphql)(`
+  fragment CurrencyStatsTableRowAge on CurrencyV2 {
+    genesisDate
+  }
+`);e.s(["CurrencyStatsTableRowAge",0,function(e){let a,l,c=(0,t.c)(4),{currency:o}=e;c[0]!==o?(a=(0,n.readFragment)(s,o),c[0]=o,c[1]=a):a=c[1];let u=a;return c[2]!==u.genesisDate?(l=(0,r.jsx)(i.LiveTimestamp,{date:u.genesisDate,display:"compact"}),c[2]=u.genesisDate,c[3]=l):l=c[3],l},"CurrencyStatsTableRowAgeFragment",0,s])},657360,e=>{"use strict";var r=e.i(81810),t=e.i(885530),a=e.i(489669);let n=(0,t.graphql)(`
+    fragment CurrencyStatsTableRowCollection on CurrencyV2 {
+      ...CurrencyV2Lockup
+      ...CurrencyPreviewTooltip
+      collections {
+        id
+      }
+      tokenGroup {
+        perpetuals {
+          id
+        }
+      }
+    }
+  `,[r.CurrencyV2LockupFragment,a.CurrencyPreviewTooltipFragment]);e.s(["CurrencyStatsTableRowCollectionFragment",0,n])},657970,355989,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(508833),n=e.i(22764),i=e.i(455480),s=e.i(437153),l=e.i(254842),c=e.i(747460),o=e.i(984335);e.i(1075);var u=e.i(614055),C=e.i(806056),d=e.i(657360);e.s(["CurrencyStatsTableRowCollection",0,function(e){let m,y,h,S,p,g,T,x,b,E,_,f,w,v,D,A,j,R,k,N=(0,t.c)(41),{currency:O,showChainBadge:P,showPerpetualBadge:F}=e,V=void 0!==P&&P,I=void 0===F||F;N[0]!==O?(m=(0,i.readFragment)(d.CurrencyStatsTableRowCollectionFragment,O),N[0]=O,N[1]=m):m=N[1];let L=m,H=(0,C.useIsPerpetualsEnabled)(),{size:M}=(0,o.useTable)();if(N[2]!==L||N[3]!==H||N[4]!==V||N[5]!==I||N[6]!==M){let{image:e}=(0,c.tableRowSizeVariants)({size:M});({image:g}=c.TABLE_SIZES[M]),p=I&&H&&(L.tokenGroup?.perpetuals?.length??0)>0,S=u.CurrencyPreviewTooltip,_=L,h=a.CurrencyLockup,b=L,E=M,y=a.CurrencyLockupAvatar,N[17]!==V?(T=V?(0,r.jsx)(a.CurrencyLockupChainBadge,{size:"xs"}):null,N[17]=V,N[18]=T):T=N[18],x=(0,s.classNames)(e(),"rounded-full"),N[2]=L,N[3]=H,N[4]=V,N[5]=I,N[6]=M,N[7]=y,N[8]=h,N[9]=S,N[10]=p,N[11]=g,N[12]=T,N[13]=x,N[14]=b,N[15]=E,N[16]=_}else y=N[7],h=N[8],S=N[9],p=N[10],g=N[11],T=N[12],x=N[13],b=N[14],E=N[15],_=N[16];return N[19]!==y||N[20]!==g||N[21]!==T||N[22]!==x?(f=(0,r.jsx)(y,{badge:T,className:x,size:g}),N[19]=y,N[20]=g,N[21]=T,N[22]=x,N[23]=f):f=N[23],N[24]===Symbol.for("react.memo_cache_sentinel")?(w=(0,r.jsx)(a.CurrencyLockupTitle,{weight:"regular"}),v=(0,r.jsx)(a.CurrencyLockupSymbol,{}),D=(0,r.jsx)(a.CurrencyLockupBadge,{}),N[24]=w,N[25]=v,N[26]=D):(w=N[24],v=N[25],D=N[26]),N[27]!==p?(A=p&&(0,r.jsx)(a.CurrencyLockupPerpetualBadge,{}),N[27]=p,N[28]=A):A=N[28],N[29]!==A?(j=(0,r.jsx)(n.CurrencyLockupContent,{children:(0,r.jsxs)(l.Flex,{className:"items-center gap-1.5",children:[w,v,D,A]})}),N[29]=A,N[30]=j):j=N[30],N[31]!==h||N[32]!==j||N[33]!==b||N[34]!==E||N[35]!==f?(R=(0,r.jsx)("div",{children:(0,r.jsxs)(h,{currency:b,size:E,children:[f,j]})}),N[31]=h,N[32]=j,N[33]=b,N[34]=E,N[35]=f,N[36]=R):R=N[36],N[37]!==S||N[38]!==R||N[39]!==_?(k=(0,r.jsx)(S,{currency:_,children:R}),N[37]=S,N[38]=R,N[39]=_,N[40]=k):k=N[40],k}],657970);var m=e.i(885530),y=e.i(34331),h=e.i(738480);let S=(0,m.graphql)(`
+  fragment CurrencyStatsTableRowFDV on CurrencyV2 {
+    stats {
+      marketCapUsd
+    }
+    tokenGroup {
+      stats {
+        marketCapUsd
+      }
+    }
+  }
+`);e.s(["CurrencyStatsTableRowFDV",0,function(e){let a,n,s,l=(0,t.c)(7),{currency:c}=e;l[0]!==c?(a=(0,i.readFragment)(S,c),l[0]=c,l[1]=a):a=l[1];let o=a,u=o.tokenGroup?.stats?.marketCapUsd??o.stats?.marketCapUsd,C=u?Number(u):void 0;return l[2]!==C?(n=(0,r.jsx)(h.NumberDisplay,{bounded:!1,display:"usd",value:C}),l[2]=C,l[3]=n):n=l[3],l[4]!==C||l[5]!==n?(s=(0,r.jsx)(y.ChangeAnimation,{display:"usd",value:C,children:n}),l[4]=C,l[5]=n,l[6]=s):s=l[6],s},"CurrencyStatsTableRowFDVFragment",0,S],355989)},639820,96169,423252,807473,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(885530),n=e.i(455480),i=e.i(34331),s=e.i(209959);let l=(0,a.graphql)(`
+  fragment CurrencyStatsTableRowOneHourPriceChange on CurrencyV2 {
+    stats {
+      oneHour {
+        priceChange
+      }
+    }
+  }
+`);function c(e){let a,c,o,u=(0,t.c)(7),{currency:C}=e;u[0]!==C?(a=(0,n.readFragment)(l,C),u[0]=C,u[1]=a):a=u[1];let d=a,m=d.stats?.oneHour.priceChange,y=d.stats?.oneHour.priceChange;return u[2]!==y?(c=(0,r.jsx)(s.StatChange,{change:y}),u[2]=y,u[3]=c):c=u[3],u[4]!==m||u[5]!==c?(o=(0,r.jsx)(i.ChangeAnimation,{display:"percent",value:m,children:c}),u[4]=m,u[5]=c,u[6]=o):o=u[6],o}e.s(["CurrencyStatsTableRowOneHourPriceChange",0,c,"CurrencyStatsTableRowOneHourPriceChangeFragment",0,l],639820);var o=e.i(738480);let u=(0,a.graphql)(`
+  fragment CurrencyStatsTableRowOneHourVolume on CurrencyV2 {
+    stats {
+      oneHour {
+        volume
+      }
+    }
+  }
+`);e.s(["CurrencyStatsTableRowOneHourVolume",0,function(e){let a,s,l,c=(0,t.c)(7),{currency:C}=e;c[0]!==C?(a=(0,n.readFragment)(u,C),c[0]=C,c[1]=a):a=c[1];let d=a,m=d.stats?.oneHour.volume,y=d.stats?.oneHour.volume;return c[2]!==y?(s=(0,r.jsx)(o.NumberDisplay,{bounded:!1,display:"usd",value:y}),c[2]=y,c[3]=s):s=c[3],c[4]!==m||c[5]!==s?(l=(0,r.jsx)(i.ChangeAnimation,{display:"usd",value:m,children:s}),c[4]=m,c[5]=s,c[6]=l):l=c[6],l},"CurrencyStatsTableRowOneHourVolumeFragment",0,u],96169);var C=e.i(965523),d=e.i(678537);let m=(0,a.graphql)(`
+    fragment CurrencyStatsTableRowPriceMobile on CurrencyV2 {
+      ...CurrencyStatsTableRowPrice
+      ...CurrencyStatsTableRowOneHourPriceChange
+    }
+  `,[d.CurrencyStatsTableRowPriceFragment,l]);e.s(["CurrencyStatsTableRowPriceMobile",0,function(e){let a,i,s=(0,t.c)(4),{currency:l}=e;s[0]!==l?(a=(0,n.readFragment)(m,l),s[0]=l,s[1]=a):a=s[1];let o=a;return s[2]!==o?(i=(0,r.jsxs)(C.FlexColumn,{className:"items-end",children:[(0,r.jsx)(d.CurrencyStatsTableRowPrice,{currency:o}),(0,r.jsx)(c,{currency:o})]}),s[2]=o,s[3]=i):i=s[3],i},"CurrencyStatsTableRowPriceMobileFragment",0,m],423252);let y=(0,a.graphql)(`
+  fragment CurrencyStatsTableRowThirtyDayPriceChange on CurrencyV2 {
+    stats {
+      thirtyDay {
+        priceChange
+      }
+    }
+    tokenGroup {
+      stats {
+        rollingStats {
+          priceChange30d
+        }
+      }
+    }
+  }
+`);e.s(["CurrencyStatsTableRowThirtyDayPriceChange",0,function(e){let a,l,c,o=(0,t.c)(7),{currency:u}=e;o[0]!==u?(a=(0,n.readFragment)(y,u),o[0]=u,o[1]=a):a=o[1];let C=a,d=C.tokenGroup?.stats?.rollingStats?.priceChange30d,m=null==d?C.stats?.thirtyDay.priceChange:Number(d);return o[2]!==m?(l=(0,r.jsx)(s.StatChange,{change:m}),o[2]=m,o[3]=l):l=o[3],o[4]!==m||o[5]!==l?(c=(0,r.jsx)(i.ChangeAnimation,{display:"percent",value:m,children:l}),o[4]=m,o[5]=l,o[6]=c):c=o[6],c},"CurrencyStatsTableRowThirtyDayPriceChangeFragment",0,y],807473)},235172,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(885530),n=e.i(455480),i=e.i(34331),s=e.i(738480);let l=(0,a.graphql)(`
+  fragment CurrencyStatsTableRowVolume on CurrencyV2 {
+    stats {
+      oneDay {
+        volume
+      }
+    }
+    tokenGroup {
+      stats {
+        rollingStats {
+          volume1d
+        }
+      }
+    }
+  }
+`);e.s(["CurrencyStatsTableRowVolume",0,function(e){let a,c,o,u=(0,t.c)(7),{currency:C}=e;u[0]!==C?(a=(0,n.readFragment)(l,C),u[0]=C,u[1]=a):a=u[1];let d=a,m=d.tokenGroup?.stats?.rollingStats?.volume1d,y=null==m?d.stats?.oneDay.volume:Number(m);return u[2]!==y?(c=(0,r.jsx)(s.NumberDisplay,{bounded:!1,display:"usd",value:y}),u[2]=y,u[3]=c):c=u[3],u[4]!==c||u[5]!==y?(o=(0,r.jsx)(i.ChangeAnimation,{display:"usd",value:y,children:c}),u[4]=c,u[5]=y,u[6]=o):o=u[6],o},"CurrencyStatsTableRowVolumeFragment",0,l])},78592,861308,385452,947195,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(885530),n=e.i(455480),i=e.i(922364),s=e.i(535374),l=e.i(965523),c=e.i(255666),o=e.i(950293),u=e.i(818304),C=e.i(730098),d=e.i(445329),m=e.i(609644),y=e.i(95581),h=e.i(581808);e.i(657970);var S=e.i(657360),p=e.i(355989),g=e.i(378874),T=e.i(639820),x=e.i(96169),b=e.i(678537),E=e.i(423252),_=e.i(807473),f=e.i(235172);let w=(0,a.graphql)(`
+    fragment CurrencyStatsTableRow on CurrencyV2 {
+      id
+      contractAddress
+      chainIdentifier
+      name
+      symbol
+      ...CurrencyStatsTableRowFDV
+      ...CurrencyStatsTableRowPrice
+      ...CurrencyStatsTableRowOneHourPriceChange
+      ...CurrencyStatsTableRowOneDayPriceChange
+      ...CurrencyStatsTableRowThirtyDayPriceChange
+      ...CurrencyStatsTableRowCollection
+      ...CurrencyStatsTableRowVolume
+      ...CurrencyStatsTableRowOneHourVolume
+      ...CurrencyV2Link
+      ...CurrencyStatsTableRowPriceMobile
+      ...CurrencyWatchlistButton
+      ...CurrencyStatsTableRowAge
+    }
+  `,[p.CurrencyStatsTableRowFDVFragment,b.CurrencyStatsTableRowPriceFragment,T.CurrencyStatsTableRowOneHourPriceChangeFragment,g.CurrencyStatsTableRowOneDayPriceChangeFragment,_.CurrencyStatsTableRowThirtyDayPriceChangeFragment,S.CurrencyStatsTableRowCollectionFragment,f.CurrencyStatsTableRowVolumeFragment,x.CurrencyStatsTableRowOneHourVolumeFragment,m.CurrencyV2LinkFragment,E.CurrencyStatsTableRowPriceMobileFragment,y.CurrencyWatchlistButtonFragment,h.CurrencyStatsTableRowAgeFragment]);e.s(["CurrencyStatsTableRowFragment",0,w],861308);let v=(0,a.graphql)(`
+    fragment CurrencyStatsTableRowSparkLineChartDefault on CurrencyV2 {
+      ...CurrencySparkLineChart
+    }
+  `,[u.CurrencySparkLineChartFragment]),D=(0,a.graphql)(`
+    fragment CurrencyStatsTableRowDefault on CurrencyV2 {
+      ...CurrencyStatsTableRow
+      ...CurrencyStatsTableRowSparkLineChartDefault
+    }
+  `,[w,v]);e.s(["CurrencyStatsTableRowDefaultFragment",0,D],385452);let A=(0,a.graphql)(`
+    fragment CurrencyStatsTableRowSparkLineChartNew on CurrencyV2 {
+      ...CurrencySparkLineChartOneHour
+    }
+  `,[C.CurrencySparkLineChartOneHourFragment]),j=(0,a.graphql)(`
+    fragment CurrencyStatsTableRowNew on CurrencyV2 {
+      ...CurrencyStatsTableRow
+      ...CurrencyStatsTableRowSparkLineChartNew
+    }
+  `,[w,A]);e.s(["CurrencyStatsTableRowNewFragment",0,j],947195);let R=(0,a.graphql)(`
+    fragment CurrencyStatsTableRowSparkLineChart on CurrencyV2 {
+      ...CurrencySparkLineChart
+      ...CurrencySparkLineChartOneHour
+    }
+  `,[u.CurrencySparkLineChartFragment,C.CurrencySparkLineChartOneHourFragment]);function k(e){let a,n,c,u,C,d=(0,t.c)(13),{item:m}=e,y=(0,s.useNumberFormatter)(),h=(0,i.useDateTimeFormatter)();return d[0]!==y||d[1]!==m.price.usd?(a=y(m.price.usd,{display:"usd-compact"}),d[0]=y,d[1]=m.price.usd,d[2]=a):a=d[2],d[3]!==a?(n=(0,r.jsx)(o.TextBody,{children:a}),d[3]=a,d[4]=n):n=d[4],d[5]!==h||d[6]!==m.time?(c=h(new Date(m.time)),d[5]=h,d[6]=m.time,d[7]=c):c=d[7],d[8]!==c?(u=(0,r.jsx)(o.TextBody,{children:c}),d[8]=c,d[9]=u):u=d[9],d[10]!==n||d[11]!==u?(C=(0,r.jsxs)(l.FlexColumn,{className:"gap-0.5",children:[n,u]}),d[10]=n,d[11]=u,d[12]=C):C=d[12],C}function N(e){return e.price.usd}function O(e){return new Date(e.time)}function P(e){return e.price.usd}function F(e){return new Date(e.time)}e.s(["CurrencyStatsTableRowSparkLineChart",0,function(e){let a,i=(0,t.c)(10),{currency:s,timeframe:l}=e,o=(0,d.useStatsSparklineChartClassName)();if("ONE_HOUR"===(void 0===l?"ONE_DAY":l)){let e;i[0]!==s?(e=function(e){let r=(0,n.readFragment)(j,e);if(r){let e=(0,n.readFragment)(A,r);if(e){let r=(0,n.readFragment)(C.CurrencySparkLineChartOneHourFragment,e);if(r&&"sparklineOneHour"in r)return r.sparklineOneHour}}let t=(0,n.readFragment)(R,e);if(t){let e=(0,n.readFragment)(C.CurrencySparkLineChartOneHourFragment,t);if(e&&"sparklineOneHour"in e)return e.sparklineOneHour}return null}(s),i[0]=s,i[1]=e):e=i[1];let t=e;if(t){let e;return i[2]!==t||i[3]!==o?(e=(0,r.jsx)(c.SparkLineChart,{className:o,data:t,getDate:F,getValue:P,renderTooltip:k}),i[2]=t,i[3]=o,i[4]=e):e=i[4],e}return null}i[5]!==s?(a=function(e){let r=(0,n.readFragment)(D,e);if(r){let e=(0,n.readFragment)(v,r);if(e){let r=(0,n.readFragment)(u.CurrencySparkLineChartFragment,e);if(r&&"sparkline"in r)return r.sparkline}}let t=(0,n.readFragment)(R,e);if(t){let e=(0,n.readFragment)(u.CurrencySparkLineChartFragment,t);if(e&&"sparkline"in e)return e.sparkline}return null}(s),i[5]=s,i[6]=a):a=i[6];let m=a;if(m){let e;return i[7]!==m||i[8]!==o?(e=(0,r.jsx)(c.SparkLineChart,{className:o,data:m,getDate:O,getValue:N,renderTooltip:k}),i[7]=m,i[8]=o,i[9]=e):e=i[9],e}return null},"CurrencyStatsTableRowSparkLineChartFragment",0,R],78592)},76292,197251,584580,e=>{"use strict";var r=e.i(647870),t=e.i(828226),a=e.i(812222),n=e.i(729427),i=e.i(455480),s=e.i(808055),l=e.i(885530),c=e.i(609644),o=e.i(657360),u=e.i(378874),C=e.i(678537),d=e.i(456965),m=e.i(235172),y=e.i(675425),h=e.i(78592);let S=(0,l.graphql)(`
+    fragment ProfileCurrencyStatsTableRow on CurrencyBalanceV2 {
+      address
+      usdValue
+      quantity
+      asset {
+        id
+        name
+        symbol
+        contractAddress
+        chain {
+          identifier
+        }
+        imageUrl
+        decimals
+        metadata {
+          fullCollection {
+            imageUrl
+          }
+        }
+        ...CurrencyStatsTableRowPrice
+        ...CurrencyStatsTableRowVolume
+        ...CurrencyStatsTableRowOneDayPriceChange
+        ...CurrencyStatsTableRowSevenDayPriceChange
+        ...CurrencyStatsTableRowCollection
+        ...CurrencyStatsTableRowSparkLineChart
+        ...CurrencyStatsTableRowMarketCap
+        ...CurrencyV2Link
+      }
+    }
+  `,[C.CurrencyStatsTableRowPriceFragment,m.CurrencyStatsTableRowVolumeFragment,u.CurrencyStatsTableRowOneDayPriceChangeFragment,d.CurrencyStatsTableRowSevenDayPriceChangeFragment,o.CurrencyStatsTableRowCollectionFragment,h.CurrencyStatsTableRowSparkLineChartFragment,y.CurrencyStatsTableRowMarketCapFragment,c.CurrencyV2LinkFragment]);function p(e,r){return r?`${e}-${r}`:e}e.s(["ProfileCurrencyStatsTableRowFragment",0,S],197251);let g=()=>(0,n.create)()((0,s.mutative)((e,r)=>({allTokens:[],selectedTokenIds:new Set,selectedTokensMap:new Map,refreshVersion:0,setAllTokens:r=>{e(e=>{let t=r.map(e=>{let r=(0,i.readFragment)(S,e),t=r.asset;return t?{id:p(t.id,r.address),contractAddress:t.contractAddress,chain:t.chain?.identifier,ownerAddress:r.address,quantity:r.quantity,decimals:t.decimals??null,currency:{name:t.name,symbol:t.symbol,imageUrl:t.imageUrl,metadata:t.metadata?{fullCollection:t.metadata.fullCollection?{imageUrl:t.metadata.fullCollection.imageUrl??null}:null}:null}}:null}).filter(e=>null!==e);if(e.allTokens=t,e.selectedTokenIds.size>0){let r=new Map(t.map(e=>[e.id,e]));for(let t of e.selectedTokenIds){let a=r.get(t);a&&e.selectedTokensMap.set(t,a)}}})},selectAllTokens:()=>{let{allTokens:t}=r();e(e=>{t.length>0&&t.every(r=>e.selectedTokenIds.has(r.id))?t.forEach(r=>{e.selectedTokensMap.delete(r.id),e.selectedTokenIds.delete(r.id)}):t.forEach(r=>{e.selectedTokensMap.set(r.id,r),e.selectedTokenIds.add(r.id)})})},selectToken:(r,t)=>{e(e=>{let a=e.allTokens.find(e=>e.id===r);if(!a)return;let n=()=>{e.selectedTokensMap.set(r,a),e.selectedTokenIds.add(r)},i=()=>{e.selectedTokensMap.delete(r),e.selectedTokenIds.delete(r)};void 0!==t?t&&!e.selectedTokensMap.has(r)?n():!t&&e.selectedTokensMap.has(r)&&i():e.selectedTokensMap.has(r)?i():n()})},resetSelections:()=>{e(e=>{e.selectedTokensMap.clear(),e.selectedTokenIds.clear()})},markTokensMutated:()=>{e(e=>{e.refreshVersion+=1})}})));e.s(["createProfileTokensSelectionStore",0,g,"createTokenCompositeKey",0,p],584580);let T=g(),x=(0,a.createContext)(T);e.s(["ProfileTokensSelectionProvider",0,function(e){let a,n=(0,t.c)(2),{children:i}=e;return n[0]!==i?(a=(0,r.jsx)(x.Provider,{value:T,children:i}),n[0]=i,n[1]=a):a=n[1],a},"useProfileTokensSelectionStore",0,function(e){let r=(0,a.useContext)(x);return(0,n.useStore)(r,e)}],76292)}]);
+
+//# debugId=dde341f1-b3cc-fba6-792c-3d14da4f2a97
+//# sourceMappingURL=037okpae6p_pr.js.map

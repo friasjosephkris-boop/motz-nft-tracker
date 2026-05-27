@@ -162,6 +162,7 @@ for (const addr of WALLETS) {
       floorUsd,
       pnlUsd,
       walletTag: addr.toLowerCase(),
+      currencySymbol: "ETH",
     });
     console.log(
       `  #${n.identifier} ${rarity ?? "?"} cost=${costEth}ETH floor=${floorEth}ETH pnl=${pnlUsd?.toFixed(2)}`,

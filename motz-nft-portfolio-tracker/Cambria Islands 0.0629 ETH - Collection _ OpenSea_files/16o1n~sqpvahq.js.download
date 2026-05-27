@@ -1,0 +1,169 @@
+;!function(){try { var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof global?global:"undefined"!=typeof window?window:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&((e._debugIds|| (e._debugIds={}))[n]="dfe70007-3a98-bde4-8ce8-a0c2a5e24120")}catch(e){}}();
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,996366,e=>{"use strict";function l(e,l,t){let a=t/100*(e.length-1),r=Math.floor(a),i=r+1;return i>=e.length?l(e[r]):l(e[r])+(a-r)*(l(e[i])-l(e[r]))}e.s(["generateMovingAverage",0,function(e,l){if(0===e.length||l<=0)return{};let t={},a=0;for(let r=0;r<e.length;r+=1)a+=e[r].price,r<l-1?t[e[r].id]=a/(r+1):(r>=l&&(a-=e[r-l].price),t[e[r].id]=a/l);return t},"getOutlierRange",0,function(e,t,a=1.5){let r=[...e].sort((e,l)=>t(e)-t(l));if(0===r.length)return null;if(r.length<4)return{lowerBound:.9*t(r[0]),upperBound:1.1*t(r.at(-1)??r[0])};let i=l(r,t,25),s=l(r,t,75),n=s-i;return{lowerBound:i-a*n,upperBound:s+a*n}}])},582064,e=>{"use strict";var l=e.i(828226),t=e.i(88343),a=e.i(871085),r=e.i(336245),i=e.i(649386);let s=(0,r.parseAsStringLiteral)(t.Timeframe.map(e=>(0,a.toLowerCase)(e)));e.s(["useAnalyticsTimeframeQueryParam",0,function(){let e,t,n,o=(0,l.c)(6);o[0]===Symbol.for("react.memo_cache_sentinel")?(e=s.withDefault("seven_days"),o[0]=e):e=o[0];let[c,u]=(0,r.useQueryState)(i.QUERY_PARAM_KEYS.timeframe,e);return o[1]!==c?(t=(0,a.toUpperCase)(c),o[1]=c,o[2]=t):t=o[2],o[3]!==u||o[4]!==t?(n={timeframe:t,setTimeframe:u},o[3]=u,o[4]=t,o[5]=n):n=o[5],n}])},698643,879177,619451,e=>{"use strict";var l=e.i(828226),t=e.i(885530),a=e.i(60330),r=e.i(657980);e.i(402819);var i=e.i(916744);let s=(0,t.graphql)(`
+  subscription useSalesChartSubscription($slug: String!) {
+    collectionChartSalesBySlug(slug: $slug) {
+      time
+      collectionId
+      usd
+      native {
+        unit
+        symbol
+      }
+      time
+      saleKey
+    }
+  }
+`);class n extends r.Paginator{getValues(e,l){if("time"===l)return[e.time,e.saleKey];throw new a.UnreachableCaseError(l)}}let o=new n({maxItems:1e4});e.s(["useSalesChartSubscription",0,(e,t,a)=>{let r,n,c,u=(0,l.c)(7);u[0]!==e?(r={slug:e},u[0]=e,u[1]=r):r=u[1];let m=a?.pause;u[2]!==r||u[3]!==m?(n={query:s,variables:r,pause:m},u[2]=r,u[3]=m,u[4]=n):n=u[4],u[5]!==t?(c=e=>{let l=e.collectionChartSalesBySlug;t(e=>o.insertInOrder(l,e,{by:"time",direction:"ASC"},{insertIntoLastPlace:!0}))},u[5]=t,u[6]=c):c=u[6],(0,i.useSubscription)(n,c)}],698643);var c=e.i(190627);e.i(106969);var u=e.i(861060),m=e.i(544137),S=e.i(935905),h=e.i(668813);let d=(0,t.graphql)(`
+    query ItemChartDataBySaleKeyQuery($saleKey: String!) {
+      itemChartDataBySaleKey(saleKey: $saleKey) {
+        item {
+          __typename
+          ... on Item {
+            imageUrl
+            name
+            ...useSetItemQuickView
+          }
+          chain {
+            identifier
+          }
+          contractAddress
+          tokenId
+          ...ItemAvatar
+          ...itemUrl
+        }
+        sale {
+          time
+          price {
+            usd
+            ...TokenPrice
+            ...NativePrice
+          }
+        }
+      }
+    }
+  `,[u.ItemAvatarFragment,c.TokenPriceFragment,h.NativePriceFragment,S.itemUrlFragment,m.useSetItemQuickViewFragment]);e.s(["itemChartDataBySaleKeyQuery",0,d],879177);var y=e.i(647870),x=e.i(965523),g=e.i(310578);e.s(["SalesChartTooltipSkeleton",0,function(){let e,t,a,r=(0,l.c)(3);return r[0]===Symbol.for("react.memo_cache_sentinel")?(e=(0,y.jsx)(g.SkeletonBlock,{className:"size-[150px] rounded-lg"}),t=(0,y.jsx)(g.SkeletonLine,{className:"w-1/2"}),r[0]=e,r[1]=t):(e=r[0],t=r[1]),r[2]===Symbol.for("react.memo_cache_sentinel")?(a=(0,y.jsxs)(x.FlexColumn,{className:"gap-2",children:[e,t,(0,y.jsxs)(x.FlexColumn,{className:"gap-1",children:[(0,y.jsx)(g.SkeletonLine,{className:"w-full"}),(0,y.jsx)(g.SkeletonLine,{className:"w-full"})]}),(0,y.jsx)(g.SkeletonLine,{className:"w-full"})]}),r[2]=a):a=r[2],a}],619451)},93034,180763,721327,185540,e=>{"use strict";var l=e.i(647870),t=e.i(828226),a=e.i(177705),r=e.i(885530),i=e.i(5968),s=e.i(535374),n=e.i(252485),o=e.i(437153),c=e.i(104062),u=e.i(89337),m=e.i(939365),S=e.i(812222),h=e.i(825504),d=e.i(389852),y=e.i(698643),x=e.i(582064),g=e.i(996366),f=e.i(254842),p=e.i(326088);function v(e){let a,r,i,s,n,c,u=(0,t.c)(13);u[0]!==e?({className:a,...r}=e,u[0]=e,u[1]=a,u[2]=r):(a=u[1],r=u[2]),u[3]!==a?(i=(0,o.classNames)("h-[400px]",a),u[3]=a,u[4]=i):i=u[4];let m=r.overrides?.Skeleton;return u[5]!==m?(s={...m},u[5]=m,u[6]=s):s=u[6],u[7]!==r.overrides||u[8]!==s?(n=(0,l.jsx)(p.TimeSeriesChartEmptyState,{className:"size-full",overrides:{...r.overrides,Skeleton:s}}),u[7]=r.overrides,u[8]=s,u[9]=n):n=u[9],u[10]!==i||u[11]!==n?(c=(0,l.jsx)(f.Flex,{className:i,children:n}),u[10]=i,u[11]=n,u[12]=c):c=u[12],c}function C(e){let a,r,i,s,n,o=(0,t.c)(11);o[0]!==e?({overrides:a,...r}=e,o[0]=e,o[1]=a,o[2]=r):(a=o[1],r=o[2]);let c=a?.EmptyState;return o[3]!==c?(i={...c,variant:"error"},o[3]=c,o[4]=i):i=o[4],o[5]!==a||o[6]!==i?(s={...a,EmptyState:i},o[5]=a,o[6]=i,o[7]=s):s=o[7],o[8]!==r||o[9]!==s?(n=(0,l.jsx)(v,{...r,overrides:s}),o[8]=r,o[9]=s,o[10]=n):n=o[10],n}e.s(["SalesChartEmptyState",0,v],180763),e.s(["SalesChartErrorState",0,C],721327);var j=e.i(47667),b=e.i(455480),N=e.i(922364),T=e.i(39771),_=e.i(965523),k=e.i(950293),D=e.i(28155),E=e.i(230834),A=e.i(386604);e.i(106969);var V=e.i(101304),F=e.i(97004),B=e.i(570293),w=e.i(879177),P=e.i(619451);let I=(0,r.graphql)(`
+  fragment SalesChartScatterTooltip on ChartSaleV2 {
+    saleKey
+  }
+`),O=(0,r.graphql)(`
+    fragment SalesChartScatterTooltipVolume on ChartVolume {
+      volume {
+        ...Volume
+      }
+    }
+  `,[h.VolumeFragment]),Y=(0,d.withSuspense)(({matchedColumnData:e,item:t,onItemClicked:r})=>{let{saleKey:s}=(0,b.readFragment)(I,t),n=(0,S.useRef)(!1),o=(0,b.readFragment)(O,e),c=(0,N.useDateTimeFormatter)(),u=(0,F.useSetItemQuickView)(),m=(0,A.useTranslations)("SalesChartScatterTooltip"),[h]=(0,i.useQueryV2)({query:w.itemChartDataBySaleKeyQuery,variables:{saleKey:s}}),d=(0,a.getQueryData)(h),y=d?.itemChartDataBySaleKey,x=y?.item;if((0,E.useClickAnyWhere)(()=>{x&&!n.current&&(n.current=!0,r?.(),u(x))}),!(x&&y))return null;let g=y.sale.price,f=y.sale.time;return(0,l.jsxs)(_.FlexColumn,{className:"w-[150px] cursor-pointer gap-2",children:[(0,l.jsx)(V.ItemAvatar,{className:"mx-auto rounded",item:x,size:150}),(0,l.jsx)(D.TextOverflowTooltip,{children:(0,l.jsx)(k.TextBody,{children:x.name})}),(0,l.jsxs)(_.FlexColumn,{className:"gap-1",children:[(0,l.jsx)(T.FlexCenter,{className:"flex-nowrap",children:(0,l.jsx)(k.TextBody,{children:m.rich("price",{price:()=>(0,l.jsx)(j.TokenPrice,{conversion:"historical",price:g})})})}),(0,l.jsx)(k.TextBody,{children:m.rich("vol",{vol:()=>o?(0,l.jsx)(B.Volume,{disableTooltip:!0,volume:o.volume}):(0,l.jsx)(j.TokenPrice,{conversion:"historical",price:g})})})]}),(0,l.jsx)(k.TextBody,{children:(0,l.jsx)("div",{children:c(new Date(f),{display:"datetime-numeric"})})})]})},{fallback:(0,l.jsx)(P.SalesChartTooltipSkeleton,{}),errorFallback:(0,l.jsx)(u.ErrorState,{size:"lg"})});var $=e.i(701597),Q=e.i(738480);function K(e){let a,r=(0,t.c)(36),{item:i,matchedColumnData:s,series:o,movingAverageMaps:c,onItemClicked:u}=e,m=(0,N.useDateTimeFormatter)(),S=(0,A.useTranslations)("SalesChartTooltip"),{currency:h}=(0,n.useCurrency)();if("line"===o){let e,t,a,n,o,u,d;if(r[0]!==h||r[1]!==i.native||r[2]!==i.saleKey||r[3]!==c||r[4]!==S){let t;r[6]!==h||r[7]!==i.native||r[8]!==i.saleKey||r[9]!==c?(t=()=>"crypto"===h?(0,l.jsx)(j.TokenPriceDisplay,{symbol:i.native.symbol,unit:c[i.saleKey]}):(0,l.jsx)(Q.NumberDisplay,{display:"usd",value:c[i.saleKey]}),r[6]=h,r[7]=i.native,r[8]=i.saleKey,r[9]=c,r[10]=t):t=r[10],e=S.rich("movingAvgPrice",{price:t}),r[0]=h,r[1]=i.native,r[2]=i.saleKey,r[3]=c,r[4]=S,r[5]=e}else e=r[5];if(r[11]!==e?(t=(0,l.jsx)(k.TextBody,{children:e}),r[11]=e,r[12]=t):t=r[12],r[13]!==i.native||r[14]!==s||r[15]!==S){let e;r[17]!==i.native||r[18]!==s?(e=()=>s?.volume?(0,l.jsx)(B.Volume,{disableTooltip:!0,volume:s.volume}):(0,l.jsx)(j.TokenPriceDisplay,{symbol:i.native.symbol,unit:i.native.unit}),r[17]=i.native,r[18]=s,r[19]=e):e=r[19],a=S.rich("vol",{vol:e}),r[13]=i.native,r[14]=s,r[15]=S,r[16]=a}else a=r[16];return r[20]!==a?(n=(0,l.jsx)(k.TextBody,{children:a}),r[20]=a,r[21]=n):n=r[21],r[22]!==m||r[23]!==i.time?(o=m(new Date(i.time),{display:"datetime-numeric"}),r[22]=m,r[23]=i.time,r[24]=o):o=r[24],r[25]!==o?(u=(0,l.jsx)(k.TextBody,{children:(0,l.jsx)("div",{children:o})}),r[25]=o,r[26]=u):u=r[26],r[27]!==t||r[28]!==n||r[29]!==u?(d=(0,l.jsxs)(_.FlexColumn,{className:"gap-2",children:[t,n,u]}),r[27]=t,r[28]=n,r[29]=u,r[30]=d):d=r[30],d}return r[31]!==i||r[32]!==s||r[33]!==u||r[34]!==o?(a=(0,l.jsx)(Y,{item:i,matchedColumnData:s,onItemClicked:u,series:o}),r[31]=i,r[32]=s,r[33]=u,r[34]=o,r[35]=a):a=r[35],a}let R=(0,r.graphql)(`
+    query SalesChartMainQuery($collectionSlug: String!, $timeframe: Timeframe!) {
+      collectionChartSalesBySlug: collectionChartSalesBySlugV2(
+        slug: $collectionSlug
+        timeframe: $timeframe
+      ) {
+        ...SalesChartScatterTooltip
+        collectionId
+        usd
+        native {
+          unit
+          symbol
+        }
+        time
+        saleKey
+      }
+      collectionChartVolumesBySlug(
+        slug: $collectionSlug
+        timeframe: $timeframe
+      ) {
+        ...SalesChartScatterTooltipVolume
+        volume {
+          usd
+          native {
+            unit
+          }
+          ...Volume
+        }
+        time
+      }
+    }
+  `,[I,O,h.VolumeFragment]);function q(e,l,t){return Math.max(e,Math.min(l,t))}function L(e){return new Date(e.time)}function M(e){return new Date(e.time)}let H=(0,d.withSuspense)(function(e){let r,h,d,f,p,v,C,j,b,N,T,_,k,D,E,A,V,F,B,w,P,I,O,Y=(0,t.c)(78),{collectionSlug:$,className:Q,onItemClicked:H,emptyState:z,errorState:U,pinOutliers:G,hideSalesDots:W,hideAxes:X,timeframe:J}=e,Z=void 0===G||G,ee=void 0!==W&&W,el=void 0!==X&&X,{timeframe:et}=(0,x.useAnalyticsTimeframeQueryParam)(),ea=J??et;Y[0]!==$||Y[1]!==ea?(r={query:R,variables:{collectionSlug:$,timeframe:ea}},Y[0]=$,Y[1]=ea,Y[2]=r):r=Y[2];let[er]=(0,i.useQueryV2)(r);Y[3]!==er?(h=(0,a.getQueryData)(er),Y[3]=er,Y[4]=h):h=Y[4];let ei=h,es=(0,a.getQueryError)(er);Y[5]!==ei?.collectionChartSalesBySlug?(d=ei?.collectionChartSalesBySlug||[],Y[5]=ei?.collectionChartSalesBySlug,Y[6]=d):d=Y[6];let[en,eo]=(0,S.useState)(d);Y[7]!==ei?.collectionChartSalesBySlug?(f=()=>{eo(ei?.collectionChartSalesBySlug||[])},Y[7]=ei?.collectionChartSalesBySlug,Y[8]=f):f=Y[8];let ec=ei?.collectionChartSalesBySlug;Y[9]!==ec?(p=[ec],Y[9]=ec,Y[10]=p):p=Y[10],(0,S.useEffect)(f,p),(0,y.useSalesChartSubscription)($,eo);let{currency:eu}=(0,n.useCurrency)(),em=(0,s.useNumberFormatter)();Y[11]!==eu?(v=e=>"crypto"===eu?e.native.unit:e.usd,Y[11]=eu,Y[12]=v):v=Y[12];let eS="ALL_TIME"===ea?3:1.5;if(Y[13]!==eu||Y[14]!==ei?.collectionChartVolumesBySlug||Y[15]!==Z||Y[16]!==en||Y[17]!==v||Y[18]!==eS||Y[19]!==ea){let e,l,t=(0,g.getOutlierRange)(en,v,eS);C=Math.max(t?.lowerBound??0,0),b=t?.upperBound??1/0,Y[24]!==ei?.collectionChartVolumesBySlug?(e=ei?.collectionChartVolumesBySlug??[],Y[24]=ei?.collectionChartVolumesBySlug,Y[25]=e):e=Y[25],N=e,l=20,"ONE_HOUR"===ea||"ONE_DAY"===ea?l=7:"SEVEN_DAYS"===ea?l=12:"THIRTY_DAYS"===ea?l=15:"ONE_YEAR"===ea?l=20:"ALL_TIME"===ea&&(l=25),j=(0,g.generateMovingAverage)(en.map(e=>{let l="crypto"===eu?e.native.unit:e.usd,t=Z?q(C,b,l):l;return{id:e.saleKey,price:t}}),l),Y[13]=eu,Y[14]=ei?.collectionChartVolumesBySlug,Y[15]=Z,Y[16]=en,Y[17]=v,Y[18]=eS,Y[19]=ea,Y[20]=C,Y[21]=j,Y[22]=b,Y[23]=N}else C=Y[20],j=Y[21],b=Y[22],N=Y[23];let eh=j;if(es){let e;return Y[26]!==U?(e=U??(0,l.jsx)(u.ErrorState,{className:"pb-4"}),Y[26]=U,Y[27]=e):e=Y[27],e}if(0===en.length){let e;return Y[28]!==z?(e=z??(0,l.jsx)(c.EmptyState,{className:"pb-4",variant:"no-results"}),Y[28]=z,Y[29]=e):e=Y[29],e}Y[30]!==Q?(T=(0,o.classNames)("h-[400px]",Q),Y[30]=Q,Y[31]=T):T=Y[31];let ed=T;Y[32]!==eu||Y[33]!==C||Y[34]!==b?(_=e=>{let l="crypto"===eu?e.native.unit:e.usd;return l<C||l>b},Y[32]=eu,Y[33]=C,Y[34]=b,Y[35]=_):_=Y[35],Y[36]!==eu||Y[37]!==ee||Y[38]!==C||Y[39]!==Z||Y[40]!==b?(k=ee?void 0:e=>{let l="crypto"===eu?e.native.unit:e.usd;return Z?q(C,b,l):l},Y[36]=eu,Y[37]=ee,Y[38]=C,Y[39]=Z,Y[40]=b,Y[41]=k):k=Y[41],Y[42]!==eh?(D=e=>{try{return eh[e.saleKey]}catch{return 0}},Y[42]=eh,Y[43]=D):D=Y[43];let ey=`${ea}-${String(Z)}-${String(ee)}-${en[0]?.time??""}-${en.at(-1)?.time??""}`,ex=Z?C:void 0,eg=Z?b:void 0;return Y[44]!==eu||Y[45]!==em||Y[46]!==en[0]?(E=e=>em(e,{display:"crypto"===eu?"quantity":"usd",suffix:"crypto"===eu?en[0].native.symbol:void 0}),Y[44]=eu,Y[45]=em,Y[46]=en[0],Y[47]=E):E=Y[47],Y[48]!==el||Y[49]!==ex||Y[50]!==eg||Y[51]!==E?(A={hidden:el,yAxisMin:ex,yAxisMax:eg,tickFormat:E},Y[48]=el,Y[49]=ex,Y[50]=eg,Y[51]=E,Y[52]=A):A=Y[52],Y[53]!==el?(V={hidden:el},Y[53]=el,Y[54]=V):V=Y[54],Y[55]!==A||Y[56]!==V?(F={YAxis:A,XAxis:V},Y[55]=A,Y[56]=V,Y[57]=F):F=Y[57],Y[58]!==eh||Y[59]!==H||Y[60]!==ea?(B=e=>(0,l.jsx)(K,{movingAverageMaps:eh,onItemClicked:H,timeframe:ea,...e}),Y[58]=eh,Y[59]=H,Y[60]=ea,Y[61]=B):B=Y[61],Y[62]===Symbol.for("react.memo_cache_sentinel")?(w={tooltipDelay:200},Y[62]=w):w=Y[62],Y[63]!==eu?(P=e=>"crypto"===eu?e.volume.native.unit:e.volume.usd,Y[63]=eu,Y[64]=P):P=Y[64],Y[65]!==P||Y[66]!==N?(I={items:N,getDate:L,getValue:P},Y[65]=P,Y[66]=N,Y[67]=I):I=Y[67],Y[68]!==ed||Y[69]!==en||Y[70]!==_||Y[71]!==k||Y[72]!==D||Y[73]!==ey||Y[74]!==F||Y[75]!==B||Y[76]!==I?(O=(0,l.jsx)(m.TimeSeriesChart,{className:ed,data:en,getDate:M,getIsOutlier:_,getScatterValue:k,getValue:D,overrides:F,renderTooltip:B,scatterOptions:w,standaloneColumn:I},ey),Y[68]=ed,Y[69]=en,Y[70]=_,Y[71]=k,Y[72]=D,Y[73]=ey,Y[74]=F,Y[75]=B,Y[76]=I,Y[77]=O):O=Y[77],O},{fallback:function(e){let a,r,i,s=(0,t.c)(5),{className:n}=e;return s[0]!==n?(a=(0,o.classNames)("h-[400px]",n),s[0]=n,s[1]=a):a=s[1],s[2]===Symbol.for("react.memo_cache_sentinel")?(r=(0,l.jsx)($.TimeSeriesChartSkeleton,{className:"size-full"}),s[2]=r):r=s[2],s[3]!==a?(i=(0,l.jsx)(f.Flex,{className:a,children:r}),s[3]=a,s[4]=i):i=s[4],i},errorFallback:(0,l.jsx)(C,{})});e.s(["SalesChart",0,H],185540),e.s([],93034)},310484,913744,767012,386490,e=>{"use strict";var l=e.i(647870),t=e.i(828226),a=e.i(681136),r=e.i(812222),i=e.i(389852),s=e.i(437153),n=e.i(254842),o=e.i(939365);function c(e){let a,r,i,c,u,m,S=(0,t.c)(13);S[0]!==e?({className:a,...r}=e,S[0]=e,S[1]=a,S[2]=r):(a=S[1],r=S[2]),S[3]!==a?(i=(0,s.classNames)("h-[400px]",a),S[3]=a,S[4]=i):i=S[4];let h=r.overrides?.Skeleton;return S[5]!==h?(c={...h},S[5]=h,S[6]=c):c=S[6],S[7]!==r.overrides||S[8]!==c?(u=(0,l.jsx)(o.TimeSeriesChart.EmptyState,{className:"size-full",overrides:{...r.overrides,Skeleton:c}}),S[7]=r.overrides,S[8]=c,S[9]=u):u=S[9],S[10]!==i||S[11]!==u?(m=(0,l.jsx)(n.Flex,{className:i,children:u}),S[10]=i,S[11]=u,S[12]=m):m=S[12],m}function u(e){let a,r,i,s,n,o=(0,t.c)(11);o[0]!==e?({overrides:a,...r}=e,o[0]=e,o[1]=a,o[2]=r):(a=o[1],r=o[2]);let u=a?.EmptyState;return o[3]!==u?(i={...u,variant:"error"},o[3]=u,o[4]=i):i=o[4],o[5]!==a||o[6]!==i?(s={...a,EmptyState:i},o[5]=a,o[6]=i,o[7]=s):s=o[7],o[8]!==r||o[9]!==s?(n=(0,l.jsx)(c,{...r,overrides:s}),o[8]=r,o[9]=s,o[10]=n):n=o[10],n}e.s(["FloorChartEmptyState",0,c],913744),e.s(["FloorChartErrorState",0,u],767012);var m=e.i(701597);function S(e){let a,r,i,o=(0,t.c)(5),{className:c}=e;return o[0]!==c?(a=(0,s.classNames)("h-[400px]",c),o[0]=c,o[1]=a):a=o[1],o[2]===Symbol.for("react.memo_cache_sentinel")?(r=(0,l.jsx)(m.TimeSeriesChartSkeleton,{className:"size-full"}),o[2]=r):r=o[2],o[3]!==a?(i=(0,l.jsx)(n.Flex,{className:a,children:r}),o[3]=a,o[4]=i):i=o[4],i}function h(e){let a,r,i,s=(0,t.c)(6);return s[0]!==e?({className:a,...r}=e,s[0]=e,s[1]=a,s[2]=r):(a=s[1],r=s[2]),s[3]!==a||s[4]!==r?(i=(0,l.jsx)(S,{...r,className:a}),s[3]=a,s[4]=r,s[5]=i):i=s[5],i}let d=(0,r.createContext)(null),y=(0,a.default)(()=>e.A(269842).then(e=>e.FloorChartBase),{loadableGenerated:{modules:[917020]},ssr:!1,loading(){let e=(0,r.useContext)(d);return(0,l.jsx)(h,{...e})}}),x=(0,i.withSuspense)(e=>(0,l.jsx)(d.Provider,{value:e,children:(0,l.jsx)(y,{...e})}),{fallback:h,errorFallback:(0,l.jsx)(u,{})});e.s(["FloorChart",0,x],386490),e.s([],310484)},169393,e=>{"use strict";var l=e.i(647870),t=e.i(828226),a=e.i(437153),r=e.i(254842),i=e.i(965523),s=e.i(820130),n=e.i(310578),o=e.i(258343),c=e.i(255666),u=e.i(209959),m=e.i(950293),S=e.i(517481);function h(e){return e.value}function d(e){return e.date}function y(e){let{key:t,label:a}=e;return(0,l.jsx)(s.SelectItem,{value:t,children:(0,l.jsx)(s.SelectItemTitle,{children:a})},t)}e.s(["StatCard",0,function(e){let n,x,g,f,p,v,C,j,b,N,T,_,k=(0,t.c)(31),{label:D,value:E,change:A,sparklineData:V,sparklineVariant:F,timeframe:B,onTimeframeChange:w,timeframeOptions:P}=e,I=void 0===F?"neutral":F;return k[0]!==D?(n=(0,l.jsx)(m.TextBody,{className:"text-text-secondary",size:"sm",weight:"semibold",children:D}),k[0]=D,k[1]=n):n=k[1],k[2]!==w?(x=e=>w(e),k[2]=w,k[3]=x):x=k[3],k[4]===Symbol.for("react.memo_cache_sentinel")?(g={Content:{className:"min-w-[72px]"}},k[4]=g):g=k[4],k[5]!==P?(f=e=>P.find(l=>{let{key:t}=l;return t===e})?.label||"30d",k[5]=P,k[6]=f):f=k[6],k[7]!==P?(p=P.map(y),k[7]=P,k[8]=p):p=k[8],k[9]!==x||k[10]!==f||k[11]!==p||k[12]!==B?(v=(0,l.jsx)(s.Select,{align:"end",className:"h-fit w-fit",dropdownSize:"sm",onValueChange:x,overrides:g,renderValue:f,value:B,variant:"ghost",children:p}),k[9]=x,k[10]=f,k[11]=p,k[12]=B,k[13]=v):v=k[13],k[14]!==n||k[15]!==v?(C=(0,l.jsxs)(o.SpaceBetween,{className:"mb-2 items-start",children:[n,v]}),k[14]=n,k[15]=v,k[16]=C):C=k[16],k[17]!==E?(j=(0,l.jsx)(S.TextDisplay,{size:"lg",children:E}),k[17]=E,k[18]=j):j=k[18],k[19]!==A?(b=null!=A&&(0,l.jsx)(u.StatChange,{change:A}),k[19]=A,k[20]=b):b=k[20],k[21]!==b||k[22]!==j?(N=(0,l.jsxs)(r.Flex,{className:"items-baseline gap-2",children:[j,b]}),k[21]=b,k[22]=j,k[23]=N):N=k[23],k[24]!==V||k[25]!==I?(T=V&&V.length>1&&(0,l.jsx)(i.FlexColumn,{className:(0,a.classNames)("mt-4 h-12","negative"===I&&"[&_path]:stroke-error-1","positive"===I&&"[&_path]:stroke-success-1"),children:(0,l.jsx)(c.SparkLineChart,{className:"h-full w-full",data:V,getDate:d,getValue:h})}),k[24]=V,k[25]=I,k[26]=T):T=k[26],k[27]!==N||k[28]!==T||k[29]!==C?(_=(0,l.jsxs)(i.FlexColumn,{className:"h-[180px] rounded-lg border border-border-1 bg-bg-primary p-4",children:[C,N,T]}),k[27]=N,k[28]=T,k[29]=C,k[30]=_):_=k[30],_},"StatCardSkeleton",0,function(e){let s,c,u,m,S,h,d=(0,t.c)(9);d[0]!==e?(s=void 0===e?{}:e,d[0]=e,d[1]=s):s=d[1];let{className:y}=s;return d[2]!==y?(c=(0,a.classNames)("h-[180px] rounded-lg border border-border-1 bg-bg-primary p-4",y),d[2]=y,d[3]=c):c=d[3],d[4]===Symbol.for("react.memo_cache_sentinel")?(u=(0,l.jsxs)(o.SpaceBetween,{className:"mb-2 items-start",children:[(0,l.jsx)(n.Skeleton,{className:"h-4 w-16"}),(0,l.jsx)(n.Skeleton,{className:"h-6 w-12"})]}),d[4]=u):u=d[4],d[5]===Symbol.for("react.memo_cache_sentinel")?(m=(0,l.jsx)(r.Flex,{className:"items-baseline gap-2",children:(0,l.jsx)(n.Skeleton,{className:"h-8 w-24"})}),d[5]=m):m=d[5],d[6]===Symbol.for("react.memo_cache_sentinel")?(S=(0,l.jsx)(i.FlexColumn,{className:"mt-4 h-12",children:(0,l.jsx)(n.Skeleton,{className:"h-full w-full"})}),d[6]=S):S=d[6],d[7]!==c?(h=(0,l.jsxs)(i.FlexColumn,{className:c,children:[u,m,S]}),d[7]=c,d[8]=h):h=d[8],h}])},268039,e=>{"use strict";var l=e.i(647870),t=e.i(828226),a=e.i(167368),r=e.i(437153),i=e.i(254842),s=e.i(965523),n=e.i(893212),o=e.i(999258),c=e.i(339694),u=e.i(386604),m=e.i(812222),S=e.i(35782),h=e.i(501811),d=e.i(444501);e.i(310484);var y=e.i(386490);e.i(93034);var x=e.i(185540),g=e.i(820130),f=e.i(258343),p=e.i(950293);function v(e){let a,r,i,n,o,c,u,m,S=(0,t.c)(20),{title:h,timeframe:d,onTimeframeChange:y,timeframeOptions:x,children:v}=e;return S[0]!==h?(a=(0,l.jsx)(p.TextBody,{size:"md",weight:"semibold",children:h}),S[0]=h,S[1]=a):a=S[1],S[2]!==y?(r=e=>y(e),S[2]=y,S[3]=r):r=S[3],S[4]===Symbol.for("react.memo_cache_sentinel")?(i={Content:{className:"min-w-[72px]"}},S[4]=i):i=S[4],S[5]!==x?(n=e=>x.find(l=>{let{key:t}=l;return t===e})?.label||"30d",S[5]=x,S[6]=n):n=S[6],S[7]!==x?(o=x.map(C),S[7]=x,S[8]=o):o=S[8],S[9]!==r||S[10]!==n||S[11]!==o||S[12]!==d?(c=(0,l.jsx)(g.Select,{align:"end",className:"h-fit w-fit",dropdownSize:"sm",onValueChange:r,overrides:i,renderValue:n,value:d,variant:"ghost",children:o}),S[9]=r,S[10]=n,S[11]=o,S[12]=d,S[13]=c):c=S[13],S[14]!==a||S[15]!==c?(u=(0,l.jsxs)(f.SpaceBetween,{className:"mb-4 items-center",children:[a,c]}),S[14]=a,S[15]=c,S[16]=u):u=S[16],S[17]!==v||S[18]!==u?(m=(0,l.jsxs)(s.FlexColumn,{className:"rounded-lg border border-border-1 bg-bg-primary p-4",children:[u,v]}),S[17]=v,S[18]=u,S[19]=m):m=S[19],m}function C(e){let{key:t,label:a}=e;return(0,l.jsx)(g.SelectItem,{value:t,children:(0,l.jsx)(g.SelectItemTitle,{children:a})},t)}var j=e.i(47667),b=e.i(177705),N=e.i(5968),T=e.i(252485),_=e.i(89337),k=e.i(389852),D=e.i(190627),E=e.i(885530),A=e.i(825504);let V=(0,E.graphql)(`
+    query CollectionAnalyticsStatsQuery($collectionSlug: String!) {
+      collectionBySlug(slug: $collectionSlug) {
+        ... on Collection {
+          floorPrice {
+            pricePerItem {
+              ...TokenPrice
+            }
+          }
+          stats {
+            sales
+            volume {
+              ...Volume
+            }
+            oneHour {
+              sales
+              volume {
+                ...Volume
+              }
+              floorPriceChange
+            }
+            oneDay {
+              sales
+              volume {
+                ...Volume
+              }
+              floorPriceChange
+            }
+            sevenDays {
+              sales
+              volume {
+                ...Volume
+              }
+              floorPriceChange
+            }
+            thirtyDays {
+              sales
+              volume {
+                ...Volume
+              }
+              floorPriceChange
+            }
+          }
+        }
+      }
+    }
+  `,[A.VolumeFragment,D.TokenPriceFragment]),F=(0,E.graphql)(`
+    query CollectionAnalyticsVolumeSparklineQuery(
+      $collectionSlug: String!
+      $timeframe: Timeframe!
+    ) {
+      collectionChartVolumesBySlug(slug: $collectionSlug, timeframe: $timeframe) {
+        volume {
+          usd
+          native {
+            unit
+            symbol
+          }
+        }
+        time
+      }
+    }
+  `,[]),B=(0,E.graphql)(`
+    query CollectionAnalyticsFloorSparklineQuery(
+      $collectionSlug: String!
+      $timeframe: Timeframe!
+    ) {
+      collectionChartFloorPricesBySlug(
+        slug: $collectionSlug
+        timeframe: $timeframe
+      ) {
+        price {
+          native {
+            unit
+            symbol
+          }
+          usd
+        }
+        time
+      }
+    }
+  `,[]),w=["ONE_HOUR","ONE_DAY","SEVEN_DAYS","THIRTY_DAYS","ONE_YEAR","ALL_TIME"],P=["ONE_HOUR","ONE_DAY","SEVEN_DAYS","THIRTY_DAYS"],I=["ONE_HOUR","ONE_DAY","SEVEN_DAYS","THIRTY_DAYS","ALL_TIME"];function O(e){return I.includes(e)}function Y(e){let l,a,r,i=(0,t.c)(9);i[0]!==e?(l={query:V,variables:{collectionSlug:e}},i[0]=e,i[1]=l):l=i[1];let[s]=(0,N.useQueryV2)(l),n="fetching"===s.status;i[2]!==s?(a=(0,b.getQueryData)(s),i[2]=s,i[3]=a):a=i[3];let o=a,c=o?.collectionBySlug,u=c?.__typename==="Collection"?c:null,m=u?.stats??null,S=u?.floorPrice??null;return i[4]!==u||i[5]!==n||i[6]!==S||i[7]!==m?(r={stats:m,floorPrice:S,collectionData:u,fetching:n},i[4]=u,i[5]=n,i[6]=S,i[7]=m,i[8]=r):r=i[8],r}function $(e,l){if(!P.includes(l))return null;switch(l){case"ONE_HOUR":return e?.oneHour??null;case"ONE_DAY":return e?.oneDay??null;case"SEVEN_DAYS":return e?.sevenDays??null;case"THIRTY_DAYS":return e?.thirtyDays??null}}var Q=e.i(169393);let K=(0,k.withSuspense)(function({collectionSlug:e,timeframe:t,onTimeframeChange:a,timeframeOptions:r}){let i=(0,u.useTranslations)("CollectionAnalytics"),{currency:s}=(0,T.useCurrency)(),{stats:n,floorPrice:o,fetching:c}=Y(e),[S]=(0,N.useQueryV2)({query:B,variables:{collectionSlug:e,timeframe:t}}),h="fetching"===S.status,d=(0,b.getQueryData)(S);if(c||h)return(0,l.jsx)(Q.StatCardSkeleton,{});let y=$(n,t),x=d?.collectionChartFloorPricesBySlug?.[0]?.price?.native?.symbol,g="crypto"===s&&!!x,f=(0,m.useMemo)(()=>(d?.collectionChartFloorPricesBySlug??[]).map(e=>({date:new Date(e.time),value:g?e.price?.native?.unit??0:e.price?.usd??0})),[d?.collectionChartFloorPricesBySlug,g]),p=y?.floorPriceChange!==void 0&&y?.floorPriceChange!==null?y.floorPriceChange>=0?"positive":"negative":f.length>1?(f.at(-1)?.value??0)>=f[0].value?"positive":"negative":"neutral";return(0,l.jsx)(Q.StatCard,{change:y?.floorPriceChange,label:i("floorPrice"),onTimeframeChange:a,sparklineData:f,sparklineVariant:p,timeframe:t,timeframeOptions:r,value:(0,l.jsx)(j.TokenPrice,{display:"standard",price:o?.pricePerItem,symbolColor:"current"})})},{fallback:(0,l.jsx)(Q.StatCardSkeleton,{}),errorFallback:(0,l.jsx)(_.ErrorState,{size:"lg"}),ssr:!1});var R=e.i(535374);let q=(0,k.withSuspense)(function(e){let a,r,i,s,n=(0,t.c)(15),{collectionSlug:o,timeframe:c,onTimeframeChange:m,timeframeOptions:S}=e,h=(0,u.useTranslations)("CollectionAnalytics"),d=(0,R.useNumberFormatter)(),{stats:y,fetching:x}=Y(o);if(x){let e;return n[0]===Symbol.for("react.memo_cache_sentinel")?(e=(0,l.jsx)(Q.StatCardSkeleton,{}),n[0]=e):e=n[0],e}n[1]!==y||n[2]!==c?(a=function(e,l){if(!O(l))return null;switch(l){case"ONE_HOUR":return e?.oneHour?.sales==null?null:String(e.oneHour.sales);case"ONE_DAY":return e?.oneDay?.sales==null?null:String(e.oneDay.sales);case"SEVEN_DAYS":return e?.sevenDays?.sales==null?null:String(e.sevenDays.sales);case"THIRTY_DAYS":return e?.thirtyDays?.sales==null?null:String(e.thirtyDays.sales);case"ALL_TIME":return e?.sales==null?null:String(e.sales)}}(y,c),n[1]=y,n[2]=c,n[3]=a):a=n[3];let g=a;return n[4]!==h?(r=h("salesCount"),n[4]=h,n[5]=r):r=n[5],n[6]!==d||n[7]!==g?(i=null!=g?d(Number(g),{display:"quantity"}):"-",n[6]=d,n[7]=g,n[8]=i):i=n[8],n[9]!==m||n[10]!==r||n[11]!==i||n[12]!==c||n[13]!==S?(s=(0,l.jsx)(Q.StatCard,{label:r,onTimeframeChange:m,timeframe:c,timeframeOptions:S,value:i}),n[9]=m,n[10]=r,n[11]=i,n[12]=c,n[13]=S,n[14]=s):s=n[14],s},{fallback:(0,l.jsx)(Q.StatCardSkeleton,{}),errorFallback:(0,l.jsx)(_.ErrorState,{size:"lg"}),ssr:!1});var L=e.i(738480),M=e.i(570293);let H=(0,k.withSuspense)(function({collectionSlug:e,timeframe:t,onTimeframeChange:a,timeframeOptions:r}){let i=(0,u.useTranslations)("CollectionAnalytics"),s=(0,R.useNumberFormatter)(),{currency:n}=(0,T.useCurrency)(),{stats:o,fetching:c}=Y(e),[S]=(0,N.useQueryV2)({query:F,variables:{collectionSlug:e,timeframe:t}}),h="fetching"===S.status,d=(0,b.getQueryData)(S);if(c||h)return(0,l.jsx)(Q.StatCardSkeleton,{});let y=$(o,t),x=y?.volume??("ALL_TIME"===t?o?.volume:null)??null,g=d?.collectionChartVolumesBySlug?.[0]?.volume?.native?.symbol,f="crypto"===n&&!!g,p=(0,m.useMemo)(()=>(d?.collectionChartVolumesBySlug??[]).map(e=>({date:new Date(e.time),value:f?e.volume?.native?.unit??0:e.volume?.usd??0})),[d?.collectionChartVolumesBySlug,f]),v=(0,m.useMemo)(()=>{if(x)return null;let e=d?.collectionChartVolumesBySlug??[];return 0===e.length?null:e.reduce((e,l)=>e+(f?l.volume?.native?.unit??0:l.volume?.usd??0),0)},[d?.collectionChartVolumesBySlug,f,x]),C=p.length>1?(p.at(-1)?.value??0)>=p[0].value?"positive":"negative":"neutral";return(0,l.jsx)(Q.StatCard,{label:i("volume"),onTimeframeChange:a,sparklineData:p,sparklineVariant:C,timeframe:t,timeframeOptions:r,value:x?(0,l.jsx)(M.Volume,{volume:x}):null===v?"-":f?`${s(v,{display:"quantity"})} ${g}`:(0,l.jsx)(L.NumberDisplay,{display:"usd",value:v})})},{fallback:(0,l.jsx)(Q.StatCardSkeleton,{}),errorFallback:(0,l.jsx)(_.ErrorState,{size:"lg"}),ssr:!1});e.s(["CollectionAnalytics",0,function(e){let g,f,p,C,j,b,N,T,_,k,D,E,A,V,F,B,P,Y,$,R,L,M,z,U,G,W,X,J=(0,t.c)(69),{collectionSlug:Z}=e,[ee,el]=(0,m.useState)("SEVEN_DAYS"),[et,ea]=(0,m.useState)("SEVEN_DAYS"),[er,ei]=(0,m.useState)("SEVEN_DAYS"),[es,en]=(0,m.useState)("SEVEN_DAYS"),[eo,ec]=(0,m.useState)("SEVEN_DAYS"),[eu,em]=(0,m.useState)("SEVEN_DAYS"),eS=(0,u.useTranslations)("CollectionAnalytics"),eh=(0,S.useTimeframeEnumName)();J[0]===Symbol.for("react.memo_cache_sentinel")?(g=e=>{el(e),ea(e),ei(O(e)?e:"THIRTY_DAYS"),en(e),ec(e),em(e)},J[0]=g):g=J[0];let ed=g;J[1]!==eh?(f=w.map(e=>({key:e,label:eh(e)})),J[1]=eh,J[2]=f):f=J[2];let ey=f;J[3]!==eh?(p=I.map(e=>({key:e,label:eh(e)})),J[3]=eh,J[4]=p):p=J[4];let ex=p;J[5]===Symbol.for("react.memo_cache_sentinel")?(C=(0,l.jsx)(o.Separator,{className:(0,r.classNames)((0,h.fullBleedVariants)(),(0,d.topStickyVariants)({variant:"after-hero-header-tab-menu"}))}),J[5]=C):C=J[5],J[6]===Symbol.for("react.memo_cache_sentinel")?(j=e=>ed(e),J[6]=j):j=J[6],J[7]!==eh?(b=w.map(e=>(0,l.jsx)(c.ToggleButtonGroupItem,{value:e,children:eh(e)},e)),J[7]=eh,J[8]=b):b=J[8],J[9]!==ee||J[10]!==b?(N=(0,l.jsx)(n.FlexEnd,{children:(0,l.jsx)(c.ToggleButtonGroup,{onValueChange:j,value:ee,children:b})}),J[9]=ee,J[10]=b,J[11]=N):N=J[11],J[12]===Symbol.for("react.memo_cache_sentinel")?(T=(0,l.jsx)(Q.StatCardSkeleton,{}),J[12]=T):T=J[12];let eg=`volume-${et}`;J[13]!==Z||J[14]!==ey||J[15]!==et?(_=(0,l.jsx)(H,{collectionSlug:Z,onTimeframeChange:ea,timeframe:et,timeframeOptions:ey}),J[13]=Z,J[14]=ey,J[15]=et,J[16]=_):_=J[16],J[17]!==_||J[18]!==eg?(k=(0,l.jsx)(s.FlexColumn,{className:"flex-1",children:(0,l.jsx)(m.Suspense,{fallback:T,children:_},eg)}),J[17]=_,J[18]=eg,J[19]=k):k=J[19],J[20]===Symbol.for("react.memo_cache_sentinel")?(D=(0,l.jsx)(Q.StatCardSkeleton,{}),J[20]=D):D=J[20];let ef=`sales-${er}`;J[21]!==Z||J[22]!==er||J[23]!==ex?(E=(0,l.jsx)(q,{collectionSlug:Z,onTimeframeChange:ei,timeframe:er,timeframeOptions:ex}),J[21]=Z,J[22]=er,J[23]=ex,J[24]=E):E=J[24],J[25]!==ef||J[26]!==E?(A=(0,l.jsx)(s.FlexColumn,{className:"flex-1",children:(0,l.jsx)(m.Suspense,{fallback:D,children:E},ef)}),J[25]=ef,J[26]=E,J[27]=A):A=J[27],J[28]===Symbol.for("react.memo_cache_sentinel")?(V=(0,l.jsx)(Q.StatCardSkeleton,{}),J[28]=V):V=J[28];let ep=`floor-${es}`;return J[29]!==Z||J[30]!==es||J[31]!==ey?(F=(0,l.jsx)(K,{collectionSlug:Z,onTimeframeChange:en,timeframe:es,timeframeOptions:ey}),J[29]=Z,J[30]=es,J[31]=ey,J[32]=F):F=J[32],J[33]!==ep||J[34]!==F?(B=(0,l.jsx)(s.FlexColumn,{className:"flex-1",children:(0,l.jsx)(m.Suspense,{fallback:V,children:F},ep)}),J[33]=ep,J[34]=F,J[35]=B):B=J[35],J[36]!==k||J[37]!==A||J[38]!==B?(P=(0,l.jsxs)(i.Flex,{className:"flex-col gap-4 md:flex-row",children:[k,A,B]}),J[36]=k,J[37]=A,J[38]=B,J[39]=P):P=J[39],J[40]!==eS?(Y=eS("volumeAndPrice"),J[40]=eS,J[41]=Y):Y=J[41],J[42]===Symbol.for("react.memo_cache_sentinel")?($=(0,l.jsx)(a.ChartSkeleton,{className:"h-[400px]"}),J[42]=$):$=J[42],J[43]!==Z||J[44]!==eo?(R=(0,l.jsx)(m.Suspense,{fallback:$,children:(0,l.jsx)(x.SalesChart,{collectionSlug:Z,hideSalesDots:!0,timeframe:eo})}),J[43]=Z,J[44]=eo,J[45]=R):R=J[45],J[46]!==eo||J[47]!==Y||J[48]!==R||J[49]!==ey?(L=(0,l.jsx)(s.FlexColumn,{className:"min-w-0 flex-1 xl:flex-[2]",children:(0,l.jsx)(v,{onTimeframeChange:ec,timeframe:eo,timeframeOptions:ey,title:Y,children:R})}),J[46]=eo,J[47]=Y,J[48]=R,J[49]=ey,J[50]=L):L=J[50],J[51]!==eS?(M=eS("listingAndFloor"),J[51]=eS,J[52]=M):M=J[52],J[53]===Symbol.for("react.memo_cache_sentinel")?(z=(0,l.jsx)(a.ChartSkeleton,{className:"h-[400px]"}),J[53]=z):z=J[53],J[54]!==Z||J[55]!==eu?(U=(0,l.jsx)(m.Suspense,{fallback:z,children:(0,l.jsx)(y.FloorChart,{collectionSlug:Z,showSalesDots:!0,timeframe:eu})}),J[54]=Z,J[55]=eu,J[56]=U):U=J[56],J[57]!==eu||J[58]!==M||J[59]!==U||J[60]!==ey?(G=(0,l.jsx)(s.FlexColumn,{className:"min-w-0 flex-1",children:(0,l.jsx)(v,{onTimeframeChange:em,timeframe:eu,timeframeOptions:ey,title:M,children:U})}),J[57]=eu,J[58]=M,J[59]=U,J[60]=ey,J[61]=G):G=J[61],J[62]!==L||J[63]!==G?(W=(0,l.jsxs)(i.Flex,{className:"w-full flex-col gap-4 xl:flex-row",children:[L,G]}),J[62]=L,J[63]=G,J[64]=W):W=J[64],J[65]!==P||J[66]!==W||J[67]!==N?(X=(0,l.jsxs)(s.FlexColumn,{className:"w-full",children:[C,(0,l.jsxs)(s.FlexColumn,{className:"gap-6 py-6",children:[N,P,W]})]}),J[65]=P,J[66]=W,J[67]=N,J[68]=X):X=J[68],X}],268039)},269842,e=>{e.v(l=>Promise.all(["static/chunks/0zwev6r442gjc.js"].map(l=>e.l(l))).then(()=>l(917020)))}]);
+
+//# debugId=dfe70007-3a98-bde4-8ce8-a0c2a5e24120
+//# sourceMappingURL=0by_2b60_d2dk.js.map

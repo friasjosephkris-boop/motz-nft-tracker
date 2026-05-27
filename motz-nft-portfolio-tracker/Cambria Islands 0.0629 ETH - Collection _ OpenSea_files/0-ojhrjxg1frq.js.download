@@ -1,0 +1,242 @@
+;!function(){try { var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof global?global:"undefined"!=typeof window?window:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&((e._debugIds|| (e._debugIds={}))[n]="b4b0a542-5504-8c33-815b-f6cfa4be8d3d")}catch(e){}}();
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,784767,e=>{"use strict";var t=e.i(647870),n=e.i(828226),a=e.i(261901),r=e.i(437153);e.s(["TextArea",0,function(e){let s,i,g,l,o,d,u,m=(0,n.c)(14);return m[0]!==e?({className:s,disabled:i,error:g,variant:o,...l}=e,m[0]=e,m[1]=s,m[2]=i,m[3]=g,m[4]=l,m[5]=o):(s=m[1],i=m[2],g=m[3],l=m[4],o=m[5]),m[6]!==s||m[7]!==i||m[8]!==g||m[9]!==o?(d=(0,r.classNames)((0,a.inputVariants)({variant:o,disabled:i,error:g}),"h-auto w-full resize-y whitespace-pre-wrap break-words rounded-lg p-3","bg-transparent outline-hidden",s),m[6]=s,m[7]=i,m[8]=g,m[9]=o,m[10]=d):d=m[10],m[11]!==l||m[12]!==d?(u=(0,t.jsx)("textarea",{className:d,...l}),m[11]=l,m[12]=d,m[13]=u):u=m[13],u}])},617941,e=>{"use strict";let t=(0,e.i(729427).create)(e=>({chatOpen:!1,setChatOpen:t=>e({chatOpen:t}),createModalOpen:!1,setCreateModalOpen:t=>e({createModalOpen:t}),managementOpen:!1,setManagementOpen:t=>e({managementOpen:t})}));e.s(["useAgentStore",0,t])},202663,e=>{"use strict";let t=(0,e.i(885530).graphql)(`
+  fragment CreateAgentModal on Agent {
+    name
+    status
+  }
+`);e.s(["CreateAgentModalFragment",0,t])},980716,e=>{"use strict";let t=(0,e.i(885530).graphql)(`
+  fragment AgentAvatarWidget on Agent {
+    name
+    avatarUrl
+    status
+  }
+`);e.s(["AgentAvatarWidgetFragment",0,t])},228886,e=>{"use strict";var t=e.i(885530);let n=(0,t.graphql)(`
+  fragment AgentChatOverlay on Agent {
+    id
+    name
+    avatarUrl
+    status
+  }
+`),a=(0,t.graphql)(`
+  fragment AgentChatOverlayMessage on ChatMessage {
+    id
+    role
+    content
+    createdAt
+  }
+`);e.s(["AgentChatOverlayFragment",0,n,"AgentChatOverlayMessageFragment",0,a])},847616,830394,e=>{"use strict";var t=e.i(885530);let n=(0,t.graphql)(`
+  fragment AgentManagementPanel on Agent {
+    id
+    name
+    avatarUrl
+    personality
+    status
+    walletAddress
+    skills {
+      id
+      skillId
+      name
+      enabled
+    }
+  }
+`),a=(0,t.graphql)(`
+  fragment AgentManagementPanelMemory on AgentMemory {
+    id
+    content
+    version
+    createdAt
+  }
+`);e.s(["AgentManagementPanelFragment",0,n,"AgentManagementPanelMemoryFragment",0,a],847616);let r=(0,t.graphql)(`
+  fragment AgentSkillsToggle on Agent {
+    id
+    skills {
+      id
+      skillId
+      name
+      enabled
+    }
+  }
+`);e.s(["AgentSkillsToggleFragment",0,r],830394)},44886,e=>{"use strict";var t=e.i(885530),n=e.i(980716),a=e.i(228886),r=e.i(847616),s=e.i(830394),i=e.i(202663);let g=(0,t.graphql)(`
+  fragment AgentFragment on Agent {
+    id
+    name
+    avatarUrl
+    personality
+    status
+    walletAddress
+    skills {
+      id
+      skillId
+      name
+      enabled
+    }
+    schedules {
+      id
+      cronExpression
+      actionConfig
+      enabled
+      lastRunAt
+      nextRunAt
+    }
+    createdAt
+  }
+`),l=(0,t.graphql)(`
+  fragment ChatMessageFragment on ChatMessage {
+    id
+    role
+    content
+    metadata
+    createdAt
+  }
+`),o=(0,t.graphql)(`
+  fragment AgentMemoryFragment on AgentMemory {
+    id
+    content
+    version
+    updatedFrom
+    createdAt
+  }
+`),d=(0,t.graphql)(`
+    mutation CreateAgent($input: CreateAgentInput!) {
+      createAgent(input: $input) {
+        ...AgentFragment
+      }
+    }
+  `,[g]),u=(0,t.graphql)(`
+    mutation SendAgentMessage($agentId: ID!, $message: String!) {
+      sendMessage(agentId: $agentId, message: $message) {
+        ...ChatMessageFragment
+      }
+    }
+  `,[l]),m=(0,t.graphql)(`
+    query AgentChatHistory($agentId: ID!, $first: Int, $after: String) {
+      chatHistory(agentId: $agentId, first: $first, after: $after) {
+        edges {
+          node {
+            ...ChatMessageFragment
+            ...AgentChatOverlayMessage
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  `,[l,a.AgentChatOverlayMessageFragment]),c=(0,t.graphql)(`
+    query AgentMemory($agentId: ID!) {
+      agentMemory(agentId: $agentId) {
+        ...AgentMemoryFragment
+        ...AgentManagementPanelMemory
+      }
+    }
+  `,[o,r.AgentManagementPanelMemoryFragment]);(0,t.graphql)(`
+    query AgentMemoryHistory($agentId: ID!, $first: Int, $after: String) {
+      agentMemoryHistory(agentId: $agentId, first: $first, after: $after) {
+        edges {
+          node {
+            ...AgentMemoryFragment
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  `,[o]),(0,t.graphql)(`
+    mutation UpdateAgentAvatar($agentId: ID!, $imageUrl: String!) {
+      updateAgentAvatar(agentId: $agentId, imageUrl: $imageUrl) {
+        ...AgentFragment
+      }
+    }
+  `,[g]);let p=(0,t.graphql)(`
+    mutation UpdateAgentName($agentId: ID!, $name: String!) {
+      updateAgentName(agentId: $agentId, name: $name) {
+        ...AgentFragment
+      }
+    }
+  `,[g]),A=(0,t.graphql)(`
+    mutation UpdateAgentPersonality($agentId: ID!, $content: String!) {
+      updateAgentPersonality(agentId: $agentId, content: $content) {
+        ...AgentFragment
+      }
+    }
+  `,[g]),h=(0,t.graphql)(`
+  mutation ToggleAgentSkill(
+    $agentId: ID!
+    $skillId: String!
+    $enabled: Boolean!
+  ) {
+    toggleAgentSkill(
+      agentId: $agentId
+      skillId: $skillId
+      enabled: $enabled
+    ) {
+      id
+      skillId
+      name
+      enabled
+    }
+  }
+`);(0,t.graphql)(`
+    query ListInfluencerAgents($first: Int, $after: String) {
+      influencerAgents(first: $first, after: $after) {
+        edges {
+          node {
+            ...AgentFragment
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  `,[g]);let y=(0,t.graphql)(`
+    query MyAgent {
+      myAgent {
+        ...AgentFragment
+        ...AgentAvatarWidget
+        ...AgentChatOverlay
+        ...AgentManagementPanel
+        ...AgentSkillsToggle
+        ...CreateAgentModal
+      }
+    }
+  `,[g,n.AgentAvatarWidgetFragment,a.AgentChatOverlayFragment,r.AgentManagementPanelFragment,s.AgentSkillsToggleFragment,i.CreateAgentModalFragment]),M=(0,t.graphql)(`
+  query AgentLlmCreditBalance($agentId: ID!) {
+    agentLlmCreditBalance(agentId: $agentId) {
+      balanceUsd
+    }
+  }
+`),v=(0,t.graphql)(`
+  mutation TopUpLlmCredits($agentId: ID!, $amountUsd: Float!) {
+    topUpLlmCredits(agentId: $agentId, amountUsd: $amountUsd) {
+      creditsGranted
+      newBalance
+      txHash
+    }
+  }
+`),I=(0,t.graphql)(`
+  query AgentWalletUsdcBalance(
+    $address: Address!
+    $contracts: [ContractIdentifierInput!]!
+  ) {
+    addressBalances(address: $address, contracts: $contracts) {
+      quantity
+      usdValue
+      currency {
+        symbol
+        decimals
+        imageUrl
+        usdPrice
+        contractAddress
+        chainIdentifier
+      }
+    }
+  }
+`);e.s(["AgentChatHistoryQuery",0,m,"AgentLlmCreditBalanceQuery",0,M,"AgentMemoryQuery",0,c,"AgentWalletUsdcBalanceQuery",0,I,"CreateAgentMutation",0,d,"MyAgentQuery",0,y,"SendMessageMutation",0,u,"ToggleAgentSkillMutation",0,h,"TopUpLlmCreditsMutation",0,v,"UpdateAgentNameMutation",0,p,"UpdateAgentPersonalityMutation",0,A])},566139,e=>{"use strict";var t=e.i(828226),n=e.i(812222);let a=["provisioningStatus0","provisioningStatus1","provisioningStatus2","provisioningStatus3","provisioningStatus4","provisioningStatus5","provisioningStatus6","provisioningStatus7","provisioningStatus8","provisioningStatus9","provisioningStatus10","provisioningStatus11","provisioningStatus12","provisioningStatus13","provisioningStatus14","provisioningStatus15","provisioningStatus16","provisioningStatus17","provisioningStatus18","provisioningStatus19"];function r(e){let t;do t=Math.floor(Math.random()*a.length);while(t===e&&a.length>1)return t}function s(e){return r(e)}function i(){return r(-1)}e.s(["useProvisioningStatus",0,function(e){let g,l,o=(0,t.c)(3),[d,u]=(0,n.useState)(i);return o[0]!==e?(g=()=>{if(!e)return;u(r(-1));let t=setInterval(()=>{u(s)},3e3);return()=>clearInterval(t)},l=[e],o[0]=e,o[1]=g,o[2]=l):(g=o[1],l=o[2]),(0,n.useEffect)(g,l),a[d]??"provisioningStatus0"}])},144114,e=>{"use strict";var t=e.i(647870),n=e.i(455480),a=e.i(459527),r=e.i(965523),s=e.i(284296),i=e.i(972483),g=e.i(2795),l=e.i(784767),o=e.i(950293),d=e.i(683269),u=e.i(386604),m=e.i(812222),c=e.i(145315),p=e.i(617941),A=e.i(202663),h=e.i(44886),y=e.i(566139);e.s(["CreateAgentModal",0,function(){let e=(0,u.useTranslations)("CreateAgentModal"),{createModalOpen:M,setCreateModalOpen:v}=(0,p.useAgentStore)((0,c.useShallow)(e=>({createModalOpen:e.createModalOpen,setCreateModalOpen:e.setCreateModalOpen}))),I=(0,a.useClient)(),[f,C]=(0,m.useState)(""),[S,$]=(0,m.useState)(""),[{fetching:x},F]=(0,a.useMutation)(h.CreateAgentMutation),[q,O]=(0,m.useState)(!1),[T,j]=(0,m.useState)(!1),{showSuccessMessage:k,showErrorMessage:U}=(0,d.useToasts)(),b=(0,m.useRef)(null),P=(0,y.useProvisioningStatus)(q),B=(0,m.useCallback)(()=>{b.current&&(clearTimeout(b.current),b.current=null)},[]);(0,m.useEffect)(()=>B,[B]);let w=(0,m.useCallback)((t,a=0,r=0)=>{if(a>=60){O(!1),j(!0),U(e("provisioningTimeout"));return}b.current=setTimeout(async()=>{let s=await I.query(h.MyAgentQuery,{},{requestPolicy:"network-only"}).toPromise();if(s.error){let n=r+1;if(n>=5){O(!1),j(!0),U(e("provisioningFailed"));return}w(t,a+1,n);return}let i=s.data?.myAgent,g=i?(0,n.readFragment)(A.CreateAgentModalFragment,i):null,l=g?.status?.toLowerCase();if("failed"===l){O(!1),j(!0),U(e("provisioningFailed"));return}if(g&&"provisioning"!==l){O(!1),B(),C(""),$(""),k(e("createSuccess",{name:t})),p.useAgentStore.setState({createModalOpen:!1,chatOpen:!0});return}w(t,a+1,0)},2e3)},[I,k,U,B,e]),N=(0,m.useCallback)(async()=>{f.trim()?(j(!1),(await F({input:{name:f.trim(),personality:S.trim()||void 0}})).error)?U(e("createError")):(O(!0),w(f.trim())):U(e("nameRequired"))},[f,S,F,U,w,e]);return(0,t.jsx)(i.Modal,{content:(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(i.ModalHeader,{children:(0,t.jsx)(i.ModalHeaderTitle,{children:e("title")})}),(0,t.jsx)(i.ModalBody,{children:q?(0,t.jsxs)(r.FlexColumn,{className:"items-center gap-4 py-8",children:[(0,t.jsx)(g.Spinner,{size:"md"}),(0,t.jsx)(o.TextBody,{size:"sm",children:e("provisioningMessage",{name:f||"your agent"})}),(0,t.jsx)(o.TextBody,{className:"fade-in animate-in text-text-secondary duration-500",size:"xs",children:e(P,{name:f||"your agent"})},P)]}):(0,t.jsxs)(r.FlexColumn,{className:"gap-4",children:[(0,t.jsx)(o.TextBody,{size:"sm",children:e("description")}),T&&(0,t.jsx)(o.TextBody,{className:"text-error-1",size:"sm",children:e("provisioningFailed")}),(0,t.jsxs)(r.FlexColumn,{className:"gap-2",children:[(0,t.jsx)(o.TextBody,{size:"sm",weight:"semibold",children:e("nameLabel")}),(0,t.jsx)(s.Input,{maxLength:100,onChange:e=>C(e.target.value),placeholder:e("namePlaceholder"),value:f})]}),(0,t.jsxs)(r.FlexColumn,{className:"gap-2",children:[(0,t.jsx)(o.TextBody,{size:"sm",weight:"semibold",children:e("personalityLabel")}),(0,t.jsx)(l.TextArea,{maxLength:5e3,onChange:e=>$(e.target.value),placeholder:e("personalityPlaceholder"),rows:4,value:S})]})]})}),!q&&(0,t.jsxs)(i.ModalFooter,{children:[(0,t.jsx)(i.ModalFooterButton,{onClick:()=>{C(""),$(""),j(!1),v(!1)},variant:"secondary",children:e("cancel")}),(0,t.jsx)(i.ModalFooterButton,{disabled:!f.trim()||x,onClick:()=>void N(),children:x?(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(g.Spinner,{size:"xs"}),e("creating")]}):T?e("retryButton"):e("createButton")})]})]}),onOpenChange:e=>{e||q||(C(""),$(""),j(!1)),q||v(e)},open:M})}])},865295,e=>{e.n(e.i(144114))}]);
+
+//# debugId=b4b0a542-5504-8c33-815b-f6cfa4be8d3d
+//# sourceMappingURL=07szbyf38jlw9.js.map

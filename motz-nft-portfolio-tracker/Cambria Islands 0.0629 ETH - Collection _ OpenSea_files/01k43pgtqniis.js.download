@@ -1,0 +1,242 @@
+;!function(){try { var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof global?global:"undefined"!=typeof window?window:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&((e._debugIds|| (e._debugIds={}))[n]="ace83867-6956-1dfb-89af-2cf869744844")}catch(e){}}();
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,331348,e=>{"use strict";var t=e.i(647870),a=e.i(828226),n=e.i(790621),s=e.i(437153);e.s(["Send",0,e=>{let r,i,l,o,g,d,c,m,u=(0,a.c)(15);u[0]!==e?({size:l,fill:o,fillAttribute:g,className:r,...i}=e,u[0]=e,u[1]=r,u[2]=i,u[3]=l,u[4]=o,u[5]=g):(r=u[1],i=u[2],l=u[3],o=u[4],g=u[5]);let h=void 0===l?24:l,p=void 0===o?"current":o,x=void 0===g?"currentColor":g;return u[6]!==r||u[7]!==p?(d=(0,s.classNames)((0,n.fillVariants)({fill:p}),r),u[6]=r,u[7]=p,u[8]=d):d=u[8],u[9]===Symbol.for("react.memo_cache_sentinel")?(c=(0,t.jsx)("path",{d:"M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"}),u[9]=c):c=u[9],u[10]!==x||u[11]!==i||u[12]!==h||u[13]!==d?(m=(0,t.jsx)("svg",{"aria-label":"Send",className:d,fill:x,height:h,role:"img",viewBox:"0 -960 960 960",width:h,xmlns:"http://www.w3.org/2000/svg",...i,children:c}),u[10]=x,u[11]=i,u[12]=h,u[13]=d,u[14]=m):m=u[14],m}])},617941,e=>{"use strict";let t=(0,e.i(729427).create)(e=>({chatOpen:!1,setChatOpen:t=>e({chatOpen:t}),createModalOpen:!1,setCreateModalOpen:t=>e({createModalOpen:t}),managementOpen:!1,setManagementOpen:t=>e({managementOpen:t})}));e.s(["useAgentStore",0,t])},228886,e=>{"use strict";var t=e.i(885530);let a=(0,t.graphql)(`
+  fragment AgentChatOverlay on Agent {
+    id
+    name
+    avatarUrl
+    status
+  }
+`),n=(0,t.graphql)(`
+  fragment AgentChatOverlayMessage on ChatMessage {
+    id
+    role
+    content
+    createdAt
+  }
+`);e.s(["AgentChatOverlayFragment",0,a,"AgentChatOverlayMessageFragment",0,n])},980716,e=>{"use strict";let t=(0,e.i(885530).graphql)(`
+  fragment AgentAvatarWidget on Agent {
+    name
+    avatarUrl
+    status
+  }
+`);e.s(["AgentAvatarWidgetFragment",0,t])},847616,830394,e=>{"use strict";var t=e.i(885530);let a=(0,t.graphql)(`
+  fragment AgentManagementPanel on Agent {
+    id
+    name
+    avatarUrl
+    personality
+    status
+    walletAddress
+    skills {
+      id
+      skillId
+      name
+      enabled
+    }
+  }
+`),n=(0,t.graphql)(`
+  fragment AgentManagementPanelMemory on AgentMemory {
+    id
+    content
+    version
+    createdAt
+  }
+`);e.s(["AgentManagementPanelFragment",0,a,"AgentManagementPanelMemoryFragment",0,n],847616);let s=(0,t.graphql)(`
+  fragment AgentSkillsToggle on Agent {
+    id
+    skills {
+      id
+      skillId
+      name
+      enabled
+    }
+  }
+`);e.s(["AgentSkillsToggleFragment",0,s],830394)},202663,e=>{"use strict";let t=(0,e.i(885530).graphql)(`
+  fragment CreateAgentModal on Agent {
+    name
+    status
+  }
+`);e.s(["CreateAgentModalFragment",0,t])},44886,e=>{"use strict";var t=e.i(885530),a=e.i(980716),n=e.i(228886),s=e.i(847616),r=e.i(830394),i=e.i(202663);let l=(0,t.graphql)(`
+  fragment AgentFragment on Agent {
+    id
+    name
+    avatarUrl
+    personality
+    status
+    walletAddress
+    skills {
+      id
+      skillId
+      name
+      enabled
+    }
+    schedules {
+      id
+      cronExpression
+      actionConfig
+      enabled
+      lastRunAt
+      nextRunAt
+    }
+    createdAt
+  }
+`),o=(0,t.graphql)(`
+  fragment ChatMessageFragment on ChatMessage {
+    id
+    role
+    content
+    metadata
+    createdAt
+  }
+`),g=(0,t.graphql)(`
+  fragment AgentMemoryFragment on AgentMemory {
+    id
+    content
+    version
+    updatedFrom
+    createdAt
+  }
+`),d=(0,t.graphql)(`
+    mutation CreateAgent($input: CreateAgentInput!) {
+      createAgent(input: $input) {
+        ...AgentFragment
+      }
+    }
+  `,[l]),c=(0,t.graphql)(`
+    mutation SendAgentMessage($agentId: ID!, $message: String!) {
+      sendMessage(agentId: $agentId, message: $message) {
+        ...ChatMessageFragment
+      }
+    }
+  `,[o]),m=(0,t.graphql)(`
+    query AgentChatHistory($agentId: ID!, $first: Int, $after: String) {
+      chatHistory(agentId: $agentId, first: $first, after: $after) {
+        edges {
+          node {
+            ...ChatMessageFragment
+            ...AgentChatOverlayMessage
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  `,[o,n.AgentChatOverlayMessageFragment]),u=(0,t.graphql)(`
+    query AgentMemory($agentId: ID!) {
+      agentMemory(agentId: $agentId) {
+        ...AgentMemoryFragment
+        ...AgentManagementPanelMemory
+      }
+    }
+  `,[g,s.AgentManagementPanelMemoryFragment]);(0,t.graphql)(`
+    query AgentMemoryHistory($agentId: ID!, $first: Int, $after: String) {
+      agentMemoryHistory(agentId: $agentId, first: $first, after: $after) {
+        edges {
+          node {
+            ...AgentMemoryFragment
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  `,[g]),(0,t.graphql)(`
+    mutation UpdateAgentAvatar($agentId: ID!, $imageUrl: String!) {
+      updateAgentAvatar(agentId: $agentId, imageUrl: $imageUrl) {
+        ...AgentFragment
+      }
+    }
+  `,[l]);let h=(0,t.graphql)(`
+    mutation UpdateAgentName($agentId: ID!, $name: String!) {
+      updateAgentName(agentId: $agentId, name: $name) {
+        ...AgentFragment
+      }
+    }
+  `,[l]),p=(0,t.graphql)(`
+    mutation UpdateAgentPersonality($agentId: ID!, $content: String!) {
+      updateAgentPersonality(agentId: $agentId, content: $content) {
+        ...AgentFragment
+      }
+    }
+  `,[l]),x=(0,t.graphql)(`
+  mutation ToggleAgentSkill(
+    $agentId: ID!
+    $skillId: String!
+    $enabled: Boolean!
+  ) {
+    toggleAgentSkill(
+      agentId: $agentId
+      skillId: $skillId
+      enabled: $enabled
+    ) {
+      id
+      skillId
+      name
+      enabled
+    }
+  }
+`);(0,t.graphql)(`
+    query ListInfluencerAgents($first: Int, $after: String) {
+      influencerAgents(first: $first, after: $after) {
+        edges {
+          node {
+            ...AgentFragment
+          }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+      }
+    }
+  `,[l]);let y=(0,t.graphql)(`
+    query MyAgent {
+      myAgent {
+        ...AgentFragment
+        ...AgentAvatarWidget
+        ...AgentChatOverlay
+        ...AgentManagementPanel
+        ...AgentSkillsToggle
+        ...CreateAgentModal
+      }
+    }
+  `,[l,a.AgentAvatarWidgetFragment,n.AgentChatOverlayFragment,s.AgentManagementPanelFragment,r.AgentSkillsToggleFragment,i.CreateAgentModalFragment]),A=(0,t.graphql)(`
+  query AgentLlmCreditBalance($agentId: ID!) {
+    agentLlmCreditBalance(agentId: $agentId) {
+      balanceUsd
+    }
+  }
+`),f=(0,t.graphql)(`
+  mutation TopUpLlmCredits($agentId: ID!, $amountUsd: Float!) {
+    topUpLlmCredits(agentId: $agentId, amountUsd: $amountUsd) {
+      creditsGranted
+      newBalance
+      txHash
+    }
+  }
+`),v=(0,t.graphql)(`
+  query AgentWalletUsdcBalance(
+    $address: Address!
+    $contracts: [ContractIdentifierInput!]!
+  ) {
+    addressBalances(address: $address, contracts: $contracts) {
+      quantity
+      usdValue
+      currency {
+        symbol
+        decimals
+        imageUrl
+        usdPrice
+        contractAddress
+        chainIdentifier
+      }
+    }
+  }
+`);e.s(["AgentChatHistoryQuery",0,m,"AgentLlmCreditBalanceQuery",0,A,"AgentMemoryQuery",0,u,"AgentWalletUsdcBalanceQuery",0,v,"CreateAgentMutation",0,d,"MyAgentQuery",0,y,"SendMessageMutation",0,c,"ToggleAgentSkillMutation",0,x,"TopUpLlmCreditsMutation",0,f,"UpdateAgentNameMutation",0,h,"UpdateAgentPersonalityMutation",0,p])},395173,e=>{"use strict";let t={container:(0,e.i(437153).classNames)("fixed right-4 bottom-[calc(theme(spacing.page-footer)+8px)] z-sidebar overflow-hidden rounded-xl","h-[520px] w-[400px]","bg-bg-primary shadow-xl"),header:"items-center justify-between px-4 py-3",headerDivider:"border-b border-black/[0.06] dark:border-white/[0.06]",closeButton:"rounded p-1 text-text-secondary hover:bg-component-gray-2 transition-colors"};e.s(["AGENT_PANEL",0,t])},566139,e=>{"use strict";var t=e.i(828226),a=e.i(812222);let n=["provisioningStatus0","provisioningStatus1","provisioningStatus2","provisioningStatus3","provisioningStatus4","provisioningStatus5","provisioningStatus6","provisioningStatus7","provisioningStatus8","provisioningStatus9","provisioningStatus10","provisioningStatus11","provisioningStatus12","provisioningStatus13","provisioningStatus14","provisioningStatus15","provisioningStatus16","provisioningStatus17","provisioningStatus18","provisioningStatus19"];function s(e){let t;do t=Math.floor(Math.random()*n.length);while(t===e&&n.length>1)return t}function r(e){return s(e)}function i(){return s(-1)}e.s(["useProvisioningStatus",0,function(e){let l,o,g=(0,t.c)(3),[d,c]=(0,a.useState)(i);return g[0]!==e?(l=()=>{if(!e)return;c(s(-1));let t=setInterval(()=>{c(r)},3e3);return()=>clearInterval(t)},o=[e],g[0]=e,g[1]=l,g[2]=o):(l=g[1],o=g[2]),(0,a.useEffect)(l,o),n[d]??"provisioningStatus0"}])},922363,e=>{"use strict";var t=e.i(647870),a=e.i(177705),n=e.i(455480),s=e.i(459527),r=e.i(5968),i=e.i(502732),l=e.i(437153),o=e.i(254842),g=e.i(965523),d=e.i(345319),c=e.i(2795),m=e.i(950293),u=e.i(683269),h=e.i(861690),p=e.i(558272),x=e.i(331348),y=e.i(386604),A=e.i(812222),f=e.i(145315),v=e.i(751712),C=e.i(806056),I=e.i(617941),M=e.i(228886),N=e.i(395173),j=e.i(44886),S=e.i(566139);e.s(["AgentChatOverlay",0,function(){let e=(0,y.useTranslations)("AgentChatOverlay"),b=(0,C.useIsAgentChatEnabled)(),{chatOpen:F,setChatOpen:$,setCreateModalOpen:w,setManagementOpen:q}=(0,I.useAgentStore)((0,f.useShallow)(e=>({chatOpen:e.chatOpen,setChatOpen:e.setChatOpen,setCreateModalOpen:e.setCreateModalOpen,setManagementOpen:e.setManagementOpen}))),k=(0,v.useAuthenticatedCallback)(()=>w(!0),{source:"AgentChatOverlay"}),T=(0,s.useClient)(),[P,B]=(0,A.useState)(""),O=(0,A.useRef)(null),[{fetching:U},z]=(0,s.useMutation)(j.SendMessageMutation),[D,E]=(0,A.useState)([]),L=(0,A.useRef)(null),{showErrorMessage:Q}=(0,u.useToasts)(),[H]=(0,r.useQueryV2)({query:j.MyAgentQuery,requestPolicy:"cache-and-network",pause:!b}),_=(0,a.getQueryData)(H),G=_?.myAgent,R=(0,A.useMemo)(()=>G?(0,n.readFragment)(M.AgentChatOverlayFragment,G):null,[G]),W=R?.status?.toLowerCase(),V="provisioning"===W,K=(0,S.useProvisioningStatus)(V),Z="failed"===W,J="active"===W;(0,A.useEffect)(()=>{if(!(F&&V))return;let e=setInterval(()=>{T.query(j.MyAgentQuery,{},{requestPolicy:"network-only"}).toPromise()},3e3);return()=>clearInterval(e)},[F,V,T]);let X=R?.id,[Y]=(0,r.useQueryV2)({query:j.AgentChatHistoryQuery,variables:{agentId:X??"",first:50},pause:!(X&&F&&J)}),ee=(0,a.getQueryData)(Y),et=!!X&&!!F&&!!J&&Y.fetching,[ea,en]=(0,r.useQueryV2)({query:j.AgentLlmCreditBalanceQuery,variables:{agentId:X??""},pause:!(X&&F&&J),requestPolicy:"cache-and-network"}),es=(0,a.getQueryData)(ea),er=es?.agentLlmCreditBalance?.balanceUsd,ei=(0,A.useMemo)(()=>ee?.chatHistory?.edges?.map(e=>(0,n.readFragment)(M.AgentChatOverlayMessageFragment,e.node))??[],[ee]),el=(0,A.useMemo)(()=>[...ei,...D],[ei,D]);(0,A.useEffect)(()=>{L.current?.scrollIntoView({behavior:"smooth"})},[el.length]);let eo=(0,A.useCallback)(async()=>{if(!(P.trim()&&X)||U)return;let t=P.trim(),a=`optimistic-${Date.now()}`;B(""),O.current&&(O.current.style.height="auto"),E(e=>[...e,{id:a,role:"user",content:t,createdAt:new Date().toISOString()}]);let n=await z({agentId:X,message:t});if(n.error){E(e=>e.filter(e=>e.id!==a)),B(t);let s=n.error.message??"";s.includes("INSUFFICIENT_FUNDS")?(Q(e("insufficientFundsError")),en({requestPolicy:"network-only"})):s.includes("Rate limited")?Q(e("rateLimitedError")):Q(e("sendError"))}else await T.query(j.AgentChatHistoryQuery,{agentId:X,first:50},{requestPolicy:"network-only"}).toPromise(),E(e=>e.filter(e=>e.id!==a)),en({requestPolicy:"network-only"})},[P,X,U,z,Q,T,en,e]),eg=(0,A.useCallback)(e=>{"Enter"!==e.key||e.shiftKey||(e.preventDefault(),eo())},[eo]);return F?(0,t.jsxs)(g.FlexColumn,{className:N.AGENT_PANEL.container,children:[(0,t.jsxs)(o.Flex,{className:(0,l.classNames)(N.AGENT_PANEL.header,N.AGENT_PANEL.headerDivider,"cursor-pointer"),onClick:()=>$(!1),children:[(0,t.jsxs)(o.Flex,{className:"items-center gap-2",children:[R?.avatarUrl?(0,t.jsx)("img",{alt:R.name,className:"h-8 w-8 rounded-full object-cover",loading:"lazy",src:R.avatarUrl}):(0,t.jsx)(o.Flex,{className:"h-8 w-8 items-center justify-center rounded-full bg-component-gray-3",children:(0,t.jsx)(m.TextBody,{size:"sm",weight:"semibold",children:R?.name?.[0]?.toUpperCase()??"?"})}),(0,t.jsxs)(g.FlexColumn,{children:[(0,t.jsx)(m.TextBody,{size:"sm",weight:"semibold",children:R?.name??e("defaultAgentName")}),(0,t.jsx)(m.TextBody,{className:(0,l.classNames)("text-text-tertiary",Z&&"text-error-1"),size:"xs",children:V?e("statusProvisioning"):Z?e("statusFailed"):J?e("statusActive"):W??e("statusActive")})]})]}),(0,t.jsxs)(o.Flex,{className:"gap-1",onClick:e=>e.stopPropagation(),children:[R&&J&&(0,t.jsx)(i.Button,{onClick:()=>{$(!1),q(!0)},size:"sm",variant:"tertiary",children:e("manage")}),(0,t.jsx)("button",{"aria-label":e("close"),className:N.AGENT_PANEL.closeButton,onClick:()=>$(!1),type:"button",children:(0,t.jsx)(h.Close,{size:16})})]})]}),(0,t.jsxs)(g.FlexColumn,{className:"flex-1 gap-3 overflow-y-auto p-4",children:[R&&V?(0,t.jsxs)(g.FlexColumn,{className:"flex-1 items-center justify-center gap-4",children:[(0,t.jsx)(c.Spinner,{}),(0,t.jsxs)(g.FlexColumn,{className:"items-center gap-1",children:[(0,t.jsx)(m.TextBody,{size:"sm",weight:"semibold",children:e("provisioningTitle")}),(0,t.jsx)(m.TextBody,{className:"text-text-secondary",size:"xs",children:e("provisioningDescription")}),(0,t.jsx)(m.TextBody,{className:"fade-in animate-in text-text-secondary duration-500",size:"xs",children:e(K)},K)]})]}):R&&Z?(0,t.jsxs)(g.FlexColumn,{className:"flex-1 items-center justify-center gap-4",children:[(0,t.jsx)(p.ErrorIcon,{className:"text-error-1",size:32}),(0,t.jsxs)(g.FlexColumn,{className:"items-center gap-1",children:[(0,t.jsx)(m.TextBody,{size:"sm",weight:"semibold",children:e("failedTitle")}),(0,t.jsx)(m.TextBody,{className:"text-center text-text-secondary",size:"xs",children:e("failedDescription")})]}),(0,t.jsx)(i.Button,{onClick:()=>{$(!1),k()},size:"sm",children:e("retryCreate")})]}):R&&J?et&&!ee?(0,t.jsx)(o.Flex,{className:"flex-1 items-center justify-center",children:(0,t.jsx)(c.Spinner,{})}):0===el.length?(0,t.jsx)(g.FlexColumn,{className:"flex-1 items-center justify-center gap-2",children:(0,t.jsx)(m.TextBody,{className:"text-text-secondary",size:"sm",children:e("emptyState")})}):el.map(e=>(0,t.jsx)(o.Flex,{className:(0,l.classNames)("user"===e.role?"justify-end":"justify-start"),children:(0,t.jsxs)("div",{className:(0,l.classNames)("max-w-[80%] rounded-lg px-3 py-2","user"===e.role?"bg-interactive-primary text-white":"bg-component-gray-2 text-text-primary"),children:["user"===e.role?(0,t.jsx)(m.TextBody,{size:"sm",children:e.content}):(0,t.jsx)(d.Markdown,{className:"text-sm",children:e.content}),(0,t.jsx)(m.TextBody,{className:(0,l.classNames)("mt-1","user"===e.role?"text-white/60":"text-text-tertiary"),size:"xs",children:new Date(e.createdAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})})]})},e.id)):R?(0,t.jsxs)(g.FlexColumn,{className:"flex-1 items-center justify-center gap-2",children:[(0,t.jsx)(c.Spinner,{}),(0,t.jsx)(m.TextBody,{className:"text-text-secondary",size:"sm",children:W??e("statusActive")})]}):(0,t.jsxs)(g.FlexColumn,{className:"flex-1 items-center justify-center gap-3",children:[(0,t.jsx)(m.TextBody,{className:"text-text-secondary",size:"sm",children:e("noAgentMessage")}),(0,t.jsx)(i.Button,{onClick:()=>{$(!1),k()},size:"sm",children:e("createAgent")})]}),(0,t.jsx)("div",{ref:L})]}),R&&J&&null!=er&&er<1&&(0,t.jsxs)(o.Flex,{className:(0,l.classNames)("items-center gap-2 bg-warning-transparent-1 px-3 py-2",N.AGENT_PANEL.headerDivider,"border-t border-b-0"),children:[(0,t.jsx)(m.TextBody,{className:"flex-1 text-warning",size:"xs",children:e("lowBalanceWarning")}),(0,t.jsx)(i.Button,{onClick:()=>{$(!1),q(!0)},size:"sm",variant:"tertiary",children:e("topUp")})]}),R&&J&&(0,t.jsxs)(o.Flex,{className:(0,l.classNames)("items-end gap-2 p-3",N.AGENT_PANEL.headerDivider,"border-t border-b-0"),children:[(0,t.jsx)("textarea",{className:"max-h-[120px] min-h-[36px] flex-1 resize-none rounded-lg bg-component-gray-1 px-3 py-2 text-sm text-text-primary outline-hidden transition-colors placeholder:text-text-secondary focus:bg-component-gray-2",disabled:U,onChange:e=>{B(e.target.value);let t=e.target;t.style.height="auto",t.style.height=`${t.scrollHeight}px`},onKeyDown:eg,placeholder:e("inputPlaceholder"),ref:O,rows:1,value:P}),(0,t.jsx)("button",{className:(0,l.classNames)("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",P.trim()&&!U?"bg-interactive-primary text-white":"bg-component-gray-1 text-text-tertiary"),disabled:!P.trim()||U,onClick:()=>void eo(),type:"button",children:U?(0,t.jsx)(c.Spinner,{size:"xs"}):(0,t.jsx)(x.Send,{size:16})})]})]}):null}])},427830,e=>{e.n(e.i(922363))}]);
+
+//# debugId=ace83867-6956-1dfb-89af-2cf869744844
+//# sourceMappingURL=0jlbrocws-wgp.js.map

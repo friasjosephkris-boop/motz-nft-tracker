@@ -430,6 +430,7 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
               floorUsd,
               pnlUsd,
               walletTag: addr.toLowerCase(),
+              currencySymbol: "ETH",
             });
           }
         }

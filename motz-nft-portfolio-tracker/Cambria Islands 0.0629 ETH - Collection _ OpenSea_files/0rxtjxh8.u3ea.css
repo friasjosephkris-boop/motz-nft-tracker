@@ -1,0 +1,2 @@
+@property --hexagon-angle{syntax:"<angle>";inherits:false;initial-value:0deg}.hexagon-glow-border{--hexagon-angle:0deg;background:conic-gradient(from var(--hexagon-angle), rgb(var(--color-blue-3)), rgb(var(--color-blue-3) / 40%), rgb(var(--color-success-2)), rgb(var(--color-blue-3)));animation:4s linear infinite hexagon-rotate}@keyframes hexagon-rotate{0%{--hexagon-angle:0deg}to{--hexagon-angle:360deg}}
+/*# sourceMappingURL=0k3c2ojbzhaj0.css.map*/

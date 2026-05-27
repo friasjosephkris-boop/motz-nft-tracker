@@ -136,6 +136,14 @@ export function MotzDashboardView() {
   const totalCostRon = sumRows(collections, (r) => r.costRon);
   const totalPnlUsd = totalFloorUsd - totalCostUsd;
   const totalPnlRon = totalFloorRon - totalCostRon;
+  // Determine a single native currency for the hint, but only when all
+  // visible rows share one. Across mixed-chain views (RON + ETH), the
+  // native-coin hint is omitted because adding RON + ETH would be wrong.
+  const currencies = new Set<string>();
+  for (const c of collections)
+    for (const r of c.rows) currencies.add(r.currencySymbol ?? "RON");
+  const singleCurrency =
+    currencies.size === 1 ? Array.from(currencies)[0] : null;
 
   return (
     <div className="space-y-8">
@@ -302,13 +310,21 @@ export function MotzDashboardView() {
             <Stat
               label="Current value"
               value={fmtUsd(totalFloorUsd)}
-              hint={`${totalFloorRon.toLocaleString("en-US", { maximumFractionDigits: 2 })} RON`}
+              hint={
+                singleCurrency
+                  ? `${totalFloorRon.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${singleCurrency}`
+                  : undefined
+              }
               accent="gold"
             />
             <Stat
               label="P&L (USD)"
               value={fmtUsd(totalPnlUsd)}
-              hint={`${totalPnlRon >= 0 ? "+" : ""}${totalPnlRon.toLocaleString("en-US", { maximumFractionDigits: 2 })} RON`}
+              hint={
+                singleCurrency
+                  ? `${totalPnlRon >= 0 ? "+" : ""}${totalPnlRon.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${singleCurrency}`
+                  : undefined
+              }
               accent={totalPnlUsd >= 0 ? "pos" : "neg"}
             />
           </section>

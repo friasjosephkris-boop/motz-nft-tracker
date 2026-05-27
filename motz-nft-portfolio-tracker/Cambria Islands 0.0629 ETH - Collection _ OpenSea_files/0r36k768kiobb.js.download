@@ -1,0 +1,557 @@
+;!function(){try { var e="undefined"!=typeof globalThis?globalThis:"undefined"!=typeof global?global:"undefined"!=typeof window?window:"undefined"!=typeof self?self:{},n=(new e.Error).stack;n&&((e._debugIds|| (e._debugIds={}))[n]="6f864d91-b29a-ff52-f529-ea782972bea5")}catch(e){}}();
+(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,703979,e=>{"use strict";var r=e.i(885530);let t=(0,r.graphql)(`
+  fragment CurrencyPageLayoutProviderCurrency on CurrencyV2 {
+    contractAddress
+    chainIdentifier
+  }
+`),n=(0,r.graphql)(`
+    fragment CurrencyPageLayoutProvider on CurrencyV2 {
+      ...CurrencyPageLayoutProviderCurrency
+      isNative
+      tokenGroup {
+        primaryCurrency {
+          ...CurrencyPageLayoutProviderCurrency
+        }
+        currencies {
+          ...CurrencyPageLayoutProviderCurrency
+        }
+      }
+    }
+  `,[t]);e.s(["CurrencyPageLayoutProviderCurrencyFragment",0,t,"CurrencyPageLayoutProviderFragment",0,n])},29093,e=>{"use strict";var r=e.i(647870),t=e.i(828226),n=e.i(10340),a=e.i(534763),i=e.i(410338);e.s(["CurrencyWatchlistIcon",0,function(e){let c,s=(0,t.c)(4),{isFilled:u,loading:o,size:l}=e,d=void 0===l?16:l;return s[0]!==u||s[1]!==o||s[2]!==d?(c=u?(0,r.jsx)(i.StarFilled,{fill:"warning",size:d}):(0,r.jsx)(a.Star,{className:(0,n.disabledVariants)({disabled:o}),size:d}),s[0]=u,s[1]=o,s[2]=d,s[3]=c):c=s[3],c}])},189972,e=>{"use strict";e.s(["CHART_MODE_COOKIE_NAME",0,"currency-chart-mode-preference","getDefaultChartMode",0,e=>"collector"===e?"LINE":"CANDLESTICKS"])},239573,e=>{"use strict";var r=e.i(511518),t=e.i(516467);e.s(["addMinutes",0,function(e,n,a){let i=(0,t.toDate)(e,a?.in);return i.setTime(i.getTime()+n*r.millisecondsInMinute),i}])},107401,e=>{"use strict";var r=e.i(555437),t=e.i(511518);e.s(["addHours",0,function(e,n,a){return(0,r.addMilliseconds)(e,n*t.millisecondsInHour,a)}])},314346,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+  fragment CurrencyChartColor on CurrencyV2 {
+    imageUrl
+  }
+`);e.s(["CurrencyChartColorFragment",0,r])},286423,e=>{"use strict";var r=e.i(555437);e.s(["addSeconds",0,function(e,t,n){return(0,r.addMilliseconds)(e,1e3*t,n)}])},916660,540173,682388,e=>{"use strict";var r=e.i(885530);let t=(0,r.graphql)(`
+    fragment CurrencyLineChart on CurrencyV2 {
+      contractAddress
+      chainIdentifier
+      isNative
+      isStablecoin
+      usdPrice
+      tokenGroup {
+        currencies {
+          contractAddress
+          chainIdentifier
+          usdPrice
+        }
+      }
+    }
+  `,[]);e.s(["CurrencyLineChartFragment",0,t],916660);let n=(0,r.graphql)(`
+  query CurrencyLineChartQuery(
+    $contractIdentifier: ContractIdentifierInput!
+    $startTime: DateTime!
+    $endTime: DateTime!
+    $bucketSize: CandleBucketSize!
+  ) {
+    currencyPriceHistory2(
+      contract: $contractIdentifier
+      startTime: $startTime
+      endTime: $endTime
+      bucketSize: $bucketSize
+    ) {
+      time
+      price {
+        usd
+      }
+    }
+  }
+`);e.s(["CurrencyLineChartQuery",0,n],540173),e.s(["candleBucketSizeToSeconds",0,e=>{switch(e){case"ONE_SECOND":return 1;case"ONE_MINUTE":return 60;case"FIVE_MINUTES":return 300;case"FIFTEEN_MINUTES":return 900;case"ONE_HOUR":return 3600;case"FOUR_HOURS":return 14400;case"ONE_DAY":return 86400}},"timeframeToSeconds",0,e=>{switch(e){case"ONE_MINUTE":return 60;case"FIVE_MINUTE":return 300;case"FIFTEEN_MINUTE":return 900;case"THIRTY_MINUTE":return 1800;case"ONE_DAY":return 86400;case"ONE_HOUR":return 3600;case"SEVEN_DAYS":return 604800;case"THIRTY_DAYS":return 2592e3;case"ONE_YEAR":return 31536e3;case"ALL_TIME":return 1/0}}],682388)},32218,e=>{"use strict";var r=e.i(682388),t=e.i(239573),n=e.i(286423),a=e.i(20904),i=e.i(750040),c=e.i(744797),s=e.i(516467);function u(e,r,t){return(0,n.addSeconds)(e,-r,t)}function o(e){let r;return(0,t.addMinutes)(((r=(0,s.toDate)(e,void 0)).setSeconds(0,0),r),1)}e.s(["INITIAL_LOAD_BUFFER",0,50,"MAX_POINTS_PER_REQUEST",0,300,"getBufferedTimeRange",0,function(e,t,a,i){let s=(0,r.candleBucketSizeToSeconds)(t),l=(0,c.min)([(0,n.addSeconds)(e.endTime,s*i),a]),d=(0,c.min)([o(l),a]);return{startTime:o(u(e.startTime,s*i)),endTime:d}},"getChunkedTimeRanges",0,function({timeRange:e,intervalSize:t,maxPointsPerRequest:n=300}){let c=(0,r.candleBucketSizeToSeconds)(t),s=Math.max((0,a.differenceInSeconds)(e.endTime,e.startTime),0);return 0===s?[]:Array.from({length:Math.ceil(Math.ceil(s/c)/n)}).map((r,t)=>({startTime:(0,i.max)([e.startTime,u(e.endTime,(t+1)*c*n)]),endTime:u(e.endTime,t*c*n)}))}],32218)},720861,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+  fragment CurrencyStats on CurrencyV2 {
+    holdersCount
+    tokenGroup {
+      currencies {
+        chainIdentifier
+      }
+      stats {
+        marketCapUsd
+        totalSupply
+        rollingStats {
+          volume1d
+          priceChange1d
+          volume7d
+          priceChange7d
+        }
+      }
+    }
+    stats {
+      marketCapUsd
+      fdvUsd
+      totalSupply
+      oneDay {
+        volume
+        priceChange
+      }
+      sevenDay {
+        volume
+        priceChange
+      }
+    }
+  }
+`);e.s(["CurrencyStatsFragment",0,r])},446602,353936,e=>{"use strict";var r=e.i(682388),t=e.i(286423),n=e.i(20904),a=e.i(511518);function i(e){return Math.trunc(e*a.secondsInHour)}e.s(["hoursToSeconds",0,i],353936);var c=e.i(750040),s=e.i(119470),u=e.i(107401),o=e.i(239573);function l(e,r,t){return(0,o.addMinutes)(e,-r,t)}var d=e.i(84108);function m(e,r,t){return(0,d.addYears)(e,-r,t)}function C(e,r=new Date){switch(e){case"ONE_MINUTE":return l(r,1);case"FIVE_MINUTE":return l(r,5);case"FIFTEEN_MINUTE":return l(r,15);case"THIRTY_MINUTE":return l(r,30);case"ONE_HOUR":return(0,u.addHours)(r,-1,void 0);case"ONE_DAY":return(0,s.subDays)(r,1);case"SEVEN_DAYS":return(0,s.subDays)(r,7);case"THIRTY_DAYS":return(0,s.subDays)(r,30);case"ONE_YEAR":return m(r,1);case"ALL_TIME":return m(r,5)}}let g=i(24),y=7*g;e.s(["getDefaultTokenTimeframe",0,function(e,r=new Date){if(!e)return"ONE_DAY";let t=new Date(e);if(Number.isNaN(t.getTime()))return"ONE_DAY";let a=(0,n.differenceInSeconds)(r,t);return a<0?"ONE_DAY":a<g?"ONE_HOUR":a<y?"ONE_DAY":"SEVEN_DAYS"},"getStartTime",0,C,"getTimeRangeForTimeframe",0,function(e,r,n=new Date){let a=r?new Date(r):null,i=C(e,n);return{startTime:a?(0,c.max)([i,a]):i,endTime:(0,t.addSeconds)(n,1)}},"getTimeframe",0,function(e){let t=new Date,a=(0,n.differenceInSeconds)(t,e);return a<=(0,r.timeframeToSeconds)("FIFTEEN_MINUTE")?"FIFTEEN_MINUTE":a<=(0,r.timeframeToSeconds)("ONE_HOUR")?"ONE_HOUR":a<=(0,r.timeframeToSeconds)("ONE_DAY")?"ONE_DAY":a<=(0,r.timeframeToSeconds)("SEVEN_DAYS")?"SEVEN_DAYS":a<=(0,r.timeframeToSeconds)("THIRTY_DAYS")?"THIRTY_DAYS":a<=(0,r.timeframeToSeconds)("ONE_YEAR")?"ONE_YEAR":"ALL_TIME"},"shouldSwapOneSecondToOneMinute",0,function(e){return e>(0,r.timeframeToSeconds)("FIFTEEN_MINUTE")+300}],446602)},19001,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+  fragment useToggleWatchToken on CurrencyV2 {
+    contractAddress
+    chainIdentifier
+    name
+    symbol
+  }
+`);e.s(["useToggleWatchTokenFragment",0,r])},95581,e=>{"use strict";var r=e.i(885530),t=e.i(19001);let n=(0,r.graphql)(`
+  fragment CurrencyWatchlistButton on CurrencyV2 {
+    ...useToggleWatchToken
+  }
+`,[t.useToggleWatchTokenFragment]);e.s(["CurrencyWatchlistButtonFragment",0,n])},751923,e=>{"use strict";var r=e.i(885530),t=e.i(859898);let n=(0,r.graphql)(`
+    fragment useDefaultSwapCounterpartCurrency on CurrencyV2 {
+      contractAddress
+      restrictSwapsToSameChain
+      restrictSwapsToNativeTokens
+      chainIdentifier
+      chain {
+        swapsSupported
+      }
+      chainIdentifier
+      ...currencyIdentifier
+    }
+  `,[t.currencyIdentifierFragment]),a=(0,r.graphql)(`
+    fragment CurrencySwapModule on CurrencyV2 {
+      contractAddress
+      symbol
+      decimals
+      imageUrl
+      usdPrice
+      isSwapDisabled
+      chain {
+        identifier
+        swapsSupported
+      }
+      tokenGroup {
+        perpetuals {
+          symbol
+        }
+      }
+      ...currencyIdentifier
+      ...useDefaultSwapCounterpartCurrency
+    }
+  `,[t.currencyIdentifierFragment,n]);e.s(["CurrencySwapModuleFragment",0,a],751923)},660066,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+  fragment CurrencyDescription on CurrencyV2 {
+    symbol
+    description
+  }
+`);e.s(["CurrencyDescriptionFragment",0,r])},111908,e=>{"use strict";var r=e.i(885530),t=e.i(455480),n=e.i(165102);let a=(0,r.graphql)(`
+    fragment useCurrencyBannerMedia on CurrencyMetadata {
+      hero {
+        desktopHeroMedia {
+          __typename
+          ... on ImageMedia {
+            imageUrl
+          }
+          ... on VideoMedia {
+            videoUrl
+          }
+          ... on MuxVideoMedia {
+            muxPlaybackId
+          }
+        }
+        mobileHeroMedia {
+          __typename
+          ... on ImageMedia {
+            imageUrl
+          }
+          ... on VideoMedia {
+            videoUrl
+          }
+          ... on MuxVideoMedia {
+            muxPlaybackId
+          }
+        }
+      }
+    }
+  `,[]),i=(0,r.graphql)(`
+    fragment useCurrencyBannerMediaFallback on CurrencyMetadata {
+      hero {
+        desktopHeroMedia {
+          ... on VideoMedia {
+            thumbnailUrl
+          }
+          ... on MuxVideoMedia {
+            thumbnailUrl
+          }
+        }
+        mobileHeroMedia {
+          ... on VideoMedia {
+            thumbnailUrl
+          }
+          ... on MuxVideoMedia {
+            thumbnailUrl
+          }
+        }
+      }
+    }
+  `,[]);e.s(["useCurrencyBannerMedia",0,e=>{let r=(0,t.readFragment)(a,e),i=(0,n.useIsLessThanMd)()?r?.hero?.mobileHeroMedia:r?.hero?.desktopHeroMedia,c=null;switch(i?.__typename){case"VideoMedia":c=i.videoUrl;break;case"ImageMedia":c=i.imageUrl;break;case"MuxVideoMedia":c=i.muxPlaybackId;break;default:c=null}return c},"useCurrencyBannerMediaFallback",0,e=>{let r=(0,t.readFragment)(i,e),a=(0,n.useIsLessThanMd)()?r?.hero?.mobileHeroMedia:r?.hero?.desktopHeroMedia,c=null;switch(a?.__typename){case"VideoMedia":case"MuxVideoMedia":c=a.thumbnailUrl;break;default:c=null}return c},"useCurrencyBannerMediaFallbackFragment",0,i,"useCurrencyBannerMediaFragment",0,a])},968291,891409,e=>{"use strict";var r=e.i(885530),t=e.i(660066),n=e.i(111908);let a=(0,r.graphql)(`
+    fragment CurrencyMerchandisedImage on CurrencyV2 {
+      metadata {
+        overview {
+          modules {
+            __typename
+          }
+        }
+        ...useCurrencyBannerMedia
+        ...useCurrencyBannerMediaFallback
+      }
+    }
+  `,[n.useCurrencyBannerMediaFragment,n.useCurrencyBannerMediaFallbackFragment]);e.s(["CurrencyMerchandisedImageFragment",0,a],891409);let i=(0,r.graphql)(`
+    fragment CurrencyAbout on CurrencyV2 {
+      description
+      ...CurrencyDescription
+      ...CurrencyMerchandisedImage
+    }
+  `,[t.CurrencyDescriptionFragment,a]);e.s(["CurrencyAboutFragment",0,i],968291)},589259,e=>{"use strict";var r=e.i(885530),t=e.i(111908);let n=(0,r.graphql)(`
+    fragment CurrencyBannerMedia on CurrencyV2 {
+      metadata {
+        ...useCurrencyBannerMedia
+        ...useCurrencyBannerMediaFallback
+      }
+    }
+  `,[t.useCurrencyBannerMediaFragment,t.useCurrencyBannerMediaFallbackFragment]);e.s(["CurrencyBannerMediaFragment",0,n])},510879,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+    fragment CurrencyCandlestickChart on CurrencyV2 {
+      contractAddress
+      chainIdentifier
+      usdPrice
+      createdAt
+      genesisDate
+      tokenGroup {
+        currencies {
+          contractAddress
+          chainIdentifier
+          usdPrice
+        }
+      }
+    }
+  `,[]);e.s(["CurrencyCandlestickChartFragment",0,r])},114463,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+    fragment TradingViewCandlestickChart on CurrencyV2 {
+      contractAddress
+      chainIdentifier
+      symbol
+      createdAt
+      genesisDate
+      usdPrice
+      tokenGroup {
+        currencies {
+          contractAddress
+          chainIdentifier
+          usdPrice
+        }
+      }
+    }
+  `,[]);e.s(["TradingViewCandlestickChartFragment",0,r])},644068,e=>{"use strict";var r=e.i(885530),t=e.i(455480),n=e.i(459527),a=e.i(683269),i=e.i(386604),c=e.i(812222),s=e.i(843860),u=e.i(751712),o=e.i(541412),l=e.i(924457),d=e.i(19001);let m=(0,r.graphql)(`
+  mutation watchTokenMutation($contract: ContractIdentifierInput!) {
+    watchToken(contract: $contract) {
+      success
+      error {
+        __typename
+      }
+    }
+  }
+`),C=(0,r.graphql)(`
+  mutation unwatchTokenMutation($contract: ContractIdentifierInput!) {
+    unwatchToken(contract: $contract) {
+      success
+      error {
+        __typename
+      }
+    }
+  }
+`);e.s(["useToggleWatchToken",0,function({currency:e,isWatching:r}){let g=(0,i.useTranslations)("useToggleWatchToken"),{contractAddress:y,chainIdentifier:h,name:T,symbol:E}=(0,t.readFragment)(d.useToggleWatchTokenFragment,e),[f,p]=(0,c.useState)(r);(0,c.useEffect)(()=>{p(r)},[r]);let[I]=(0,o.usePlaySound)(l.Sound.WatchlistAdd),[_]=(0,o.usePlaySound)(l.Sound.WatchlistRemove),[{fetching:M},S]=(0,n.useMutation)(m),[{fetching:N},F]=(0,n.useMutation)(C),{showErrorMessage:A,showSuccessMessage:U}=(0,a.useToasts)(),O=(0,s.useDebouncedCallback)(async e=>{try{let r,t={address:y,chain:h};if(e){let e=await S({contract:t});(r=e.data?.watchToken?.error?.__typename)||(U(g("addedToWatchlist",{name:T||E})),I())}else{let e=await F({contract:t});(r=e.data?.unwatchToken?.error?.__typename)||(U(g("removedFromWatchlist",{name:T||E})),_())}if(r){let e=g("errorGeneric");"EntryNotFoundError"===r?e=g("errorEntryNotFound"):"MaxWatchListSizeError"===r&&(e=g("errorMaxWatchListSize")),A(e,{duration:1e4}),p(e=>!e)}}catch{A(g("errorGeneric"),{duration:1e4}),p(e=>!e)}},750);return{execute:(0,u.useAuthenticatedCallback)(async()=>{let e=!f;p(e),await O(e)}),fetching:M||N,isWatching:f}}])},843243,740651,948941,e=>{"use strict";var r=e.i(647870),t=e.i(455480),n=e.i(457628),a=e.i(812222),i=e.i(885530),c=e.i(19001);let s=(0,i.graphql)(`
+  fragment CurrencyHeaderWatchlistButton on CurrencyV2 {
+    contractAddress
+    chainIdentifier
+    ...useToggleWatchToken
+  }
+`,[c.useToggleWatchTokenFragment]);e.s(["CurrencyHeaderWatchlistButtonFragment",0,s],740651);var u=e.i(29093),o=e.i(644068),l=e.i(389852),d=e.i(177705),m=e.i(5968);e.i(500598);var C=e.i(207225);let g=(0,i.graphql)(`
+  query IsTokenWatchedQuery {
+    tokenWatchlist {
+      id
+      contractAddress
+      chainIdentifier
+    }
+  }
+`),y={suspense:!1};function h(e){let r=(0,C.useAddress)(),[t]=(0,m.useQueryV2)({query:g,variables:{},pause:!r,context:y}),n=(0,d.getQueryData)(t);return{isTokenWatchedMap:(0,a.useMemo)(()=>{let r=new Map;return e.forEach(e=>{let t=`${e.chainIdentifier}:${e.contractAddress}`;r.set(t,!1)}),n?.tokenWatchlist&&n.tokenWatchlist.forEach(e=>{let t=`${e.chainIdentifier}:${e.contractAddress}`;r.set(t,!0)}),r},[n?.tokenWatchlist,e]),isTokenWatchedFetching:t.fetching&&!!r}}e.s(["useIsTokenWatched",0,h],948941);let T=(0,l.withSuspense)(({currency:e,className:i})=>{let c=(0,t.readFragment)(s,e),{isTokenWatchedMap:l,isTokenWatchedFetching:d}=h((0,a.useMemo)(()=>[{contractAddress:c.contractAddress,chainIdentifier:c.chainIdentifier}],[c.contractAddress,c.chainIdentifier])),m=`${c.chainIdentifier}:${c.contractAddress}`,C=l.get(m)??!1,g=(0,o.useToggleWatchToken)({currency:c,isWatching:C}),y=async e=>{e.preventDefault(),await g.execute()},T=d||g.fetching;return(0,r.jsx)(n.UnstyledButton,{className:i,disabled:T,onClick:y,children:(0,r.jsx)(u.CurrencyWatchlistIcon,{isFilled:g.isWatching,loading:T,size:20})})},{ssr:!1,fallback:({className:e})=>(0,r.jsx)(n.UnstyledButton,{className:e,disabled:!0,children:(0,r.jsx)(u.CurrencyWatchlistIcon,{isFilled:!1,loading:!0,size:20})})});e.s(["CurrencyHeaderWatchlistButton",0,T],843243)},237261,e=>{"use strict";var r=e.i(647870),t=e.i(828226),n=e.i(455480),a=e.i(457628),i=e.i(95581),c=e.i(29093),s=e.i(644068);e.s(["CurrencyWatchlistButton",0,function(e){let u,o,l,d,m,C=(0,t.c)(14),{currency:g,initialState:y}=e;C[0]!==g?(u=(0,n.readFragment)(i.CurrencyWatchlistButtonFragment,g),C[0]=g,C[1]=u):u=C[1];let h=u;C[2]!==h||C[3]!==y.isWatched?(o={currency:h,isWatching:y.isWatched},C[2]=h,C[3]=y.isWatched,C[4]=o):o=C[4];let T=(0,s.useToggleWatchToken)(o);C[5]!==T?(l=async e=>{e.preventDefault(),await T.execute()},C[5]=T,C[6]=l):l=C[6];let E=l,f=y.fetching||T.fetching;return C[7]!==f||C[8]!==T.isWatching?(d=(0,r.jsx)(c.CurrencyWatchlistIcon,{isFilled:T.isWatching,loading:f}),C[7]=f,C[8]=T.isWatching,C[9]=d):d=C[9],C[10]!==E||C[11]!==f||C[12]!==d?(m=(0,r.jsx)(a.UnstyledButton,{disabled:f,onClick:E,children:d}),C[10]=E,C[11]=f,C[12]=d,C[13]=m):m=C[13],m}])},592471,619023,982391,758935,646011,309830,455580,e=>{"use strict";var r=e.i(885530),t=e.i(510879),n=e.i(916660),a=e.i(114463),i=e.i(314346),c=e.i(803577),s=e.i(81810),u=e.i(682576),o=e.i(201578),l=e.i(602310),d=e.i(807023);let m=(0,r.graphql)(`
+    fragment CollectionCurrencyPreviewSheet on CurrencyV2 {
+      collections {
+        ...CollectionPreviewTooltipContent
+        ...collectionUrl
+      }
+    }
+  `,[d.CollectionPreviewTooltipContentFragment,l.collectionUrlFragment]);e.s(["CollectionCurrencyPreviewSheetFragment",0,m],619023);let C=(0,r.graphql)(`
+    fragment CollectionCurrencyPreview on CurrencyV2 {
+      ...CollectionCurrencyPreviewSheet
+      collections {
+        slug
+        ...collectionUrl
+        ...CollectionLockup
+        ...CollectionPreviewTooltip
+      }
+    }
+  `,[l.collectionUrlFragment,u.CollectionLockupFragment,o.CollectionPreviewTooltipFragment,m]);e.s(["CollectionCurrencyPreviewFragment",0,C],982391);var g=e.i(389810),y=e.i(427178);let h=(0,r.graphql)(`
+    fragment CurrencyMetadataChips on CurrencyV2 {
+      symbol
+      contractAddress
+      chainIdentifier
+      genesisDate
+      chain {
+        ...ChainChip
+      }
+      tokenGroup {
+        currencies {
+          chainIdentifier
+        }
+      }
+      socials {
+        twitterProfile {
+          trending {
+            status
+          }
+          mentions {
+            daily {
+              count
+              date
+            }
+          }
+        }
+      }
+      ...CollectionCurrencyPreview
+      ...NewCurrencyV2Chip
+    }
+  `,[y.ChainChipFragment,C,g.NewCurrencyV2ChipFragment]);e.s(["CurrencyMetadataChipsFragment",0,h],758935),e.i(843243);var T=e.i(740651);e.i(237261),e.i(95581),e.i(29093),e.i(644068),e.s([],646011);let E=(0,r.graphql)(`
+  fragment CurrencyLinks on CurrencyV2 {
+    contractAddress
+    socials {
+      website
+      twitterHandle
+      telegramIdentifier
+      twitterProfile {
+        handle
+        followersCount
+        accountCreatedAt
+        verifiedType
+        engagement {
+          averageEngagementRate
+          health
+        }
+        spaces {
+          active {
+            spaceId
+          }
+        }
+      }
+    }
+    chain {
+      identifier
+    }
+    metadata {
+      fullCollection {
+        twitterUsername
+        discordUrl
+        externalUrl
+        instagramUsername
+        mediumUsername
+        telegramUrl
+        wikiUrl
+      }
+    }
+  }
+`);e.s(["CurrencyLinksFragment",0,E],309830);let f=(0,r.graphql)(`
+    fragment CurrencyInfo on CurrencyV2 {
+      usdPrice
+      createdAt
+      stats {
+        totalSupply
+        oneDay {
+          priceChange
+        }
+      }
+      chain {
+        ...ChainBadge
+      }
+      ...CurrencyMetadataChips
+      ...CurrencyLinks
+      ...CollectionCurrencyPreview
+      ...CurrencyV2Lockup
+      ...CurrencyHeaderWatchlistButton
+    }
+  `,[c.ChainBadgeFragment,E,h,C,s.CurrencyV2LockupFragment,T.CurrencyHeaderWatchlistButtonFragment]);e.s(["CurrencyInfoFragment",0,f],455580),(0,r.graphql)(`
+  fragment TradingViewChart on CurrencyV2 {
+    pools {
+      name
+      dexScreenerChainId
+      pool {
+        contractAddress
+      }
+    }
+  }
+`);let p=(0,r.graphql)(`
+  fragment TradingViewChartButton on CurrencyV2 {
+    contractAddress
+    chain {
+      identifier
+    }
+  }
+`,[]),I=(0,r.graphql)(`
+    fragment CurrencyChart on CurrencyV2 {
+      contractAddress
+      chainIdentifier
+      imageUrl
+      usdPrice
+      createdAt
+      genesisDate
+      stats {
+        totalSupply
+      }
+      ...CurrencyInfo
+      ...CurrencyChartColor
+      ...TradingViewChartButton
+      ...CurrencyLineChart
+      ...CurrencyCandlestickChart
+      ...TradingViewCandlestickChart
+    }
+  `,[f,i.CurrencyChartColorFragment,p,n.CurrencyLineChartFragment,t.CurrencyCandlestickChartFragment,a.TradingViewCandlestickChartFragment]);e.s(["CurrencyChartFragment",0,I],592471)},975218,599146,921712,e=>{"use strict";var r=e.i(885530),t=e.i(968291),n=e.i(589259),a=e.i(592471),i=e.i(720861),c=e.i(57219),s=e.i(751923);let u=(0,r.graphql)(`
+    fragment CurrencyTradeModule on CurrencyV2 {
+      contractAddress
+      isSwapDisabled
+      chain {
+        identifier
+        swapsSupported
+      }
+      ...CurrencySwapModule
+      ...ContextCurrencyV2
+    }
+  `,[s.CurrencySwapModuleFragment,c.ContextCurrencyV2Fragment]);e.s(["CurrencyTradeModuleFragment",0,u],599146);let o=(0,r.graphql)(`
+  fragment WalletPositionStats on CurrencyV2 {
+    contractAddress
+    chainIdentifier
+    chain {
+      arch
+    }
+    tokenGroup {
+      currencies {
+        chainIdentifier
+        contractAddress
+        chain {
+          arch
+        }
+      }
+    }
+  }
+`),l=(0,r.graphql)(`
+  query WalletPositionStatsQuery($addresses: [Address!]!, $contracts: [ContractIdentifierInput!]!) {
+    currencyOwnershipsV2(addresses: $addresses, contracts: $contracts, limit: 20) {
+      items {
+        __typename
+        ... on CurrencyBalanceV2 {
+          usdValue
+          quantity
+          asset {
+            chainIdentifier
+            contractAddress
+          }
+          gainStats {
+            invested
+            realized
+            unrealized
+            returnPercentage
+            gain
+            avgCostPerTokenUsd
+          }
+        }
+      }
+    }
+  }
+`),d=(0,r.graphql)(`
+  subscription WalletPnlSubscription(
+    $address: Address!
+    $contract: ContractIdentifierInput!
+  ) {
+    walletPnl(address: $address, contract: $contract) {
+      invested
+      realized
+      unrealized
+      returnPercentage
+      gain
+    }
+  }
+`);e.s(["WalletPnlSubscription",0,d,"WalletPositionStatsFragment",0,o,"WalletPositionStatsQuery",0,l],921712);let m=(0,r.graphql)(`
+    fragment CurrencyModule on CurrencyV2 {
+      symbol
+      isSwapDisabled
+      metadata {
+        overview {
+          modules {
+            __typename
+          }
+        }
+      }
+      ...CurrencyChart
+      ...CurrencyTradeModule
+      ...CurrencyStats
+      ...CurrencyAbout
+      ...CurrencyBannerMedia
+      ...WalletPositionStats
+    }
+  `,[a.CurrencyChartFragment,u,i.CurrencyStatsFragment,t.CurrencyAboutFragment,n.CurrencyBannerMediaFragment,o]);e.s(["CurrencyModuleFragment",0,m],975218)},301715,e=>{"use strict";let r=(0,e.i(885530).graphql)(`
+  query CurrencyCandlestickChartQuery(
+    $contractIdentifier: ContractIdentifierInput!
+    $startTime: DateTime!
+    $endTime: DateTime!
+    $bucketSize: CandleBucketSize!
+    $fillTimeWindow: Boolean
+  ) {
+    currencyOhlcvCandles2(
+      contract: $contractIdentifier
+      startTime: $startTime
+      endTime: $endTime
+      bucketSize: $bucketSize
+      fillTimeWindow: $fillTimeWindow
+    ) {
+      time
+      open
+      high
+      low
+      close
+      volume
+    }
+  }
+`);e.s(["CurrencyCandlestickChartQuery",0,r])},723600,e=>{"use strict";var r=e.i(828226),t=e.i(88343),n=e.i(871085),a=e.i(336245),i=e.i(649386);let c=(0,a.parseAsStringLiteral)(t.Timeframe.map(e=>(0,n.toLowerCase)(e)));e.s(["DEFAULT_TOKEN_TIMEFRAME",0,"ONE_DAY","useTokenTimeframeQueryParam",0,function(){let e,t,s,u=(0,r.c)(7),[o,l]=(0,a.useQueryState)(i.QUERY_PARAM_KEYS.timeframe,c);return u[0]!==o?(e=o?(0,n.toUpperCase)(o):null,u[0]=o,u[1]=e):e=u[1],u[2]!==l?(t=e=>l((0,n.toLowerCase)(e)),u[2]=l,u[3]=t):t=u[3],u[4]!==e||u[5]!==t?(s={timeframe:e,setTimeframe:t},u[4]=e,u[5]=t,u[6]=s):s=u[6],s}])},711999,21939,e=>{"use strict";var r=e.i(828226),t=e.i(165102),n=e.i(20904),a=e.i(353936);let i={ALL_TIME:"ONE_DAY",ONE_YEAR:"ONE_DAY",THIRTY_DAYS:"ONE_DAY",SEVEN_DAYS:"FOUR_HOURS",ONE_DAY:"FIFTEEN_MINUTES",ONE_HOUR:"ONE_MINUTE",FIFTEEN_MINUTE:"ONE_SECOND",FIVE_MINUTE:"ONE_SECOND",THIRTY_MINUTE:"ONE_SECOND",ONE_MINUTE:"ONE_SECOND"},c={ALL_TIME:"ONE_DAY",ONE_YEAR:"ONE_DAY",THIRTY_DAYS:"ONE_DAY",SEVEN_DAYS:"FOUR_HOURS",ONE_DAY:"ONE_HOUR",ONE_HOUR:"ONE_MINUTE",FIFTEEN_MINUTE:"ONE_SECOND",FIVE_MINUTE:"ONE_SECOND",THIRTY_MINUTE:"ONE_SECOND",ONE_MINUTE:"ONE_SECOND"};function s({timeframe:e,createdAt:r,isLessThanMd:t,referenceDate:u=new Date}){var o;let l,d;return"ALL_TIME"===e&&r?(o=(0,n.differenceInSeconds)(u,new Date(r)),l=(0,a.hoursToSeconds)(4),d=(0,a.hoursToSeconds)(24),o<l?"ONE_MINUTE":o<d?"FIFTEEN_MINUTES":o<7*d?"FOUR_HOURS":"ONE_DAY"):t?c[e]:i[e]}e.s(["DEFAULT_BUCKET_SIZE_MAP",0,i,"DEFAULT_TIMEFRAME_FOR_BUCKET_SIZE",0,{ONE_SECOND:"FIFTEEN_MINUTE",ONE_MINUTE:"ONE_HOUR",FIVE_MINUTES:"ONE_DAY",FIFTEEN_MINUTES:"ONE_DAY",ONE_HOUR:"SEVEN_DAYS",FOUR_HOURS:"SEVEN_DAYS",ONE_DAY:"THIRTY_DAYS"},"MOBILE_DEFAULT_BUCKET_SIZE_MAP",0,c],21939),e.s(["computeDefaultCandleSize",0,s,"useGetDefaultCandleSize",0,e=>{let n,a=(0,r.c)(3),{createdAt:i}=e,c=(0,t.useIsLessThanMd)();return a[0]!==i||a[1]!==c?(n=e=>s({timeframe:e,createdAt:i,isLessThanMd:c}),a[0]=i,a[1]=c,a[2]=n):n=a[2],n}],711999)},312888,e=>{"use strict";let r=new Map;function t(e,r,t){return`${e}:${r}:${t}`}e.s(["getCachedCandles",0,function(e,n,a,i,c){let s=t(e,n,a),u=r.get(s);if(!u)return null;if(Date.now()-u.lastUpdated>3e5)return r.delete(s),null;if(i<u.minTime||c>u.maxTime)return null;let o=[];for(let[e,r]of u.candles)e>=i&&e<=c&&o.push({timeMs:e,candle:r});return 0===o.length?null:(o.sort((e,r)=>e.timeMs-r.timeMs),o.map(e=>e.candle))},"setCachedCandles",0,function(e,n,a,i){let c=t(e,n,a),s=r.get(c);if(!s){if(r.size>=50){let e=null,t=1/0;for(let[n,a]of r)a.lastUpdated<t&&(t=a.lastUpdated,e=n);e&&r.delete(e)}s={candles:new Map,lastUpdated:Date.now(),minTime:1/0,maxTime:-1/0},r.set(c,s)}for(let e of i){let r=new Date(e.time).getTime();s.candles.set(r,e),s.minTime=Math.min(s.minTime,r),s.maxTime=Math.max(s.maxTime,r)}if(s.candles.size>1e4){let e=Array.from(s.candles.keys()).sort((e,r)=>e-r),r=e.length-1e4;for(let t=0;t<r;t+=1)s.candles.delete(e[t]);s.minTime=e[r]??s.minTime,s.maxTime=e.at(-1)??s.maxTime}s.lastUpdated=Date.now()}])},510257,e=>{"use strict";var r=e.i(885530),t=e.i(859898);let n=(0,r.graphql)(`
+    fragment MobileCurrencyItemsActionBar on CurrencyV2 {
+      symbol
+      restrictSwapsToNativeTokens
+      ...currencyIdentifier
+    }
+  `,[t.currencyIdentifierFragment]);e.s(["MobileCurrencyItemsActionBarFragment",0,n])},688280,e=>{"use strict";var r=e.i(828226),t=e.i(581147),n=e.i(594445);let a=["details","activity"],i="last-currency-navigation-tab";e.s(["setLastCurrencyNavigationTab",0,function(e){localStorage.setItem(i,e)},"useCurrencyUrl",0,function(){let e,c,s,u=(0,r.c)(6),o=(0,n.useIsHydrated)();u[0]!==o?(e=()=>{if(o&&1){let e=function(){{let e=localStorage.getItem(i);if(e)return e}}();if(e&&a.includes(e))return e}return"details"},u[0]=o,u[1]=e):e=u[1];let l=e;u[2]!==l?(c=(e,r)=>(0,t.getCurrencyUrl)(e,r??l()),u[2]=l,u[3]=c):c=u[3];let d=c;return u[4]!==d?(s={getCurrencyUrl:d},u[4]=d,u[5]=s):s=u[5],s}])},516647,495982,516372,e=>{"use strict";var r=e.i(885530),t=e.i(314346),n=e.i(975218),a=e.i(510257),i=e.i(581147);let c=(0,r.graphql)(`
+    fragment CurrencyNavigationItem on CurrencyV2 {
+      ...currencyV2Url
+    }
+  `,[i.currencyV2UrlFragment]);e.s(["CurrencyNavigationItemFragment",0,c],495982);let s=(0,r.graphql)(`
+    fragment CurrencyNavigation on CurrencyV2 {
+      isNative
+      ...CurrencyNavigationItem
+    }
+  `,[c]);e.s(["CurrencyNavigationFragment",0,s],516372);var u=e.i(751923),o=e.i(921712),l=e.i(703979);let d=(0,r.graphql)(`
+    fragment CurrencyPageLayout on CurrencyV2 {
+      contractAddress
+      chainIdentifier
+      tokenGroup {
+        __typename
+      }
+      stats {
+        __typename
+      }
+      ...CurrencyModule
+      ...CurrencyNavigation
+      ...MobileCurrencyItemsActionBar
+      ...CurrencyChartColor
+      ...CurrencyPageLayoutProvider
+      ...CurrencySwapModule
+      ...WalletPositionStats
+    }
+  `,[n.CurrencyModuleFragment,s,a.MobileCurrencyItemsActionBarFragment,t.CurrencyChartColorFragment,l.CurrencyPageLayoutProviderFragment,u.CurrencySwapModuleFragment,o.WalletPositionStatsFragment]);e.s(["CurrencyPageLayoutFragment",0,d],516647)}]);
+
+//# debugId=6f864d91-b29a-ff52-f529-ea782972bea5
+//# sourceMappingURL=0xjkat9daq.v9.js.map

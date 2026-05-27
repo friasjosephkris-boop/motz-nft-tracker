@@ -20,6 +20,17 @@ export function fmtRon(n: number | null | undefined) {
   if (n == null) return "—";
   return `${n.toLocaleString("en-US", { maximumFractionDigits: 4 })} RON`;
 }
+/**
+ * Currency-aware formatter. Falls back to RON for legacy rows that
+ * predate the per-row currencySymbol field.
+ */
+export function fmtCoin(
+  n: number | null | undefined,
+  symbol: string | undefined,
+): string {
+  if (n == null) return "—";
+  return `${n.toLocaleString("en-US", { maximumFractionDigits: 4 })} ${symbol || "RON"}`;
+}
 export function fmtDate(unix: number | null | undefined) {
   if (!unix) return "—";
   return new Date(unix * 1000).toLocaleString();
@@ -151,6 +162,11 @@ export function CollectionSection({
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [rarityFilter, setRarityFilter] = useState<string>("all");
   const [acquiredFilter, setAcquiredFilter] = useState<string>("all");
+
+  // All rows in a section share a single native currency (a collection
+  // lives on one chain). Derive it from the first row's currencySymbol;
+  // defaults to RON for back-compat with snapshots predating the field.
+  const sectionCurrency = c.rows[0]?.currencySymbol ?? "RON";
 
   // Build the set of distinct rarities and acquired-via values present in
   // this collection for the dropdown options.
@@ -377,7 +393,7 @@ export function CollectionSection({
                       onClick={() => clickSort("costRon")}
                       align="right"
                     >
-                      Cost (RON){sortIndicator("costRon")}
+                      Cost ({sectionCurrency}){sortIndicator("costRon")}
                     </SortableHeader>
                     <SortableHeader
                       onClick={() => clickSort("costUsd")}
@@ -547,7 +563,7 @@ export function Row({ r }: { r: TaggedHoldingRow }) {
         )}
       </td>
       <td className="px-4 py-3 text-right font-mono">
-        <div className="text-zinc-100">{fmtRon(r.costRon)}</div>
+        <div className="text-zinc-100">{fmtCoin(r.costRon, r.currencySymbol)}</div>
         {r.acquiredVia === "mint" && (
           <div className="text-[10px] uppercase tracking-wider text-[color:var(--winner-gold)]/80">
             mint price
@@ -558,14 +574,16 @@ export function Row({ r }: { r: TaggedHoldingRow }) {
         <div className="text-zinc-100">{fmtUsd(r.costUsd)}</div>
         {r.ronUsdAtPurchase != null && (
           <div className="text-[10px] text-zinc-500">
-            @ ${r.ronUsdAtPurchase.toFixed(4)}/RON
+            @ ${r.ronUsdAtPurchase.toFixed(4)}/{r.currencySymbol ?? "RON"}
           </div>
         )}
       </td>
       <td className="px-4 py-3 text-right font-mono">
         <div className="text-zinc-100">{fmtUsd(r.floorUsd)}</div>
         {r.floorRon != null && (
-          <div className="text-[11px] text-zinc-500">{fmtRon(r.floorRon)}</div>
+          <div className="text-[11px] text-zinc-500">
+            {fmtCoin(r.floorRon, r.currencySymbol)}
+          </div>
         )}
       </td>
       <td
