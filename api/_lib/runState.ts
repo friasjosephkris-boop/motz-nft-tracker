@@ -807,28 +807,67 @@ export async function adminSetMaxFloor(address: string, floor: number): Promise<
   return { newMax: clamped };
 }
 
+/** A wallet's entry on a per-mode leaderboard. Score is decoded into floor
+ *  + ms via decodeScore so the admin UI can show "floor 177 in 12m34s". */
+export interface LbDiagnosis {
+  /** Raw zset score (encodeScore output). Null when wallet isn't in the LB. */
+  rawScore: number | null;
+  /** Decoded floor reached. Null when wallet isn't in the LB. */
+  floor: number | null;
+  /** Decoded total run ms. Null when wallet isn't in the LB. */
+  ms: number | null;
+  /** 1-indexed rank (humans). Null when not in the LB. */
+  rank: number | null;
+}
+
 /** Admin diagnostic: read a wallet's per-wallet maxfloor (source of truth)
- *  AND its score on the highest-floor leaderboard, so drift between the
- *  two is obvious. Returns null fields when the wallet has nothing recorded. */
+ *  AND its score on every leaderboard, so drift / missing-run issues are
+ *  obvious. Returns null fields where the wallet has nothing recorded. */
 export async function getWalletProgressDiagnosis(address: string): Promise<{
   serverMaxFloor: number;
-  lbScore: number | null;
-  lbRank: number | null;
+  highestFloor: LbDiagnosis;
+  survival: LbDiagnosis;
+  bossRaid: LbDiagnosis;
   ign: string | null;
 }> {
   const { zscore } = await import("./redis.js");
   const addr = address.toLowerCase();
-  const [serverMaxFloor, lbScore, lbRank, igns] = await Promise.all([
+  const survivalKey = lbKeyFor("survival");
+  const bossRaidKey = lbKeyFor("boss_raid");
+  const [
+    serverMaxFloor,
+    hfScore, hfRank,
+    svScore, svRank,
+    brScore, brRank,
+    igns,
+  ] = await Promise.all([
     getMaxFloorCleared(addr),
     zscore(HIGHEST_FLOOR_LB_KEY, addr),
     zrevrank(HIGHEST_FLOOR_LB_KEY, addr),
+    zscore(survivalKey, addr),
+    zrevrank(survivalKey, addr),
+    zscore(bossRaidKey, addr),
+    zrevrank(bossRaidKey, addr),
     hmget(IGN_HASH_KEY, [addr]),
   ]);
+  // Highest Floor LB: the score IS the floor number, no ms encoded.
+  const highestFloor: LbDiagnosis = {
+    rawScore: hfScore,
+    floor: hfScore,
+    ms: null,
+    rank: hfRank === null ? null : hfRank + 1,
+  };
+  // Survival + Boss Raid use encodeScore (floor packed with ms).
+  const decode = (score: number | null, rank: number | null): LbDiagnosis => {
+    if (score === null) return { rawScore: null, floor: null, ms: null, rank: null };
+    const { floor, ms } = decodeScore(score);
+    return { rawScore: score, floor, ms, rank: rank === null ? null : rank + 1 };
+  };
   return {
     serverMaxFloor,
-    lbScore,
-    // zrevrank is 0-indexed; surface as 1-indexed rank for humans.
-    lbRank: lbRank === null ? null : lbRank + 1,
+    highestFloor,
+    survival: decode(svScore, svRank),
+    bossRaid: decode(brScore, brRank),
     ign: igns[0] ?? null,
   };
 }

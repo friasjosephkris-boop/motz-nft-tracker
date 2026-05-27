@@ -744,6 +744,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  if (op === "admin_submit_lb_score") {
+    // Repair tool — manually submit a leaderboard score for a wallet whose
+    // run was "lost" (e.g. tab closed before /api/run/end could POST). Uses
+    // submitToLeaderboard's zaddGt under the hood so it only raises, never
+    // demotes. Mode: "survival" or "boss_raid".
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
+      ? (req.body as { wallet: string }).wallet.trim().toLowerCase() : "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+      res.status(400).json({ error: "wallet must be a 0x-prefixed 40-hex address" }); return;
+    }
+    const modeRaw = (req.body as { mode?: unknown }).mode;
+    const submitMode: "survival" | "boss_raid" | null =
+      modeRaw === "survival" ? "survival" :
+      modeRaw === "boss_raid" ? "boss_raid" : null;
+    if (!submitMode) { res.status(400).json({ error: "mode must be 'survival' or 'boss_raid'" }); return; }
+    const floor = typeof (req.body as { floor?: unknown }).floor === "number"
+      ? Math.floor((req.body as { floor: number }).floor) : -1;
+    if (floor < 1 || floor > 500) { res.status(400).json({ error: "floor must be 1..500" }); return; }
+    const ms = typeof (req.body as { ms?: unknown }).ms === "number"
+      ? Math.floor((req.body as { ms: number }).ms) : -1;
+    if (ms < 0 || ms > 1_000_000_000) {
+      res.status(400).json({ error: "ms must be 0..1e9" }); return;
+    }
+    try {
+      const { submitToLeaderboard, getWalletProgressDiagnosis } = await import("../_lib/runState.js");
+      const r = await submitToLeaderboard(target, floor, ms, submitMode);
+      const after = await getWalletProgressDiagnosis(target);
+      res.status(200).json({ ok: true, wallet: target, mode: submitMode, floor, ms, improved: r.improved, diag: after });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "admin_grant_energy_to") {
     // Variant of admin_grant_energy that targets a SPECIFIC wallet rather
     // than the admin's own. Use for comp grants (player paid for a bundle

@@ -72,20 +72,34 @@ export async function adminGrantSampleVouchers(
   } catch { return null; }
 }
 
+export interface LbDiagnosis {
+  /** Raw zset score. Null when wallet isn't in this LB at all. */
+  rawScore: number | null;
+  /** Decoded floor reached on this LB. Null when not present. */
+  floor: number | null;
+  /** Decoded total run ms (survival/boss_raid only; null for Highest Floor). */
+  ms: number | null;
+  /** 1-indexed rank. Null when not present. */
+  rank: number | null;
+}
+
 export interface WalletDiagnosis {
+  /** Per-wallet maxfloor key — the source-of-truth for campaign progress. */
   serverMaxFloor: number;
-  /** Score the wallet currently holds on the Highest Floor leaderboard.
-   *  Null if the wallet isn't in the zset at all. */
-  lbScore: number | null;
-  /** 1-indexed rank on the LB. Null if not present. */
-  lbRank: number | null;
+  /** Highest Floor leaderboard entry (campaign-clear ranks). */
+  highestFloor: LbDiagnosis;
+  /** Survival leaderboard entry. */
+  survival: LbDiagnosis;
+  /** Boss Raid leaderboard entry. */
+  bossRaid: LbDiagnosis;
   ign: string | null;
 }
 
-/** Admin only: read progress diagnostics for a target wallet. Returns the
- *  per-wallet max-floor key AND the wallet's score on the Highest Floor LB
- *  — any drift between the two is the smoking gun for a dropped clear
- *  report. */
+/** Admin only: read full progress diagnostics for a target wallet. Returns
+ *  the per-wallet max-floor key AND the wallet's score on each leaderboard.
+ *  Use to spot drift (Highest Floor LB vs maxfloor key) or "lost run"
+ *  cases (survival LB doesn't reflect a run the player claims to have
+ *  finished). */
 export async function adminDiagnoseWallet(wallet: string): Promise<{ ok: boolean; wallet?: string; diag?: WalletDiagnosis; error?: string }> {
   const tok = token();
   if (!tok) return { ok: false, error: "not signed in" };
@@ -95,15 +109,17 @@ export async function adminDiagnoseWallet(wallet: string): Promise<{ ok: boolean
       headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({ op: "admin_diagnose_wallet", wallet }),
     });
-    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; wallet?: string; serverMaxFloor?: number; lbScore?: number | null; lbRank?: number | null; ign?: string | null }));
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; wallet?: string } & Partial<WalletDiagnosis>));
     if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    const empty: LbDiagnosis = { rawScore: null, floor: null, ms: null, rank: null };
     return {
       ok: true,
       wallet: data.wallet,
       diag: {
         serverMaxFloor: data.serverMaxFloor ?? 0,
-        lbScore: data.lbScore ?? null,
-        lbRank: data.lbRank ?? null,
+        highestFloor: data.highestFloor ?? empty,
+        survival: data.survival ?? empty,
+        bossRaid: data.bossRaid ?? empty,
         ign: data.ign ?? null,
       },
     };
@@ -112,9 +128,9 @@ export async function adminDiagnoseWallet(wallet: string): Promise<{ ok: boolean
   }
 }
 
-/** Admin only: raise a wallet's max-cleared floor + LB score. Use to repair
- *  drift when a clear report failed to land. Cap 1..500. Raises only — if
- *  the LB already shows a higher score it stays put. */
+/** Admin only: raise a wallet's max-cleared floor + Highest Floor LB score.
+ *  Repair drift from a dropped campaign clear report. Cap 1..500. Raises
+ *  only — if the LB already shows a higher score it stays put. */
 export async function adminSetMaxFloor(wallet: string, floor: number): Promise<{ ok: boolean; newMax?: number; diag?: WalletDiagnosis; error?: string }> {
   const tok = token();
   if (!tok) return { ok: false, error: "not signed in" };
@@ -124,18 +140,47 @@ export async function adminSetMaxFloor(wallet: string, floor: number): Promise<{
       headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({ op: "admin_set_max_floor", wallet, floor }),
     });
-    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; newMax?: number; serverMaxFloor?: number; lbScore?: number | null; lbRank?: number | null; ign?: string | null }));
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; newMax?: number } & Partial<WalletDiagnosis>));
     if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    const empty: LbDiagnosis = { rawScore: null, floor: null, ms: null, rank: null };
     return {
       ok: true,
       newMax: data.newMax,
       diag: {
         serverMaxFloor: data.serverMaxFloor ?? 0,
-        lbScore: data.lbScore ?? null,
-        lbRank: data.lbRank ?? null,
+        highestFloor: data.highestFloor ?? empty,
+        survival: data.survival ?? empty,
+        bossRaid: data.bossRaid ?? empty,
         ign: data.ign ?? null,
       },
     };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "network" };
+  }
+}
+
+/** Admin only: submit a Survival or Boss Raid leaderboard score on behalf
+ *  of a wallet (repair for a "lost run" where /api/run/end didn't land).
+ *  Raises only — if the wallet already has a better score it stays put.
+ *  `ms` is the total run time to record alongside the floor (used as the
+ *  tiebreak). 1..500 floor; 0..1e9 ms. */
+export async function adminSubmitLbScore(
+  wallet: string,
+  mode: "survival" | "boss_raid",
+  floor: number,
+  ms: number,
+): Promise<{ ok: boolean; improved?: boolean; diag?: WalletDiagnosis; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_submit_lb_score", wallet, mode, floor, ms }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; improved?: boolean; diag?: WalletDiagnosis }));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: true, improved: data.improved, diag: data.diag };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "network" };
   }
