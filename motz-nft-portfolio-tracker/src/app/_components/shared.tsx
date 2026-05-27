@@ -142,7 +142,30 @@ const DESC_FIRST_COLUMNS: ReadonlySet<string> = new Set([
   "costUsd",
   "floor",
   "pnl",
+  // Rarity also defaults to descending so the rarest tier shows up at
+  // the top of the list when the user clicks the column.
+  "rarity",
 ]);
+
+/**
+ * Standard fantasy rarity ladder (lowest → highest). Used by the rarity
+ * sort to put Common at the bottom, Legendary at the top of asc order.
+ * Add more tier names here as new collections need them — collections
+ * that use a custom rarity scheme not in this list fall back to
+ * locale string sort.
+ */
+const RARITY_ORDER: Record<string, number> = {
+  Common: 0,
+  Uncommon: 1,
+  Rare: 2,
+  "Super Rare": 3,
+  "Ultra Rare": 4,
+  Epic: 5,
+  Legendary: 6,
+  // MoTZ Founders Coin scheme
+  Premium: 3,
+  Shiny: 4,
+};
 type SortDir = "asc" | "desc";
 
 export function CollectionSection({
@@ -216,12 +239,16 @@ export function CollectionSection({
       case "rarity": {
         const ar = a.rarityLabel ?? a.rarity ?? "";
         const br = b.rarityLabel ?? b.rarity ?? "";
-        // Prefer numeric tier when both rarities embed a T-prefixed tier
-        // (e.g. "Cove (T1)" → 1, "Admiralty (T3)" → 3). Falls back to
-        // locale string sort for collections that don't use this format.
+        // Three-tier comparator priority:
+        //   1. T-prefixed tier numbers (Cove T1 → Crown Dominion T5)
+        //   2. Known fantasy rarity ladder (Common → Legendary)
+        //   3. Locale string sort fallback
         const ta = ar.match(/T(\d+)/);
         const tb = br.match(/T(\d+)/);
         if (ta && tb) return (Number(ta[1]) - Number(tb[1])) * dir;
+        const ai = RARITY_ORDER[ar];
+        const bi = RARITY_ORDER[br];
+        if (ai != null && bi != null) return (ai - bi) * dir;
         return ar.localeCompare(br) * dir;
       }
       case "acquired": {
