@@ -285,7 +285,7 @@ export function CollectionSection({
                       v === "mint"
                         ? "Minted"
                         : v === "sale"
-                          ? "Acquired"
+                          ? "Bought"
                           : v === "transfer"
                             ? "Transferred"
                             : v,
@@ -489,13 +489,14 @@ export function Row({ r }: { r: TaggedHoldingRow }) {
           </>
         ) : (
           <>
-            <div className="text-sm">{fmtDate(r.acquiredAt)}</div>
+            <span className="chip chip-purple">Bought</span>
+            <div className="text-sm mt-1">{fmtDate(r.acquiredAt)}</div>
             {r.acquiredTxHash && (
               <a
                 href={`https://app.roninchain.com/tx/${r.acquiredTxHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[11px] font-mono text-zinc-500 hover:text-zinc-300"
+                className="block text-[11px] font-mono text-zinc-500 hover:text-zinc-300"
               >
                 {r.acquiredTxHash.slice(0, 10)}…
               </a>
