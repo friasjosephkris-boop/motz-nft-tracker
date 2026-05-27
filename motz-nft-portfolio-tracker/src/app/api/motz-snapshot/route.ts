@@ -455,14 +455,14 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
               acquiredAt = transferrerSale.eventTimestamp;
               costEth = Number(BigInt(transferrerSale.priceWei)) / 1e18;
               acquiredTxHash = transferrerSale.txHash;
-              // Direct-purchase by current owner = "sale". If the buying
-              // wallet is a DIFFERENT MoTZ wallet, the token was transferred
-              // in afterwards — mark as "transfer" but keep the original
-              // cost basis preserved from the transferrer's purchase.
-              acquiredVia =
-                transferrerSale.toAddress === addr.toLowerCase()
-                  ? "sale"
-                  : "transfer";
+              // ANY MoTZ-tracked wallet bought it → label "sale" (renders
+              // as the "Bought" chip in the UI). Whether the current
+              // holder bought it directly or received it via inter-MoTZ
+              // transfer doesn't matter — the MoTZ ecosystem paid for it,
+              // so cost basis is preserved and the row is a "Bought".
+              // Only transfers from NON-tracked wallets get the
+              // "transfer" label with cost = 0 (handled below).
+              acquiredVia = "sale";
             } else if (history.length > 0) {
               // Token has a sale history but no MoTZ wallet was the
               // buyer. That sale's price belongs to whoever paid for

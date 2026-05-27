@@ -160,10 +160,9 @@ for (const addr of WALLETS) {
         costEth =
           Number(BigInt(motzSale.payment?.quantity ?? "0")) / 1e18;
         acquiredTxHash = motzSale.transaction ?? null;
-        acquiredVia =
-          motzSale.buyer?.toLowerCase() === addr.toLowerCase()
-            ? "sale"
-            : "transfer";
+        // Any MoTZ-tracked wallet bought it = "Bought" label, cost
+        // preserved across inter-MoTZ transfers.
+        acquiredVia = "sale";
       } else if (saleHistory.length > 0) {
         // Non-tracked buyer in history → transferred in privately,
         // cost = 0 per policy. Keep timestamp/tx for "when" signal.

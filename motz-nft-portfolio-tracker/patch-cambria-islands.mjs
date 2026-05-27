@@ -203,10 +203,8 @@ for (const addr of WALLETS) {
         costEth =
           Number(BigInt(transferrerSale.payment?.quantity ?? "0")) / 1e18;
         acquiredTxHash = transferrerSale.transaction ?? null;
-        acquiredVia =
-          transferrerSale.buyer?.toLowerCase() === addr.toLowerCase()
-            ? "sale"
-            : "transfer";
+        // Any MoTZ-tracked wallet bought it = "Bought" label.
+        acquiredVia = "sale";
       } else if (sales.length > 0) {
         // Token has a sale history but no MoTZ wallet was the buyer.
         // Per cost-basis policy, transfers in from non-tracked wallets
