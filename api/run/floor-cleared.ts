@@ -745,16 +745,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   }
   if (op === "admin_lb_activity") {
-    // Read-only activity audit for a survival / boss_raid LB. Returns top-N
-    // entries with the best timestamps we have (replay recordedAt for top-3,
-    // submission-hash timestamp going forward) AND a list of wallets who
-    // attempted today regardless of whether their LB score improved.
+    // Read-only activity audit for any LB (survival / boss_raid / highest_floor).
+    // Returns top-N entries with the best timestamps we have (replay recordedAt
+    // for top-3 survival/boss_raid, submission-hash timestamp for all modes
+    // going forward) AND a list of wallets who were active today (attempts
+    // counter for survival/boss_raid; submission hash for highest_floor since
+    // campaign clears don't use a daily counter).
     if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
     const modeRaw = (req.body as { mode?: unknown }).mode;
-    const auditMode: "survival" | "boss_raid" | null =
+    const auditMode: "survival" | "boss_raid" | "highest_floor" | null =
       modeRaw === "survival" ? "survival" :
-      modeRaw === "boss_raid" ? "boss_raid" : null;
-    if (!auditMode) { res.status(400).json({ error: "mode must be 'survival' or 'boss_raid'" }); return; }
+      modeRaw === "boss_raid" ? "boss_raid" :
+      modeRaw === "highest_floor" ? "highest_floor" : null;
+    if (!auditMode) { res.status(400).json({ error: "mode must be 'survival', 'boss_raid', or 'highest_floor'" }); return; }
     const topN = typeof (req.body as { topN?: unknown }).topN === "number"
       ? Math.max(1, Math.min(50, Math.floor((req.body as { topN: number }).topN)))
       : 10;

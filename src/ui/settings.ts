@@ -182,11 +182,12 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
               <span class="admin-info" id="admin-diag-result" style="font-family:monospace; font-size:11px; color:#cce4ff;"></span>
             </div>
             <div class="admin-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-              <span class="admin-info">📊 <strong>LB Activity Audit (Survival / Boss Raid)</strong> — for the chosen mode, lists the top-N current LB entries with whatever submission timestamps we have, AND every wallet that attempted today (from the daily attempts counter). Timestamps marked ✨ are from after today's 8 AM PH boundary. Pre-rollout LB entries may show "no ts" — only submissions made after this build deploys are timestamped precisely.</span>
+              <span class="admin-info">📊 <strong>LB Activity Audit (Survival / Boss Raid / Highest Floor)</strong> — for the chosen LB, lists the top-N current entries with whatever submission timestamps we have, AND every wallet that was active today. Timestamps marked ✨ are after today's 8 AM PH boundary. Pre-rollout entries may show "no ts" — only submissions/clears made after this build deploys are timestamped precisely. For Highest Floor, "active today" comes from the submission-timestamp hash (every campaign clear writes it) rather than a daily attempts counter.</span>
               <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
                 <select id="admin-activity-mode" style="padding:4px 6px;">
                   <option value="boss_raid">Boss Raid</option>
                   <option value="survival">Survival</option>
+                  <option value="highest_floor">Highest Floor (campaign)</option>
                 </select>
                 <input type="number" id="admin-activity-topn" placeholder="topN" min="1" max="50" value="10" style="width:70px; padding:4px 6px;" />
                 <button class="ghost-btn" id="admin-activity-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;">📊 Audit Activity</button>
@@ -419,7 +420,7 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     setDiagOut(renderDiag(wallet, r.diag, `✓ Campaign max floor set<br>`), "ok");
   });
   root.querySelector<HTMLButtonElement>("#admin-activity-btn")?.addEventListener("click", async () => {
-    const mode = (root.querySelector<HTMLSelectElement>("#admin-activity-mode")?.value || "boss_raid") as "survival" | "boss_raid";
+    const mode = (root.querySelector<HTMLSelectElement>("#admin-activity-mode")?.value || "boss_raid") as "survival" | "boss_raid" | "highest_floor";
     const topN = Number(root.querySelector<HTMLInputElement>("#admin-activity-topn")?.value || 10);
     const out = root.querySelector<HTMLElement>("#admin-activity-result");
     if (!out) return;
@@ -440,21 +441,42 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       if (e.lbSubmittedAt !== null) return `hash ${star(e.lbSubmittedAt)} ${fmtDate(e.lbSubmittedAt)}`;
       return `<span style="opacity:0.5;">no ts (pre-rollout)</span>`;
     };
-    const entryLines = rep.entries.map(e => `
-      #${e.rank} ${e.address.slice(0, 10)}… (${e.ign ?? "—"}) — floor <strong>${e.floor}</strong> · ${fmtMs(e.ms)}<br>
-      &nbsp;&nbsp;${tsLine(e)}
-    `).join("<br>");
+    const modeLabel =
+      mode === "boss_raid" ? "Boss Raid" :
+      mode === "survival" ? "Survival" :
+      "Highest Floor (campaign)";
+    // Highest Floor: score IS the floor (no ms component); other modes
+    // carry a run time too. Adjust the per-entry line accordingly.
+    const entryLines = rep.entries.map(e => {
+      const meta = mode === "highest_floor"
+        ? `floor <strong>${e.floor}</strong>`
+        : `floor <strong>${e.floor}</strong> · ${fmtMs(e.ms)}`;
+      return `#${e.rank} ${e.address.slice(0, 10)}… (${e.ign ?? "—"}) — ${meta}<br>
+        &nbsp;&nbsp;${tsLine(e)}`;
+    }).join("<br>");
+    // For highest_floor we don't track per-day attempt counts, so the
+    // "attempts" count is always 1 (one or more advances today). Phrase
+    // accordingly so the UI doesn't lie about a precise count.
+    const attemptedLine = (a: { address: string; ign: string | null; attempts: number }): string => {
+      if (mode === "highest_floor") {
+        return `&nbsp;&nbsp;${a.address.slice(0, 10)}… (${a.ign ?? "—"}) — cleared a floor today`;
+      }
+      return `&nbsp;&nbsp;${a.address.slice(0, 10)}… (${a.ign ?? "—"}) — ${a.attempts} attempt${a.attempts === 1 ? "" : "s"}`;
+    };
     const attemptedLines = rep.attemptedToday.length === 0
       ? `<span style="opacity:0.6;">(none)</span>`
-      : rep.attemptedToday.map(a => `&nbsp;&nbsp;${a.address.slice(0, 10)}… (${a.ign ?? "—"}) — ${a.attempts} attempt${a.attempts === 1 ? "" : "s"}`).join("<br>");
+      : rep.attemptedToday.map(attemptedLine).join("<br>");
+    const activeLabel = mode === "highest_floor"
+      ? "Wallets that advanced their campaign max-floor today:"
+      : "Wallets that attempted today (regardless of LB improvement):";
     out.innerHTML = `
-      Mode: <strong>${mode === "boss_raid" ? "Boss Raid" : "Survival"}</strong><br>
+      Mode: <strong>${modeLabel}</strong><br>
       Today's 8 AM PH boundary: ${fmtDate(boundary)}<br>
       <br>
       <strong>Top ${rep.entries.length} LB entries:</strong><br>
       ${entryLines || "<em>(LB is empty)</em>"}
       <br><br>
-      <strong>Wallets that attempted today (regardless of LB improvement):</strong><br>
+      <strong>${activeLabel}</strong><br>
       ${attemptedLines}
     `;
   });

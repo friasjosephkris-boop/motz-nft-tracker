@@ -174,20 +174,25 @@ export interface LbAttemptToday {
   ign: string | null;
   attempts: number;
 }
+export type ActivityLbMode = "survival" | "boss_raid" | "highest_floor";
+
 export interface LbActivityReport {
-  mode: "survival" | "boss_raid";
+  mode: ActivityLbMode;
   phDayBoundary: number;
   entries: LbActivityEntry[];
   attemptedToday: LbAttemptToday[];
 }
 
-/** Admin only: read an activity audit for a Survival or Boss Raid LB. For
- *  each top-N entry returns whatever submission timestamp we have (replay
- *  recordedAt for top-3; submission-hash timestamp going forward). Plus a
- *  separate list of wallets that attempted the mode today regardless of
- *  whether their LB score improved — answers "who tried today" precisely. */
+/** Admin only: read an activity audit for one of the three leaderboards
+ *  (Survival, Boss Raid, or Highest Floor / campaign). For each top-N
+ *  entry returns whatever submission timestamp we have (replay recordedAt
+ *  for top-3 survival/boss_raid; submission-hash timestamp for all modes
+ *  going forward). Plus a separate "active today" list:
+ *    - survival/boss_raid → daily attempts counter
+ *    - highest_floor      → submission-hash entries dated >= today's 8am PH
+ *  Answers "who was active on this LB today" precisely. */
 export async function adminLbActivity(
-  mode: "survival" | "boss_raid",
+  mode: ActivityLbMode,
   topN = 10,
 ): Promise<{ ok: boolean; report?: LbActivityReport; error?: string }> {
   const tok = token();

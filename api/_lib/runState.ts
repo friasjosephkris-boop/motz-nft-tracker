@@ -211,6 +211,11 @@ export function lbKeyFor(mode: LbMode): string { return LB_KEYS[mode]; }
 export function isLbMode(s: unknown): s is LbMode {
   return s === "survival" || s === "boss_raid";
 }
+
+/** Wider mode set for the admin activity-audit tool: same as LbMode plus
+ *  "highest_floor" (the campaign-clear leaderboard, which lives at its own
+ *  key with a different score encoding — score IS the floor, no ms). */
+export type ActivityLbMode = LbMode | "highest_floor";
 export const IGN_HASH_KEY = "igns";
 export const IGN_SET_AT_KEY = "ign_set_at";
 const MAX_IGN_LEN = 24;
@@ -295,12 +300,15 @@ export function decodeScore(score: number): { floor: number; ms: number } {
   return { floor, ms };
 }
 
-/** Per-LB submission-timestamp hash. Keyed `lb:<mode>:submitted:v1`,
- *  with one field per wallet → ms epoch. Updated on EVERY submitToLeaderboard
- *  call (even when the score didn't improve, so the field reflects "last
- *  time this wallet submitted to this LB" — useful for the admin
- *  "who attempted today" query). Independent of the zset score. */
-export function lbSubmittedHashKey(mode: LbMode): string { return `lb:${mode}:submitted:v1`; }
+/** Per-LB submission-timestamp hash. Keyed `lb:<mode>:submitted:v1` for
+ *  survival/boss_raid, `lb:highest_floor:submitted:v1` for campaign.
+ *  One field per wallet → ms epoch. For survival/boss_raid it's written
+ *  on EVERY submitToLeaderboard call (even no-improvement) so the hash
+ *  reflects "last time this wallet submitted to this LB". For
+ *  highest_floor it's written on every campaign-clear advance. */
+export function lbSubmittedHashKey(mode: ActivityLbMode): string {
+  return mode === "highest_floor" ? `lb:highest_floor:submitted:v1` : `lb:${mode}:submitted:v1`;
+}
 
 export async function submitToLeaderboard(address: string, floor: number, ms: number, mode: LbMode = "survival"): Promise<{ improved: boolean }> {
   const changed = await zaddGt(lbKeyFor(mode), encodeScore(floor, ms), address.toLowerCase());
@@ -314,7 +322,7 @@ export async function submitToLeaderboard(address: string, floor: number, ms: nu
 
 /** Read all (wallet → lastSubmitTimestamp) pairs for the given LB mode.
  *  Used by the admin "boss raid activity today" diagnostic. */
-export async function getLbSubmittedTimestamps(mode: LbMode): Promise<Record<string, number>> {
+export async function getLbSubmittedTimestamps(mode: ActivityLbMode): Promise<Record<string, number>> {
   const raw = await hgetAll(lbSubmittedHashKey(mode));
   const out: Record<string, number> = {};
   for (const [addr, val] of Object.entries(raw)) {
@@ -363,9 +371,16 @@ export interface LbAttemptToday {
 
 /** Comprehensive activity readout for a given LB. Returns the top-N entries
  *  with whatever timestamps we have AND a separate list of wallets that
- *  attempted today (from the daily attempts counter — independent of the LB). */
+ *  were active today. "Active" is mode-dependent:
+ *    survival / boss_raid → wallets with a non-zero attempts:<mode>:*:<today>
+ *                            counter (the daily attempts cap counts each try)
+ *    highest_floor        → wallets whose lb:highest_floor:submitted:v1
+ *                            hash entry is on or after today's 8am boundary
+ *                            (every campaign clear writes the hash). Each
+ *                            "attempts" count is reported as 1 (one or more
+ *                            advances today — exact count isn't tracked). */
 export async function getLbActivityReport(
-  mode: "survival" | "boss_raid",
+  mode: ActivityLbMode,
   topN = 10,
 ): Promise<{
   phDayBoundary: number;
@@ -373,8 +388,10 @@ export async function getLbActivityReport(
   attemptedToday: LbAttemptToday[];
 }> {
   const boundary = phDayBoundary();
-  const lbKey = lbKeyFor(mode);
-  const scope = replayScopeFor(mode);
+  // Branch the LB key + replay scope by mode. highest_floor uses its own
+  // key and has no replay blob storage at all.
+  const lbKey = mode === "highest_floor" ? HIGHEST_FLOOR_LB_KEY : lbKeyFor(mode);
+  const scope: string | null = mode === "highest_floor" ? null : replayScopeFor(mode);
 
   // 1. Top-N current LB entries + IGNs.
   const rows = await zrevrangeWithScores(lbKey, 0, topN - 1);
@@ -384,15 +401,21 @@ export async function getLbActivityReport(
     getLbSubmittedTimestamps(mode),
   ]);
 
-  // 2. Replay blobs for the top-N (capped to REPLAY_TOP_N).
+  // 2. Replay blobs for the top-N (capped to REPLAY_TOP_N). highest_floor
+  //    has no replays — its zset is bumped from recordFloorModeClear, not
+  //    /api/run/end, so we never store a replay.
   const replays = await Promise.all(
-    addrs.map((a, i) => i < REPLAY_TOP_N
+    addrs.map((a, i) => (scope !== null && i < REPLAY_TOP_N)
       ? loadReplayBlob<{ recordedAt?: number }>(scope, a).catch(() => null)
       : Promise.resolve(null))
   );
 
   const entries: LbActivityEntry[] = rows.map((r, i) => {
-    const { floor, ms } = decodeScore(r.score);
+    // Highest Floor encodes the score as the floor number directly; the
+    // others use encodeScore(floor, ms).
+    const decoded = mode === "highest_floor"
+      ? { floor: Math.floor(r.score), ms: 0 }
+      : decodeScore(r.score);
     const replayTs = replays[i]?.recordedAt ?? null;
     const hashTs = submittedHash[r.member] ?? null;
     const best = replayTs ?? hashTs;
@@ -401,39 +424,53 @@ export async function getLbActivityReport(
       rank: i + 1,
       address: r.member,
       ign: igns[i] ?? null,
-      floor,
-      ms,
+      floor: decoded.floor,
+      ms: decoded.ms,
       lbSubmittedAt: hashTs,
       replayRecordedAt: replayTs,
       submittedToday,
     };
   });
 
-  // 3. Scan today's attempts counter for this mode → wallets who tried today.
-  const { scanAllByPattern } = await import("./redis.js");
-  const keys = await scanAllByPattern(`attempts:${mode}:*:${boundary}`).catch(() => [] as string[]);
-  // Strip prefix + parse address. Key shape after stripping prefix:
-  // `attempts:<mode>:<addr>:<boundary>`. We anchor on the literal "attempts:"
-  // marker so it works whether or not KEY_PREFIX is set.
-  const attemptAddrs: string[] = [];
-  for (const k of keys) {
-    const idx = k.indexOf("attempts:");
-    if (idx < 0) continue;
-    const parts = k.slice(idx).split(":");
-    if (parts.length >= 4) attemptAddrs.push(parts[2].toLowerCase());
+  // 3. "Active today" set — source varies by mode.
+  let attemptedToday: LbAttemptToday[];
+  if (mode === "highest_floor") {
+    // Campaign clears don't have a daily attempts counter. Instead, walk the
+    // submission-timestamp hash and keep wallets stamped on or after today's
+    // 8am boundary. Each "attempts" count reads as 1 since we only record
+    // the last advance time, not a per-day count.
+    const addrsToday = Object.entries(submittedHash)
+      .filter(([, ts]) => ts >= boundary)
+      .map(([addr]) => addr.toLowerCase());
+    const todayIgns = addrsToday.length > 0 ? await hmget(IGN_HASH_KEY, addrsToday) : [];
+    attemptedToday = addrsToday
+      .map((a, i) => ({ address: a, ign: todayIgns[i] ?? null, attempts: 1 }))
+      .sort((a, b) => a.address.localeCompare(b.address));
+  } else {
+    // Survival / Boss Raid — scan attempts:<mode>:*:<boundary>.
+    const { scanAllByPattern } = await import("./redis.js");
+    const keys = await scanAllByPattern(`attempts:${mode}:*:${boundary}`).catch(() => [] as string[]);
+    // Strip prefix + parse address. Key shape after stripping prefix:
+    // `attempts:<mode>:<addr>:<boundary>`. We anchor on the literal
+    // "attempts:" marker so it works whether or not KEY_PREFIX is set.
+    const attemptAddrs: string[] = [];
+    for (const k of keys) {
+      const idx = k.indexOf("attempts:");
+      if (idx < 0) continue;
+      const parts = k.slice(idx).split(":");
+      if (parts.length >= 4) attemptAddrs.push(parts[2].toLowerCase());
+    }
+    const uniqAttemptAddrs = Array.from(new Set(attemptAddrs));
+    const counts = await Promise.all(uniqAttemptAddrs.map(a => getNumber(`attempts:${mode}:${a}:${boundary}`)));
+    const positiveAddrs = uniqAttemptAddrs.filter((_, i) => counts[i] > 0);
+    const positiveCounts = counts.filter(c => c > 0);
+    const attemptIgns = positiveAddrs.length > 0
+      ? await hmget(IGN_HASH_KEY, positiveAddrs)
+      : [];
+    attemptedToday = positiveAddrs
+      .map((a, i) => ({ address: a, ign: attemptIgns[i] ?? null, attempts: positiveCounts[i] }))
+      .sort((a, b) => b.attempts - a.attempts);
   }
-  const uniqAttemptAddrs = Array.from(new Set(attemptAddrs));
-  // Filter the actually-non-zero ones (a key existing with value 0 shouldn't
-  // happen given how incrWithExpire works, but defensive).
-  const counts = await Promise.all(uniqAttemptAddrs.map(a => getNumber(`attempts:${mode}:${a}:${boundary}`)));
-  const positiveAddrs = uniqAttemptAddrs.filter((_, i) => counts[i] > 0);
-  const positiveCounts = counts.filter(c => c > 0);
-  const attemptIgns = positiveAddrs.length > 0
-    ? await hmget(IGN_HASH_KEY, positiveAddrs)
-    : [];
-  const attemptedToday: LbAttemptToday[] = positiveAddrs
-    .map((a, i) => ({ address: a, ign: attemptIgns[i] ?? null, attempts: positiveCounts[i] }))
-    .sort((a, b) => b.attempts - a.attempts);
 
   return { phDayBoundary: boundary, entries, attemptedToday };
 }
@@ -489,6 +526,10 @@ export async function recordFloorModeClear(address: string, stageId: number, par
     // zaddGt only raises the score, never lowers it — safe to call on every
     // clear. The per-wallet maxfloor: key above stays the source of truth.
     await zaddGt(HIGHEST_FLOOR_LB_KEY, newMax, address.toLowerCase()).catch(() => 0);
+    // Stamp the submission-timestamp hash so the LB Activity Audit can show
+    // "this wallet's Highest Floor entry was set/advanced at <time>".
+    // Non-fatal — the zset is the source of truth for ranking.
+    await hset(lbSubmittedHashKey("highest_floor"), address.toLowerCase(), String(Date.now())).catch(() => undefined);
     // One-time campaign-buff-bundle offer: if THIS clear is the first time the
     // wallet crossed floor 30, mark the offer available. Trigger floor moved
     // from 20 → 30 so it no longer collides with the first-energy offer (which
