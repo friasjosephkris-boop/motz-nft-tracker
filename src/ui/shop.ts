@@ -35,11 +35,6 @@ export async function renderShop(root: HTMLElement, onBack: () => void): Promise
         </div>
         <button class="shop-history-btn" id="shop-history-btn" type="button">🧾 Purchase History</button>
       </div>
-      <div class="shop-playtest-notice">
-        ⚠ <strong>Playtest season has ended.</strong> The leaderboard is locked and <strong>bRON vouchers are not redeemable</strong> on the first playtest.
-        Items still function in gameplay — energy packs restore energy, buffs apply to battles, unit utilities work as normal —
-        but no new leaderboard rewards or RON redemptions will be issued for this season. New seasons + redemption arrive in a future update.
-      </div>
       <div class="shop-one-buff-notice">
         ⚡ <strong>Only ONE campaign buff can be chosen per floor.</strong> Each charge applies to a single battle — pick the buff that matters most for the fight you're about to enter.
       </div>
@@ -105,7 +100,7 @@ export async function renderShop(root: HTMLElement, onBack: () => void): Promise
       if (!priceWeiStr) { await alertModal({ kind: "warning", message: "Price not available — refresh and try again." }); return; }
       const ok = await confirmModal({
         title: "Confirm Purchase",
-        message: `Buy <strong>${def.name}</strong> for <strong>${def.priceLabel}</strong>?<br><br>${def.description}<br><br>💸 You'll pick a wallet next, then approve a <strong>${def.priceLabel}</strong> transfer on the <strong>Ronin network</strong>. The item is added to your Inventory once the payment is confirmed on-chain (a few seconds).<br><br><span style="color:#ffc24a;">⚠ <strong>Playtest season has ended</strong> — the leaderboard is locked and bRON vouchers earned this playtest are not redeemable. Items still function for gameplay.</span>`,
+        message: `Buy <strong>${def.name}</strong> for <strong>${def.priceLabel}</strong>?<br><br>${def.description}<br><br>💸 You'll pick a wallet next, then approve a <strong>${def.priceLabel}</strong> transfer on the <strong>Ronin network</strong>. The item is added to your Inventory once the payment is confirmed on-chain (a few seconds).`,
         confirmLabel: "Choose Wallet",
         cancelLabel: "Cancel",
       });
@@ -258,7 +253,7 @@ export async function renderShop(root: HTMLElement, onBack: () => void): Promise
       }
       const ok = await confirmModal({
         title: "Pay With bRON Vouchers?",
-        message: `Buy <strong>${def.name}</strong> for <strong>${priceRon} RON</strong> worth of vouchers?<br><br>Spend: <strong>${spendLabel}</strong>${wasteLine}<br><br>No wallet signature required — vouchers are deducted server-side and the item lands in your Inventory immediately.<br><br><span style="color:#ffc24a;">⚠ <strong>Playtest season has ended</strong> — the leaderboard is locked. Items still function for gameplay.</span>`,
+        message: `Buy <strong>${def.name}</strong> for <strong>${priceRon} RON</strong> worth of vouchers?<br><br>Spend: <strong>${spendLabel}</strong>${wasteLine}<br><br>No wallet signature required — vouchers are deducted server-side and the item lands in your Inventory immediately.`,
         confirmLabel: "Spend Vouchers",
         cancelLabel: "Cancel",
       });
