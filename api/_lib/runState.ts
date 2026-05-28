@@ -977,12 +977,17 @@ export async function getHighestFloorTop(limit = 5): Promise<HighestFloorEntry[]
  *  Designed for the common drift case — a clear report failed to land and
  *  the server's max trails the player's actual progress. RAISES ONLY: if
  *  the LB already shows a higher score it stays put (admin who needs to
- *  demote should use adminForceResetWallet first). Cap at TOWER_FINAL_FLOOR
- *  to avoid pushing anyone past the campaign finale. */
+ *  demote should use adminForceResetWallet first). Cap at MAX_FLOOR (500,
+ *  the post-game last floor) so we can repair the full campaign range —
+ *  NOT TOWER_FINAL_FLOOR (50, the first-conqueror milestone), which
+ *  would silently clip every post-game repair to 50. */
 export async function adminSetMaxFloor(address: string, floor: number): Promise<{ newMax: number }> {
-  const clamped = Math.max(0, Math.min(TOWER_FINAL_FLOOR, Math.floor(floor)));
+  const clamped = Math.max(0, Math.min(MAX_FLOOR, Math.floor(floor)));
   await setJson(maxFloorKey(address), clamped, 60 * 60 * 24 * 365 * 5);
   await zaddGt(HIGHEST_FLOOR_LB_KEY, clamped, address.toLowerCase()).catch(() => 0);
+  // Mirror the campaign clear flow's timestamp stamp so the LB Activity
+  // Audit shows this wallet as "updated today" after an admin repair.
+  await hset(lbSubmittedHashKey("highest_floor"), address.toLowerCase(), String(Date.now())).catch(() => undefined);
   return { newMax: clamped };
 }
 
