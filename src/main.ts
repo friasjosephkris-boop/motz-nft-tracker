@@ -570,8 +570,17 @@ async function showRunSummary(outcome: "victory" | "defeat", floorsCleared: numb
     // prior best.
     const replay = finalizeReplay();
     const result = await endRun(replay ?? undefined);
-    totalMs = result?.totalMs ?? Math.max(0, Date.now() - startedAt);
-    submitted = !!result;
+    // Server's totalMs is 0 when no reportFloor ever landed (network blip
+    // dropped the very first advance and every later one 409'd). Falling
+    // back to the client's wall clock gives a TRUTHFUL display in that
+    // case — the run still happened, the server just didn't see it.
+    const serverMs = result?.totalMs ?? 0;
+    totalMs = serverMs > 0 ? serverMs : Math.max(0, Date.now() - startedAt);
+    // Use the server's actual `submitted` field, not `!!result`. The old
+    // check treated "HTTP OK" as "score landed on the LB", which is wrong
+    // — a run can return 200 yet be rejected (below MIN_AVG_FLOOR_MS, below
+    // mode threshold, or skipped when server's floor count is 0).
+    submitted = !!result?.submitted;
   } else {
     // Floor mode: use the per-battle wall-clock elapsed time we tracked when
     // the battle started, and surface the stage name in the headline.

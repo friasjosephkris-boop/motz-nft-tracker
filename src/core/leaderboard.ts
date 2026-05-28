@@ -51,19 +51,57 @@ export async function startRun(mode: LbMode = "survival", party: string[] = []):
 
 export async function reportFloor(floor: number): Promise<boolean> {
   if (!live) return false;
-  try {
-    const r = await fetch("/api/run/floor", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${live.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ runId: live.runId, floor }),
-    });
-    if (!r.ok) return false;
-    live.highestFloor = floor;
-    return true;
-  } catch { return false; }
+  // RETRY on failure — same rationale as reportFloorCleared. Survival /
+  // Boss Raid /api/run/floor uses a strict-sequential server rule: a single
+  // dropped POST leaves the server's currentFloor behind, and EVERY later
+  // floor advance then 409s out of sequence. The cascade silently breaks
+  // the run summary (totalMs = lastFloorAt - startedAt → 0 when no advance
+  // ever lands) AND the LB submission (server's floor stays at 0, skipped
+  // entirely). Three attempts with exponential-ish backoff make a transient
+  // network blip non-fatal. We capture `live` at entry so a subsequent
+  // abortLiveRun() can't NPE the retry. */
+  const cur = live;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const r = await fetch("/api/run/floor", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${cur.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ runId: cur.runId, floor }),
+      });
+      if (r.ok) {
+        if (live === cur) live.highestFloor = floor;
+        return true;
+      }
+      // 409 = out of sequence; a previous reportFloor was lost and retrying
+      // THIS one won't fix it. Bail early to avoid wasting time.
+      if (r.status === 409) return false;
+    } catch { /* network error — fall through to retry */ }
+    if (attempt < 2) await new Promise(res => setTimeout(res, 600 * (attempt + 1)));
+  }
+  return false;
 }
 
-export async function endRun(replay?: unknown): Promise<{ floor: number; totalMs: number } | null> {
+export interface EndRunResult {
+  /** Floor count the SERVER credits — based on landed reportFloor calls,
+   *  not the client's local counter. May be less than what the client thinks
+   *  if a network blip dropped a floor advance. */
+  floor: number;
+  /** Total run time in ms, server-computed (lastFloorAt − startedAt). 0 when
+   *  no floor advance ever landed — caller should fall back to client-side
+   *  wall clock for display when this is 0. */
+  totalMs: number;
+  /** True iff the server actually wrote to the LB zset. False when the run
+   *  failed the MIN_AVG_FLOOR_MS check or didn't reach MIN_SURVIVAL_FLOORS /
+   *  MIN_BOSS_RAID_BOSSES. Use THIS to decide whether to render the
+   *  "Submitted to leaderboard" badge — the old `!!result` check was wrong
+   *  because it treated "HTTP OK" as "score landed", which it isn't. */
+  submitted: boolean;
+  /** When submitted is false, an optional human-readable reason from the
+   *  server (e.g. "average floor time below threshold"). */
+  rejectedReason?: string | null;
+}
+
+export async function endRun(replay?: unknown): Promise<EndRunResult | null> {
   if (!live) return null;
   const cur = live;
   live = null;
@@ -75,7 +113,15 @@ export async function endRun(replay?: unknown): Promise<{ floor: number; totalMs
       body: JSON.stringify({ runId: cur.runId, ign, ...(replay ? { replay } : {}) }),
     });
     if (!r.ok) return null;
-    return await r.json() as { floor: number; totalMs: number };
+    const data = await r.json() as {
+      floor?: number; totalMs?: number; submitted?: boolean; rejectedReason?: string | null;
+    };
+    return {
+      floor: typeof data.floor === "number" ? data.floor : 0,
+      totalMs: typeof data.totalMs === "number" ? data.totalMs : 0,
+      submitted: !!data.submitted,
+      rejectedReason: data.rejectedReason ?? null,
+    };
   } catch { return null; }
 }
 
