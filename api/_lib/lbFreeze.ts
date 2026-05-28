@@ -20,6 +20,12 @@ import { readShopRevenue } from "./analytics.js";
 
 const SNAPSHOT_KEY = "lb:frozen:snapshot:v1";
 const FROZEN_FLAG_KEY = "lb:frozen:enabled:v1";
+const SCHEDULED_KEY = "lb:frozen:scheduled:v1";
+/** Short-lived lock so concurrent requests at the freeze moment can't
+ *  both try to capture/flip. Whoever wins the SETNX does the work,
+ *  everyone else skips cleanly. */
+const SCHEDULED_LOCK_KEY = "lb:frozen:scheduled:lock:v1";
+const SCHEDULED_LOCK_TTL = 30;
 /** TTL for the freeze flag — 5 years. The snapshot lives indefinitely
  *  (re-snapshotted on next freeze). 5y is "effectively forever" in this
  *  game's lifecycle but still has a sane upper bound. */
@@ -134,6 +140,82 @@ export async function captureSnapshot(
   };
   await setJson(SNAPSHOT_KEY, snap, FROZEN_TTL);
   return snap;
+}
+
+/** Scheduled freeze — pending automatic capture+flip at a specific moment. */
+export interface ScheduledFreeze {
+  /** ms epoch when the freeze should fire (UTC). */
+  at: number;
+  /** Label to write into the snapshot when it fires. */
+  label: string;
+  /** Admin wallet that scheduled it. */
+  by: string;
+  /** When the schedule was created (ms epoch). */
+  scheduledAt: number;
+}
+
+export async function getScheduledFreeze(): Promise<ScheduledFreeze | null> {
+  return await getJson<ScheduledFreeze>(SCHEDULED_KEY);
+}
+
+/** Pin a future automatic freeze. Overwrites any prior schedule. The
+ *  actual capture+flip happens via checkAndExecuteScheduledFreeze() —
+ *  triggered lazily from request handlers (no cron required). */
+export async function scheduleFreeze(at: number, label: string, by: string): Promise<ScheduledFreeze> {
+  const rec: ScheduledFreeze = {
+    at: Math.floor(at),
+    label: label.slice(0, 60) || "Season Final",
+    by: by.toLowerCase(),
+    scheduledAt: Date.now(),
+  };
+  await setJson(SCHEDULED_KEY, rec, FROZEN_TTL);
+  return rec;
+}
+
+export async function cancelScheduledFreeze(): Promise<boolean> {
+  const cur = await getJson<ScheduledFreeze>(SCHEDULED_KEY);
+  if (!cur) return false;
+  await del(SCHEDULED_KEY);
+  return true;
+}
+
+/** Idempotent — check whether a scheduled freeze is due AND we're not
+ *  already frozen, and if so, capture the snapshot and flip the flag.
+ *  Wraps the work in a SETNX lock so concurrent callers at the freeze
+ *  moment can't both try to fire. Safe to call from any request handler;
+ *  designed for lazy-trigger (no cron job required). Returns a brief
+ *  status describing what happened (or didn't). */
+export async function checkAndExecuteScheduledFreeze(): Promise<
+  | { action: "skipped"; reason: string }
+  | { action: "fired"; capturedAt: number; label: string }
+> {
+  const sched = await getScheduledFreeze().catch(() => null);
+  if (!sched) return { action: "skipped", reason: "no schedule" };
+  if (Date.now() < sched.at) return { action: "skipped", reason: "scheduled time not reached" };
+  // Don't refreeze if already frozen.
+  if (await isFrozen().catch(() => false)) {
+    // Clear the schedule so we don't keep re-evaluating it.
+    await del(SCHEDULED_KEY).catch(() => undefined);
+    return { action: "skipped", reason: "already frozen — schedule consumed" };
+  }
+  // Take the lock. If we don't win, somebody else is doing the work.
+  const gotLock = await setNxWithExpire(SCHEDULED_LOCK_KEY, "1", SCHEDULED_LOCK_TTL);
+  if (!gotLock) return { action: "skipped", reason: "another request is firing the freeze" };
+  try {
+    // Re-check after acquiring the lock so we don't double-fire if
+    // another request slipped through and finished between our first
+    // isFrozen() call and now.
+    if (await isFrozen().catch(() => false)) {
+      await del(SCHEDULED_KEY).catch(() => undefined);
+      return { action: "skipped", reason: "already frozen (after lock)" };
+    }
+    const snap = await captureSnapshot(sched.by, sched.label);
+    await setFrozen(true);
+    await del(SCHEDULED_KEY).catch(() => undefined);
+    return { action: "fired", capturedAt: snap.capturedAt, label: snap.label };
+  } finally {
+    await del(SCHEDULED_LOCK_KEY).catch(() => undefined);
+  }
 }
 
 /** Suppress the unused-import warning. Some tools strip side-effect-free

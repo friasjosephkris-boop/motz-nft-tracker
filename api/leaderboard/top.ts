@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { zrevrangeWithScores, hmget } from "../_lib/redis.js";
 import { lbKeyFor, IGN_HASH_KEY, decodeScore, isLbMode, getFirstConquer, getWorldEnderTop, WorldEnderEntry, getHighestFloorTop, HighestFloorEntry } from "../_lib/runState.js";
 import { readShopRevenue } from "../_lib/analytics.js";
-import { isFrozen, readSnapshot } from "../_lib/lbFreeze.js";
+import { isFrozen, readSnapshot, checkAndExecuteScheduledFreeze } from "../_lib/lbFreeze.js";
 
 // Public endpoint — no auth needed to read top scores.
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -22,6 +22,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const wantExtras = req.query.extras === "1";
 
   try {
+    // ---- Lazy-trigger any scheduled auto-freeze ----
+    // If an admin scheduled a freeze and the target time has passed but
+    // nobody has fired it yet, fire it now (idempotent, locked). This
+    // means the first LB read after the scheduled moment is what flips
+    // the switch — no cron job required.
+    await checkAndExecuteScheduledFreeze().catch(() => undefined);
+
     // ---- Frozen-snapshot mode (end-of-season freeze) ----
     // When the admin has locked the LB, every read returns the captured
     // snapshot instead of live data. Live writes still happen behind the

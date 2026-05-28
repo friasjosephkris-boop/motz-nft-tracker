@@ -56,6 +56,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       res.status(SEASON_HALTED_RESPONSE.status).json(SEASON_HALTED_RESPONSE.body);
       return;
     }
+    // Lazy-trigger any scheduled auto-freeze BEFORE this submission lands.
+    // If we're past the scheduled moment, this captures the snapshot using
+    // the pre-submission zset state — so a run that finished the instant
+    // after the cutoff doesn't sneak into the frozen view.
+    await (await import("../_lib/lbFreeze.js")).checkAndExecuteScheduledFreeze().catch(() => undefined);
     const state = await getRun(runId);
     if (!state) { res.status(404).json({ error: "no run" }); return; }
     if (state.address.toLowerCase() !== payload.address.toLowerCase()) { res.status(401).json({ error: "address mismatch" }); return; }

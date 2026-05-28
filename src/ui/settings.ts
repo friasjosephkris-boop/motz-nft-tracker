@@ -4,7 +4,7 @@ import { getMaxCleared } from "../core/clears";
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSetHighestFloorLbOnly, adminSubmitLbScore, adminLbActivity, adminLbFreezeStatus, adminLbFreezeSnapshot, adminLbFreezeToggle, adminRemoveLbEntry, type WalletDiagnosis } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSetHighestFloorLbOnly, adminSubmitLbScore, adminLbActivity, adminLbFreezeStatus, adminLbFreezeSnapshot, adminLbFreezeToggle, adminLbFreezeSchedule, adminLbFreezeCancelSchedule, adminRemoveLbEntry, type WalletDiagnosis } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -213,6 +213,12 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
                 <button class="ghost-btn" id="admin-freeze-snapshot-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">📸 Snapshot Now</button>
                 <button class="ghost-btn" id="admin-freeze-on-btn" type="button" style="border-color:#7aff8a;color:#bfffc8;">🏆 Freeze ON</button>
                 <button class="ghost-btn" id="admin-freeze-off-btn" type="button" style="border-color:#ff5a6b;color:#ffb8c0;">🔓 Freeze OFF</button>
+              </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px;">
+                <span class="admin-info" style="font-size:10px;">Schedule auto-freeze (PH local time):</span>
+                <input type="datetime-local" id="admin-freeze-schedule-at" style="padding:4px 6px;" />
+                <button class="ghost-btn" id="admin-freeze-schedule-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;" title="Pin a future moment to auto-capture + freeze the LB. Fires lazily on the first LB/run-end request after that moment.">⏰ Schedule Auto-Freeze (PH)</button>
+                <button class="ghost-btn" id="admin-freeze-cancel-schedule-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;">✖ Cancel Schedule</button>
               </div>
               <span class="admin-info" id="admin-freeze-result" style="font-family:monospace; font-size:11px; color:#cce4ff;"></span>
             </div>
@@ -506,14 +512,20 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     out.innerHTML = msg;
   };
   const fmtFreezeDate = (ms: number): string => new Date(ms).toLocaleString();
-  const renderFreezeStatus = (s: { frozen: boolean; snapshot: { capturedAt: number; capturedBy: string; label: string; counts: { survival: number; bossRaid: number; highestFloor: number; worldEnder: number; firstConquer: number } } | null }): string => {
+  const renderFreezeStatus = (s: { frozen: boolean; snapshot: { capturedAt: number; capturedBy: string; label: string; counts: { survival: number; bossRaid: number; highestFloor: number; worldEnder: number; firstConquer: number } } | null; scheduled: { at: number; label: string; by: string; scheduledAt: number } | null }): string => {
     const lock = s.frozen ? "🏆 <strong>FROZEN</strong>" : "🔓 Live";
-    if (!s.snapshot) return `${lock} — <em>no snapshot captured yet</em>`;
-    const c = s.snapshot.counts;
-    return `${lock}<br>
-      Snapshot label: <strong>${escapeHtml(s.snapshot.label)}</strong><br>
-      Captured: ${fmtFreezeDate(s.snapshot.capturedAt)} by ${s.snapshot.capturedBy}<br>
-      Counts → Survival: ${c.survival} · Boss Raid: ${c.bossRaid} · Highest Floor: ${c.highestFloor} · World Ender: ${c.worldEnder} · First Conquer: ${c.firstConquer}`;
+    const snapLine = !s.snapshot
+      ? `<em>no snapshot captured yet</em>`
+      : (() => {
+          const c = s.snapshot.counts;
+          return `Snapshot label: <strong>${escapeHtml(s.snapshot.label)}</strong><br>
+            Captured: ${fmtFreezeDate(s.snapshot.capturedAt)} by ${s.snapshot.capturedBy}<br>
+            Counts → Survival: ${c.survival} · Boss Raid: ${c.bossRaid} · Highest Floor: ${c.highestFloor} · World Ender: ${c.worldEnder} · First Conquer: ${c.firstConquer}`;
+        })();
+    const schedLine = s.scheduled
+      ? `<br>⏰ Scheduled auto-freeze: <strong>${fmtFreezeDate(s.scheduled.at)}</strong> · label: <strong>${escapeHtml(s.scheduled.label)}</strong> · in ${Math.max(0, Math.round((s.scheduled.at - Date.now()) / 60000))} min`
+      : `<br>⏰ Scheduled auto-freeze: <em>none</em>`;
+    return `${lock}<br>${snapLine}${schedLine}`;
   };
   root.querySelector<HTMLButtonElement>("#admin-freeze-status-btn")?.addEventListener("click", async () => {
     setFreezeOut("Reading…");
@@ -564,6 +576,61 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     const r = await adminLbFreezeToggle(false);
     if (!r.ok) { setFreezeOut(`Freeze OFF failed: ${r.error ?? "unknown"}`, "err"); return; }
     setFreezeOut(`🔓 Freeze is now <strong>${r.frozen ? "ON" : "OFF"}</strong> — live data is being served again.`, r.frozen ? "warn" : "ok");
+  });
+
+  // ---- Scheduled auto-freeze ----
+  // The datetime-local input is timezone-naive; we treat the entered
+  // value as PH local (UTC+8). Conversion: append the explicit "+08:00"
+  // offset so Date.parse returns the correct UTC ms epoch.
+  root.querySelector<HTMLButtonElement>("#admin-freeze-schedule-btn")?.addEventListener("click", async () => {
+    const phLocalRaw = (root.querySelector<HTMLInputElement>("#admin-freeze-schedule-at")?.value || "").trim();
+    if (!phLocalRaw) { setFreezeOut("Pick a date + time first (PH local).", "err"); return; }
+    const label = (root.querySelector<HTMLInputElement>("#admin-freeze-label")?.value || "").trim() || "Season Final";
+    // datetime-local gives "YYYY-MM-DDTHH:MM" — append ":00+08:00" for explicit PH.
+    const phIso = `${phLocalRaw}:00+08:00`;
+    const at = Date.parse(phIso);
+    if (!Number.isFinite(at)) { setFreezeOut("Couldn't parse the date.", "err"); return; }
+    if (at <= Date.now()) {
+      const ok = await confirmModal({
+        title: "Schedule a Past Moment?",
+        message: `The chosen time (<strong>${new Date(at).toLocaleString()}</strong>) is in the past. Scheduling will fire the freeze on the very next request. Continue?`,
+        confirmLabel: "Schedule Anyway",
+        cancelLabel: "Cancel",
+      });
+      if (!ok) return;
+    }
+    const phPretty = new Date(at).toLocaleString("en-US", { timeZone: "Asia/Manila", timeZoneName: "short" });
+    const ok2 = await confirmModal({
+      title: "Schedule Auto-Freeze?",
+      message: `Schedule an automatic LB capture + freeze for:<br>
+        <strong>${phPretty}</strong> (PH)<br>
+        Label: <strong>${escapeHtml(label)}</strong><br><br>
+        At that moment, the first /api/leaderboard/top or /api/run/end request triggers the snapshot + freeze (idempotent, locked, no cron required). Overwrites any prior schedule.`,
+      confirmLabel: "Schedule",
+      cancelLabel: "Cancel",
+    });
+    if (!ok2) return;
+    setFreezeOut("Scheduling…");
+    const r = await adminLbFreezeSchedule(at, label);
+    if (!r.ok || !r.scheduled) { setFreezeOut(`Schedule failed: ${r.error ?? "unknown"}`, "err"); return; }
+    const minsUntil = Math.max(0, Math.round((r.scheduled.at - Date.now()) / 60000));
+    setFreezeOut(`⏰ Auto-freeze scheduled<br>
+      Fires at: <strong>${fmtFreezeDate(r.scheduled.at)}</strong> (in ${minsUntil} min)<br>
+      Label: <strong>${escapeHtml(r.scheduled.label)}</strong><br>
+      Scheduled by: ${r.scheduled.by}`, "ok");
+  });
+  root.querySelector<HTMLButtonElement>("#admin-freeze-cancel-schedule-btn")?.addEventListener("click", async () => {
+    const ok = await confirmModal({
+      title: "Cancel Scheduled Auto-Freeze?",
+      message: `Drop any pending scheduled freeze. (Already-frozen state and existing snapshot are untouched.)`,
+      confirmLabel: "Cancel Schedule",
+      cancelLabel: "Keep",
+    });
+    if (!ok) return;
+    setFreezeOut("Canceling…");
+    const r = await adminLbFreezeCancelSchedule();
+    if (!r.ok) { setFreezeOut(`Cancel failed: ${r.error ?? "unknown"}`, "err"); return; }
+    setFreezeOut(r.removed ? "✖ Scheduled auto-freeze canceled." : "<em>No schedule was pending.</em>", r.removed ? "ok" : "warn");
   });
 
   root.querySelector<HTMLButtonElement>("#admin-activity-btn")?.addEventListener("click", async () => {

@@ -814,8 +814,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (op === "admin_lb_freeze_status") {
     if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
     try {
-      const { isFrozen, readSnapshot } = await import("../_lib/lbFreeze.js");
-      const [frozen, snap] = await Promise.all([isFrozen(), readSnapshot()]);
+      const { isFrozen, readSnapshot, getScheduledFreeze } = await import("../_lib/lbFreeze.js");
+      const [frozen, snap, sched] = await Promise.all([isFrozen(), readSnapshot(), getScheduledFreeze()]);
       res.status(200).json({
         ok: true, frozen,
         snapshot: snap ? {
@@ -830,7 +830,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             firstConquer: snap.firstConquer ? 1 : 0,
           },
         } : null,
+        scheduled: sched ? {
+          at: sched.at,
+          label: sched.label,
+          by: sched.by,
+          scheduledAt: sched.scheduledAt,
+        } : null,
       });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "admin_lb_freeze_schedule") {
+    // Pin a future automatic freeze. The check fires lazily when the
+    // first /api/leaderboard/top or /api/run/end after the target time
+    // lands (idempotent + locked). No cron required.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const atRaw = (req.body as { at?: unknown }).at;
+    const at = typeof atRaw === "number" && Number.isFinite(atRaw) ? Math.floor(atRaw) : -1;
+    if (at <= 0) { res.status(400).json({ error: "at (ms epoch) required" }); return; }
+    if (at > Date.now() + 365 * 24 * 60 * 60 * 1000) {
+      res.status(400).json({ error: "at is more than 1 year in the future" }); return;
+    }
+    const labelRaw = (req.body as { label?: unknown }).label;
+    const label = typeof labelRaw === "string" && labelRaw.trim().length > 0
+      ? labelRaw.trim().slice(0, 60) : "Season Final";
+    try {
+      const { scheduleFreeze } = await import("../_lib/lbFreeze.js");
+      const rec = await scheduleFreeze(at, label, address);
+      res.status(200).json({ ok: true, scheduled: rec });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "admin_lb_freeze_cancel_schedule") {
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    try {
+      const { cancelScheduledFreeze } = await import("../_lib/lbFreeze.js");
+      const removed = await cancelScheduledFreeze();
+      res.status(200).json({ ok: true, removed });
       return;
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : "server error" });

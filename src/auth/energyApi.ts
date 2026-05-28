@@ -195,6 +195,15 @@ export interface LbFreezeStatus {
     label: string;
     counts: { survival: number; bossRaid: number; highestFloor: number; worldEnder: number; firstConquer: number };
   } | null;
+  /** A pending scheduled freeze, if any. Null when no schedule is set
+   *  (the most recent firing clears the schedule, so this also reads
+   *  null after the auto-freeze has already happened). */
+  scheduled: {
+    at: number;
+    label: string;
+    by: string;
+    scheduledAt: number;
+  } | null;
 }
 
 /** Admin only: read the current LB-freeze flag + summary of the captured snapshot. */
@@ -211,8 +220,43 @@ export async function adminLbFreezeStatus(): Promise<{ ok: boolean; status?: LbF
     if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
     return {
       ok: true,
-      status: { frozen: data.frozen ?? false, snapshot: data.snapshot ?? null },
+      status: { frozen: data.frozen ?? false, snapshot: data.snapshot ?? null, scheduled: data.scheduled ?? null },
     };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "network" }; }
+}
+
+/** Admin only: schedule an automatic LB freeze for a future timestamp.
+ *  `at` is a UTC ms epoch. When the first /api/leaderboard/top or
+ *  /api/run/end request lands after that moment, the snapshot is
+ *  captured and the freeze flag is flipped — no cron required. */
+export async function adminLbFreezeSchedule(at: number, label: string): Promise<{ ok: boolean; scheduled?: { at: number; label: string; by: string; scheduledAt: number }; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_lb_freeze_schedule", at, label }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; scheduled?: { at: number; label: string; by: string; scheduledAt: number } }));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: true, scheduled: data.scheduled };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "network" }; }
+}
+
+/** Admin only: cancel any pending scheduled freeze. */
+export async function adminLbFreezeCancelSchedule(): Promise<{ ok: boolean; removed?: boolean; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_lb_freeze_cancel_schedule" }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; removed?: boolean }));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: true, removed: data.removed };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "network" }; }
 }
 
