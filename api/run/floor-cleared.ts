@@ -744,6 +744,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  if (op === "admin_lb_activity") {
+    // Read-only activity audit for a survival / boss_raid LB. Returns top-N
+    // entries with the best timestamps we have (replay recordedAt for top-3,
+    // submission-hash timestamp going forward) AND a list of wallets who
+    // attempted today regardless of whether their LB score improved.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const modeRaw = (req.body as { mode?: unknown }).mode;
+    const auditMode: "survival" | "boss_raid" | null =
+      modeRaw === "survival" ? "survival" :
+      modeRaw === "boss_raid" ? "boss_raid" : null;
+    if (!auditMode) { res.status(400).json({ error: "mode must be 'survival' or 'boss_raid'" }); return; }
+    const topN = typeof (req.body as { topN?: unknown }).topN === "number"
+      ? Math.max(1, Math.min(50, Math.floor((req.body as { topN: number }).topN)))
+      : 10;
+    try {
+      const { getLbActivityReport } = await import("../_lib/runState.js");
+      const report = await getLbActivityReport(auditMode, topN);
+      res.status(200).json({ ok: true, mode: auditMode, ...report });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "admin_submit_lb_score") {
     // Repair tool — manually submit a leaderboard score for a wallet whose
     // run was "lost" (e.g. tab closed before /api/run/end could POST). Uses

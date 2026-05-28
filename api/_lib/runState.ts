@@ -295,9 +295,147 @@ export function decodeScore(score: number): { floor: number; ms: number } {
   return { floor, ms };
 }
 
+/** Per-LB submission-timestamp hash. Keyed `lb:<mode>:submitted:v1`,
+ *  with one field per wallet → ms epoch. Updated on EVERY submitToLeaderboard
+ *  call (even when the score didn't improve, so the field reflects "last
+ *  time this wallet submitted to this LB" — useful for the admin
+ *  "who attempted today" query). Independent of the zset score. */
+export function lbSubmittedHashKey(mode: LbMode): string { return `lb:${mode}:submitted:v1`; }
+
 export async function submitToLeaderboard(address: string, floor: number, ms: number, mode: LbMode = "survival"): Promise<{ improved: boolean }> {
   const changed = await zaddGt(lbKeyFor(mode), encodeScore(floor, ms), address.toLowerCase());
+  // Record the submission timestamp regardless of whether it improved — the
+  // hash answers "when did this wallet last try this LB" which is what we
+  // want for activity audits, not "when did their CURRENT score get set."
+  // Failing here is non-fatal — the score already landed.
+  await hset(lbSubmittedHashKey(mode), address.toLowerCase(), String(Date.now())).catch(() => undefined);
   return { improved: changed > 0 };
+}
+
+/** Read all (wallet → lastSubmitTimestamp) pairs for the given LB mode.
+ *  Used by the admin "boss raid activity today" diagnostic. */
+export async function getLbSubmittedTimestamps(mode: LbMode): Promise<Record<string, number>> {
+  const raw = await hgetAll(lbSubmittedHashKey(mode));
+  const out: Record<string, number> = {};
+  for (const [addr, val] of Object.entries(raw)) {
+    const n = Number(val);
+    if (Number.isFinite(n)) out[addr] = n;
+  }
+  return out;
+}
+
+/** Today's PH-day 8am boundary in UTC ms — the cutoff for "after 8am earlier"
+ *  queries. Exposed so the admin diagnostic UI can label timestamps relative
+ *  to this boundary. */
+export function currentPhDayBoundary(): number { return phDayBoundary(); }
+
+/** A boss-raid LB entry decorated with all the timing data we have access to.
+ *  `replayRecordedAt` is read from the saved replay blob (top-N only). `lbSubmittedAt`
+ *  comes from the per-mode submission-timestamp hash (lb:<mode>:submitted:v1) —
+ *  empty for entries submitted before that hash was rolled out, but populated
+ *  for every submission going forward. */
+export interface LbActivityEntry {
+  rank: number;
+  address: string;
+  ign: string | null;
+  floor: number;
+  ms: number;
+  /** Last time this wallet submitted to this LB (from the submission-ts hash).
+   *  Null when no entry exists in the hash (pre-rollout score). */
+  lbSubmittedAt: number | null;
+  /** recordedAt from the saved replay blob (top-N only). Null when no
+   *  replay is stored for this wallet on this LB. */
+  replayRecordedAt: number | null;
+  /** True when the most reliable timestamp we have (replay first,
+   *  else hash) falls on or after today's 8am PH boundary. False
+   *  when only an old timestamp exists. Null when no timestamp at all. */
+  submittedToday: boolean | null;
+}
+
+/** Wallet with a non-zero attempts:<mode>:<wallet>:<phDayBoundary> counter
+ *  for today. Indicates the wallet TRIED a run today, regardless of whether
+ *  they improved their LB score. */
+export interface LbAttemptToday {
+  address: string;
+  ign: string | null;
+  attempts: number;
+}
+
+/** Comprehensive activity readout for a given LB. Returns the top-N entries
+ *  with whatever timestamps we have AND a separate list of wallets that
+ *  attempted today (from the daily attempts counter — independent of the LB). */
+export async function getLbActivityReport(
+  mode: "survival" | "boss_raid",
+  topN = 10,
+): Promise<{
+  phDayBoundary: number;
+  entries: LbActivityEntry[];
+  attemptedToday: LbAttemptToday[];
+}> {
+  const boundary = phDayBoundary();
+  const lbKey = lbKeyFor(mode);
+  const scope = replayScopeFor(mode);
+
+  // 1. Top-N current LB entries + IGNs.
+  const rows = await zrevrangeWithScores(lbKey, 0, topN - 1);
+  const addrs = rows.map(r => r.member);
+  const [igns, submittedHash] = await Promise.all([
+    addrs.length > 0 ? hmget(IGN_HASH_KEY, addrs) : Promise.resolve([] as (string | null)[]),
+    getLbSubmittedTimestamps(mode),
+  ]);
+
+  // 2. Replay blobs for the top-N (capped to REPLAY_TOP_N).
+  const replays = await Promise.all(
+    addrs.map((a, i) => i < REPLAY_TOP_N
+      ? loadReplayBlob<{ recordedAt?: number }>(scope, a).catch(() => null)
+      : Promise.resolve(null))
+  );
+
+  const entries: LbActivityEntry[] = rows.map((r, i) => {
+    const { floor, ms } = decodeScore(r.score);
+    const replayTs = replays[i]?.recordedAt ?? null;
+    const hashTs = submittedHash[r.member] ?? null;
+    const best = replayTs ?? hashTs;
+    const submittedToday = best === null ? null : best >= boundary;
+    return {
+      rank: i + 1,
+      address: r.member,
+      ign: igns[i] ?? null,
+      floor,
+      ms,
+      lbSubmittedAt: hashTs,
+      replayRecordedAt: replayTs,
+      submittedToday,
+    };
+  });
+
+  // 3. Scan today's attempts counter for this mode → wallets who tried today.
+  const { scanAllByPattern } = await import("./redis.js");
+  const keys = await scanAllByPattern(`attempts:${mode}:*:${boundary}`).catch(() => [] as string[]);
+  // Strip prefix + parse address. Key shape after stripping prefix:
+  // `attempts:<mode>:<addr>:<boundary>`. We anchor on the literal "attempts:"
+  // marker so it works whether or not KEY_PREFIX is set.
+  const attemptAddrs: string[] = [];
+  for (const k of keys) {
+    const idx = k.indexOf("attempts:");
+    if (idx < 0) continue;
+    const parts = k.slice(idx).split(":");
+    if (parts.length >= 4) attemptAddrs.push(parts[2].toLowerCase());
+  }
+  const uniqAttemptAddrs = Array.from(new Set(attemptAddrs));
+  // Filter the actually-non-zero ones (a key existing with value 0 shouldn't
+  // happen given how incrWithExpire works, but defensive).
+  const counts = await Promise.all(uniqAttemptAddrs.map(a => getNumber(`attempts:${mode}:${a}:${boundary}`)));
+  const positiveAddrs = uniqAttemptAddrs.filter((_, i) => counts[i] > 0);
+  const positiveCounts = counts.filter(c => c > 0);
+  const attemptIgns = positiveAddrs.length > 0
+    ? await hmget(IGN_HASH_KEY, positiveAddrs)
+    : [];
+  const attemptedToday: LbAttemptToday[] = positiveAddrs
+    .map((a, i) => ({ address: a, ign: attemptIgns[i] ?? null, attempts: positiveCounts[i] }))
+    .sort((a, b) => b.attempts - a.attempts);
+
+  return { phDayBoundary: boundary, entries, attemptedToday };
 }
 
 // ---- "First to Conquer the Tower" — first wallet to clear floors 1..50 sequentially in floor mode ----

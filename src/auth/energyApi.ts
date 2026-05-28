@@ -159,6 +159,61 @@ export async function adminSetMaxFloor(wallet: string, floor: number): Promise<{
   }
 }
 
+export interface LbActivityEntry {
+  rank: number;
+  address: string;
+  ign: string | null;
+  floor: number;
+  ms: number;
+  lbSubmittedAt: number | null;
+  replayRecordedAt: number | null;
+  submittedToday: boolean | null;
+}
+export interface LbAttemptToday {
+  address: string;
+  ign: string | null;
+  attempts: number;
+}
+export interface LbActivityReport {
+  mode: "survival" | "boss_raid";
+  phDayBoundary: number;
+  entries: LbActivityEntry[];
+  attemptedToday: LbAttemptToday[];
+}
+
+/** Admin only: read an activity audit for a Survival or Boss Raid LB. For
+ *  each top-N entry returns whatever submission timestamp we have (replay
+ *  recordedAt for top-3; submission-hash timestamp going forward). Plus a
+ *  separate list of wallets that attempted the mode today regardless of
+ *  whether their LB score improved — answers "who tried today" precisely. */
+export async function adminLbActivity(
+  mode: "survival" | "boss_raid",
+  topN = 10,
+): Promise<{ ok: boolean; report?: LbActivityReport; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_lb_activity", mode, topN }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string } & Partial<LbActivityReport>));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return {
+      ok: true,
+      report: {
+        mode: data.mode ?? mode,
+        phDayBoundary: data.phDayBoundary ?? 0,
+        entries: data.entries ?? [],
+        attemptedToday: data.attemptedToday ?? [],
+      },
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "network" };
+  }
+}
+
 /** Admin only: submit a Survival or Boss Raid leaderboard score on behalf
  *  of a wallet (repair for a "lost run" where /api/run/end didn't land).
  *  Raises only — if the wallet already has a better score it stays put.

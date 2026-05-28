@@ -4,7 +4,7 @@ import { getMaxCleared } from "../core/clears";
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSubmitLbScore, type WalletDiagnosis } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSubmitLbScore, adminLbActivity, type WalletDiagnosis } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -180,6 +180,18 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
                 <button class="ghost-btn" id="admin-submit-lb-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">📤 Submit LB Score</button>
               </div>
               <span class="admin-info" id="admin-diag-result" style="font-family:monospace; font-size:11px; color:#cce4ff;"></span>
+            </div>
+            <div class="admin-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="admin-info">📊 <strong>LB Activity Audit (Survival / Boss Raid)</strong> — for the chosen mode, lists the top-N current LB entries with whatever submission timestamps we have, AND every wallet that attempted today (from the daily attempts counter). Timestamps marked ✨ are from after today's 8 AM PH boundary. Pre-rollout LB entries may show "no ts" — only submissions made after this build deploys are timestamped precisely.</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <select id="admin-activity-mode" style="padding:4px 6px;">
+                  <option value="boss_raid">Boss Raid</option>
+                  <option value="survival">Survival</option>
+                </select>
+                <input type="number" id="admin-activity-topn" placeholder="topN" min="1" max="50" value="10" style="width:70px; padding:4px 6px;" />
+                <button class="ghost-btn" id="admin-activity-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;">📊 Audit Activity</button>
+              </div>
+              <span class="admin-info" id="admin-activity-result" style="font-family:monospace; font-size:11px; color:#cce4ff;"></span>
             </div>
             <div class="admin-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
               <span class="admin-info">🎟 <strong>Grant Sample bRON Vouchers</strong> — pushes a mixed set to your own inventory so you can preview the voucher-pay path in the shop. Server enforces admin gate AND that the target is the caller, so no cross-wallet grant is possible.</span>
@@ -406,6 +418,47 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     if (!r.ok || !r.diag) { setDiagOut(`Set failed: ${r.error ?? "unknown"}`, "err"); return; }
     setDiagOut(renderDiag(wallet, r.diag, `✓ Campaign max floor set<br>`), "ok");
   });
+  root.querySelector<HTMLButtonElement>("#admin-activity-btn")?.addEventListener("click", async () => {
+    const mode = (root.querySelector<HTMLSelectElement>("#admin-activity-mode")?.value || "boss_raid") as "survival" | "boss_raid";
+    const topN = Number(root.querySelector<HTMLInputElement>("#admin-activity-topn")?.value || 10);
+    const out = root.querySelector<HTMLElement>("#admin-activity-result");
+    if (!out) return;
+    out.style.color = "#cce4ff";
+    out.innerHTML = "Querying…";
+    const r = await adminLbActivity(mode, topN);
+    if (!r.ok || !r.report) {
+      out.style.color = "#ffb8c0";
+      out.innerHTML = `Audit failed: ${r.error ?? "unknown"}`;
+      return;
+    }
+    const rep = r.report;
+    const boundary = rep.phDayBoundary;
+    const fmtDate = (ms: number): string => new Date(ms).toLocaleString();
+    const star = (ts: number | null): string => ts === null ? "" : ts >= boundary ? "✨" : "·";
+    const tsLine = (e: { lbSubmittedAt: number | null; replayRecordedAt: number | null }): string => {
+      if (e.replayRecordedAt !== null) return `replay ${star(e.replayRecordedAt)} ${fmtDate(e.replayRecordedAt)}`;
+      if (e.lbSubmittedAt !== null) return `hash ${star(e.lbSubmittedAt)} ${fmtDate(e.lbSubmittedAt)}`;
+      return `<span style="opacity:0.5;">no ts (pre-rollout)</span>`;
+    };
+    const entryLines = rep.entries.map(e => `
+      #${e.rank} ${e.address.slice(0, 10)}… (${e.ign ?? "—"}) — floor <strong>${e.floor}</strong> · ${fmtMs(e.ms)}<br>
+      &nbsp;&nbsp;${tsLine(e)}
+    `).join("<br>");
+    const attemptedLines = rep.attemptedToday.length === 0
+      ? `<span style="opacity:0.6;">(none)</span>`
+      : rep.attemptedToday.map(a => `&nbsp;&nbsp;${a.address.slice(0, 10)}… (${a.ign ?? "—"}) — ${a.attempts} attempt${a.attempts === 1 ? "" : "s"}`).join("<br>");
+    out.innerHTML = `
+      Mode: <strong>${mode === "boss_raid" ? "Boss Raid" : "Survival"}</strong><br>
+      Today's 8 AM PH boundary: ${fmtDate(boundary)}<br>
+      <br>
+      <strong>Top ${rep.entries.length} LB entries:</strong><br>
+      ${entryLines || "<em>(LB is empty)</em>"}
+      <br><br>
+      <strong>Wallets that attempted today (regardless of LB improvement):</strong><br>
+      ${attemptedLines}
+    `;
+  });
+
   root.querySelector<HTMLButtonElement>("#admin-submit-lb-btn")?.addEventListener("click", async () => {
     const wallet = diagWalletInput();
     const mode = (root.querySelector<HTMLSelectElement>("#admin-lb-mode")?.value || "survival") as "survival" | "boss_raid";
