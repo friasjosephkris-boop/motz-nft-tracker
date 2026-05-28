@@ -4558,6 +4558,52 @@ body:has(.battle) {
 .lb-row.lb-row-empty { opacity: 0.55; }
 .lb-row.lb-row-empty .lb-col.rank { color: var(--muted); }
 .lb-row.lb-row-empty .dim { color: var(--muted); opacity: 0.6; }
+
+/* ----- Rank 1 highlight (every leaderboard) -----
+   Applied across the World Ender / Highest Floor single-line rows AND the
+   Survival / Boss Raid stacked rows. Gold gradient backdrop + accent
+   borders give the top entry an obvious crown without breaking the grid.
+   Wins over .me (current viewer) when both apply — being #1 IS the focus. */
+.lb-row-first {
+  background: linear-gradient(
+    90deg,
+    rgba(244, 211, 94, 0.22) 0%,
+    rgba(244, 211, 94, 0.08) 55%,
+    rgba(244, 211, 94, 0.02) 100%
+  );
+  border-top: 1px solid rgba(244, 211, 94, 0.55);
+  border-bottom: 1px solid rgba(244, 211, 94, 0.55);
+  border-radius: 6px;
+  padding: 10px 10px;
+  box-shadow: 0 0 18px rgba(244, 211, 94, 0.18);
+}
+.lb-row-first .lb-col.rank {
+  font-size: 17px;
+  color: var(--gold-bright);
+  text-shadow: 0 0 12px rgba(244, 211, 94, 0.55);
+}
+.lb-row-first .lb-ign {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffe79a;
+  text-shadow: 0 0 10px rgba(244, 211, 94, 0.35);
+}
+/* Single-line row variants: bump the rank cell's reserved width so the
+   larger 1 doesn't squeeze the player column. */
+.lb-row-first:not(.lb-run-row) { padding-top: 9px; padding-bottom: 9px; }
+/* Stacked run-row variant — keep the gap between top + bottom lines a
+   touch bigger so the rank-1 row breathes. */
+.lb-run-row.lb-row-first { gap: 5px; }
+.lb-run-row.lb-row-first .lb-run-top .lb-col.rank {
+  width: 22px;
+  flex: 0 0 22px;
+}
+/* When the viewer IS rank 1, blend the gold highlight with the "me"
+   accent rather than fighting it — keep the gold dominance but bring
+   back the left-side me-marker bar. */
+.lb-row-first.me {
+  border-left: 2px solid var(--gold-bright);
+}
 .lb-replay-btn {
   background: rgba(244, 211, 94, 0.12);
   color: var(--gold-bright);

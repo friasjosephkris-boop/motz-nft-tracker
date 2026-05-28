@@ -229,7 +229,7 @@ function fillWorldEnder(elId: string, entries: WorldEnderEntry[], myAddr: string
     if (!e) return emptySlotRowHtml(rank, PRIZES_WORLD_ENDER[rank]);
     const isMe = myAddr !== null && e.address.toLowerCase() === myAddr;
     return `
-      <div class="lb-row ${isMe ? "me" : ""}">
+      <div class="lb-row ${isMe ? "me" : ""} ${e.rank === 1 ? "lb-row-first" : ""}">
         <span class="lb-col rank">${e.rank}</span>
         <span class="lb-col player">
           <span class="lb-ign">${escapeHtml(e.ign ?? "—")}</span>
@@ -267,7 +267,7 @@ function fillHighestFloor(elId: string, entries: HighestFloorEntry[], shopRevenu
     }
     const isMe = myAddr !== null && e.address.toLowerCase() === myAddr;
     return `
-      <div class="lb-row ${isMe ? "me" : ""}">
+      <div class="lb-row ${isMe ? "me" : ""} ${e.rank === 1 ? "lb-row-first" : ""}">
         <span class="lb-col rank">${e.rank}</span>
         <span class="lb-col player">
           <span class="lb-ign">${escapeHtml(e.ign ?? "—")}</span>
@@ -405,7 +405,7 @@ function rowHtml(e: LbEntry, myAddr: string | null, opts: FillOpts): string {
   // all of that on one row (player names were truncating to "H..."), so the
   // name gets the full width of line 1.
   return `
-    <div class="lb-row lb-run-row ${isMe ? "me" : ""}">
+    <div class="lb-row lb-run-row ${isMe ? "me" : ""} ${e.rank === 1 ? "lb-row-first" : ""}">
       <div class="lb-run-top">
         <span class="lb-col rank">${e.rank}</span>
         <span class="lb-ign" title="${escapeAttr(e.address)}">${escapeHtml(name)}</span>
