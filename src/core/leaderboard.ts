@@ -107,10 +107,16 @@ export async function endRun(replay?: unknown): Promise<EndRunResult | null> {
   live = null;
   try {
     const ign = loadSettings().playerName;
+    // Client-measured run time — the same wall-clock value the in-battle
+    // timer chip shows the player. Sent so the server uses what the player
+    // SEES instead of its own (unreliable, see reportFloor cascade bug)
+    // lastFloorAt − startedAt computation. Server still enforces
+    // MIN_AVG_FLOOR_MS so a tampered client can't claim absurd speeds.
+    const clientMs = Math.max(0, Date.now() - cur.startedAt);
     const r = await fetch("/api/run/end", {
       method: "POST",
       headers: { Authorization: `Bearer ${cur.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ runId: cur.runId, ign, ...(replay ? { replay } : {}) }),
+      body: JSON.stringify({ runId: cur.runId, ign, clientMs, ...(replay ? { replay } : {}) }),
     });
     if (!r.ok) return null;
     const data = await r.json() as {

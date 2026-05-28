@@ -565,17 +565,22 @@ async function showRunSummary(outcome: "victory" | "defeat", floorsCleared: numb
 
   if (runMode === "survival" || runMode === "boss_raid") {
     const startedAt = getLiveRun()?.startedAt ?? Date.now();
+    // Snapshot the wall-clock elapsed time BEFORE the endRun await so the
+    // displayed Run Complete time matches the timer chip the player just
+    // saw at the end of the last battle — not a value inflated by the
+    // network round-trip of /api/run/end.
+    const clientElapsed = Math.max(0, Date.now() - startedAt);
     // Finalize the multi-floor replay blob and ship it alongside the run-end
     // call. The server only persists it if this run actually beat the wallet's
     // prior best.
     const replay = finalizeReplay();
     const result = await endRun(replay ?? undefined);
-    // Server's totalMs is 0 when no reportFloor ever landed (network blip
-    // dropped the very first advance and every later one 409'd). Falling
-    // back to the client's wall clock gives a TRUTHFUL display in that
-    // case — the run still happened, the server just didn't see it.
+    // The server now uses the client's clientMs payload as the LB time, so
+    // result.totalMs and clientElapsed should agree within ms. We prefer
+    // the server-acknowledged value when it's non-zero (it confirms what
+    // landed on the LB) and fall back to our pre-await snapshot otherwise.
     const serverMs = result?.totalMs ?? 0;
-    totalMs = serverMs > 0 ? serverMs : Math.max(0, Date.now() - startedAt);
+    totalMs = serverMs > 0 ? serverMs : clientElapsed;
     // Use the server's actual `submitted` field, not `!!result`. The old
     // check treated "HTTP OK" as "score landed on the LB", which is wrong
     // — a run can return 200 yet be rejected (below MIN_AVG_FLOOR_MS, below

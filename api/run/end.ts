@@ -33,11 +33,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith("Bearer ")) { res.status(401).json({ error: "no token" }); return; }
 
-  const body = (req.body ?? {}) as { runId?: unknown; ign?: unknown; replay?: unknown };
+  const body = (req.body ?? {}) as { runId?: unknown; ign?: unknown; replay?: unknown; clientMs?: unknown };
   const runId = typeof body.runId === "string" ? body.runId : null;
   if (!runId) { res.status(400).json({ error: "bad body" }); return; }
   const ign = sanitizeIgn(body.ign);
   const replay = body.replay && typeof body.replay === "object" ? body.replay : null;
+  // Client-measured run time (wall clock) — what the player saw on the
+  // in-battle timer chip. Sanity bounds: > 0 and < 24h.
+  const clientMs = typeof body.clientMs === "number" && Number.isFinite(body.clientMs)
+                && body.clientMs > 0 && body.clientMs < 24 * 60 * 60 * 1000
+    ? Math.floor(body.clientMs)
+    : null;
   // Reject replays that pack more than the legal party size — these would
   // place an unfair score on the leaderboard.
   const replayForSave = replay && isReplayPartyValid(replay) ? replay : null;
@@ -65,7 +71,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (!state) { res.status(404).json({ error: "no run" }); return; }
     if (state.address.toLowerCase() !== payload.address.toLowerCase()) { res.status(401).json({ error: "address mismatch" }); return; }
 
-    const totalMs = state.lastFloorAt - state.startedAt;
+    // Prefer the client's measured wall-clock time — it's what the player
+    // SAW on the in-battle timer chip, and it's the authoritative truth for
+    // the LB. The server's lastFloorAt − startedAt was previously the
+    // source, but a single dropped /api/run/floor POST during a run leaves
+    // lastFloorAt frozen and produces totalMs = 0 even for a real 10-min
+    // run. Anti-cheat still applies — MIN_AVG_FLOOR_MS below rejects
+    // tampered fast claims. Falls back to the server measurement if the
+    // client didn't send clientMs (legacy clients) or sent something
+    // outside sanity bounds.
+    const serverMs = state.lastFloorAt - state.startedAt;
+    const totalMs = clientMs !== null ? clientMs : serverMs;
     const floor = state.currentFloor;
 
     // ---- Competitive thresholds ----

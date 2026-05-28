@@ -6147,6 +6147,30 @@ body:has(.battle) {
    the ff-widget to no auto-margin once it follows a run-progress chip. */
 .run-progress + .ff-widget { margin-left: 8px; }
 
+/* ---- Live run timer (Survival / Boss Raid) ----
+   Sits next to the run-progress chip. Updates every 500ms with the
+   client's wall-clock elapsed time — the SAME value that's sent to the
+   LB. Mono font so the digits don't dance as the seconds tick. */
+.run-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  font-family: var(--motz-font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: var(--motz-r-pill);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--motz-glass-border-hi);
+  color: var(--motz-text-primary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+/* When ff-widget follows a run-timer the same no-double-margin rule applies. */
+.run-timer + .ff-widget { margin-left: 8px; }
+
 /* ---- Fast-forward widget (campaign floors 1-20 only) ---- */
 .ff-widget {
   margin-left: auto;

@@ -8,6 +8,7 @@ import { runCheatCheck } from "../core/cheatCheck";
 import { confirmModal } from "./confirmModal";
 import { getBattleSpeed, setBattleSpeed, isFastForwardAllowed, FAST_FORWARD_MAX_STAGE, BattleSpeed } from "../core/battleSpeed";
 import { loadSettings } from "./settings";
+import { getLiveRun } from "../core/leaderboard";
 
 const BASE_SKILL_IDS = new Set(["idle", "basic_attack", "guard"]);
 type ActionTab = "basic" | "skills";
@@ -58,6 +59,7 @@ export function renderBattle(
         <button class="surrender-btn" id="surrender-btn" type="button">Surrender</button>
         ${slowMo ? `<span class="slowmo-tag">SLOW MOTION</span>` : ""}
         ${runProgressIndicatorHtml(opts.stageId, opts.mode)}
+        ${runTimerChipHtml(opts.mode)}
         ${fastForwardWidgetHtml(opts.stageId, opts.mode)}
       </div>
 
@@ -92,6 +94,11 @@ export function renderBattle(
   wireSurrender(root, b, onPost);
   wirePostBattleButtons(root, onPost);
   wireFastForward(root);
+  // Kick off (or refresh) the run-timer interval if a .run-timer chip is
+  // mounted. The loop self-cancels when the chip leaves the DOM.
+  if (opts.mode === "survival" || opts.mode === "boss_raid") {
+    startRunTimerLoop();
+  }
 
   // Anti-cheat: ask the server whether this wallet's claimed total XP fits
   // the lifetime ceiling we've recorded. Admin wallets are exempt server-side.
@@ -483,6 +490,53 @@ function wireEnemyClicks(root: HTMLElement, b: Battle, onAction: ActionHandler):
  *  a campaign floor 1..FAST_FORWARD_MAX_STAGE. For any other context (survival,
  *  boss raid, floors 21+, tutorial, replay) we render nothing so the UI stays
  *  clean and the option doesn't appear to be available. */
+/** Live timer chip shown in the battle toolbar for Survival / Boss Raid.
+ *  Reads getLiveRun().startedAt and updates every 500ms via a module-level
+ *  interval. Format mirrors formatMs: MM:SS for runs under an hour,
+ *  H:MM:SS beyond. The chip is the player-visible source of truth — the
+ *  same wall-clock value is sent to /api/run/end as clientMs, so what the
+ *  player sees IS what lands on the leaderboard. */
+function runTimerChipHtml(mode: RenderBattleOpts["mode"]): string {
+  if (mode !== "survival" && mode !== "boss_raid") return "";
+  return `<span class="run-timer" id="run-timer" title="Run time (sent to leaderboard)">⏱ 0:00</span>`;
+}
+
+function formatRunTime(ms: number): string {
+  const total = Math.floor(Math.max(0, ms) / 1000);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+/** Single module-level interval. Re-arms itself on every render so a
+ *  battle re-render replaces the old timer reference cleanly, and self-
+ *  cancels once the .run-timer element leaves the DOM (e.g. campaign
+ *  battle, run-summary screen). */
+let runTimerInterval: number | null = null;
+function startRunTimerLoop(): void {
+  if (runTimerInterval !== null) {
+    clearInterval(runTimerInterval);
+    runTimerInterval = null;
+  }
+  const tick = (): void => {
+    const el = document.getElementById("run-timer");
+    if (!el) {
+      if (runTimerInterval !== null) {
+        clearInterval(runTimerInterval);
+        runTimerInterval = null;
+      }
+      return;
+    }
+    const live = getLiveRun();
+    if (!live) return;
+    el.textContent = `⏱ ${formatRunTime(Date.now() - live.startedAt)}`;
+  };
+  tick(); // paint immediately so the chip isn't stuck at 0:00 for a frame
+  runTimerInterval = window.setInterval(tick, 500);
+}
+
 /** Toolbar chip showing the current floor / boss number during a run.
  *  Survival shows "🌊 Floor N", Boss Raid shows "⚔ Boss N". Campaign
  *  floor mode is skipped because the player already knows which floor
