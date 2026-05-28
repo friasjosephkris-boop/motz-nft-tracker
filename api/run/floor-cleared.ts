@@ -719,9 +719,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
   }
   if (op === "admin_set_max_floor") {
-    // Repair tool — raise a wallet's max-cleared floor + LB score to a
-    // specific value. Designed for the "client cleared 177 but server
-    // is stuck at 175 because the 176 report dropped" drift case.
+    // Repair tool — SET a wallet's max-cleared floor + Highest Floor LB
+    // score to exactly the chosen value. ALWAYS OVERWRITES (including
+    // demoting from a higher current value) for cases like "they played
+    // after the official season cutoff and bumped past the 8 AM standing
+    // — restore them to the snapshot value".
     if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
     const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
       ? (req.body as { wallet: string }).wallet.trim().toLowerCase() : "";
@@ -737,7 +739,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const { adminSetMaxFloor, getWalletProgressDiagnosis } = await import("../_lib/runState.js");
       const r = await adminSetMaxFloor(target, floor);
       const after = await getWalletProgressDiagnosis(target);
-      res.status(200).json({ ok: true, wallet: target, newMax: r.newMax, ...after });
+      res.status(200).json({
+        ok: true, wallet: target,
+        prevMax: r.prevMax, prevLb: r.prevLb, newMax: r.newMax,
+        ...after,
+      });
       return;
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : "server error" });

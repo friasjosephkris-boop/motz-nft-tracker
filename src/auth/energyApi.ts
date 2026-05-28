@@ -128,10 +128,12 @@ export async function adminDiagnoseWallet(wallet: string): Promise<{ ok: boolean
   }
 }
 
-/** Admin only: raise a wallet's max-cleared floor + Highest Floor LB score.
- *  Repair drift from a dropped campaign clear report. Cap 1..500. Raises
- *  only — if the LB already shows a higher score it stays put. */
-export async function adminSetMaxFloor(wallet: string, floor: number): Promise<{ ok: boolean; newMax?: number; diag?: WalletDiagnosis; error?: string }> {
+/** Admin only: SET a wallet's max-cleared floor + Highest Floor LB score
+ *  to exactly `floor`. Cap 1..500. ALWAYS OVERWRITES — including demoting
+ *  from a higher current value. Returns the previous values so the UI can
+ *  show what changed. Use to repair drift OR to pin a wallet to a chosen
+ *  number (e.g. their official end-of-season standing). */
+export async function adminSetMaxFloor(wallet: string, floor: number): Promise<{ ok: boolean; prevMax?: number; prevLb?: number | null; newMax?: number; diag?: WalletDiagnosis; error?: string }> {
   const tok = token();
   if (!tok) return { ok: false, error: "not signed in" };
   try {
@@ -140,12 +142,14 @@ export async function adminSetMaxFloor(wallet: string, floor: number): Promise<{
       headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({ op: "admin_set_max_floor", wallet, floor }),
     });
-    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; newMax?: number } & Partial<WalletDiagnosis>));
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; newMax?: number; prevMax?: number; prevLb?: number | null } & Partial<WalletDiagnosis>));
     if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
     const empty: LbDiagnosis = { rawScore: null, floor: null, ms: null, rank: null };
     return {
       ok: true,
       newMax: data.newMax,
+      prevMax: data.prevMax,
+      prevLb: data.prevLb ?? null,
       diag: {
         serverMaxFloor: data.serverMaxFloor ?? 0,
         highestFloor: data.highestFloor ?? empty,

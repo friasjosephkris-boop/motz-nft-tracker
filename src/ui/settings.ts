@@ -418,17 +418,33 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     const floor = Number(root.querySelector<HTMLInputElement>("#admin-diag-floor")?.value);
     if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) { setDiagOut("Enter a 0x-prefixed 40-hex wallet first.", "err"); return; }
     if (!Number.isFinite(floor) || floor < 1 || floor > 500) { setDiagOut("Floor must be 1..500.", "err"); return; }
+    // Peek at the current values so the confirm modal can show "X → Y"
+    // and clearly call out a DEMOTION case. Falls back gracefully if
+    // the diagnose preview fails — we still allow the set.
+    setDiagOut("Checking current value…");
+    const preview = await adminDiagnoseWallet(wallet);
+    const curMax = preview.diag?.serverMaxFloor ?? null;
+    const curLb = preview.diag?.highestFloor.floor ?? null;
+    const demoting = (curMax !== null && curMax > floor) || (curLb !== null && curLb > floor);
+    const beforeLine = curMax !== null
+      ? `Currently — per-wallet: <strong>${curMax}</strong>, LB: <strong>${curLb ?? "(not on LB)"}</strong><br><br>`
+      : "";
+    const warningLine = demoting
+      ? `<br><strong style="color:#ff9c9c;">⚠ This is a DEMOTION</strong> — the wallet currently holds a higher floor. The new value overwrites that. The player will need to re-clear intermediate floors to advance past ${floor} again.<br>`
+      : "";
     const ok = await confirmModal({
-      title: "Raise Wallet's Campaign Max Floor?",
-      message: `This will set <strong>${wallet}</strong>'s server max floor and Highest Floor LB score to <strong>${floor}</strong>.<br><br>Use this to repair drift from a dropped campaign clear report. <strong>Raises only</strong> — if the LB already shows a higher score it stays put.`,
-      confirmLabel: "Set Max Floor",
+      title: "Set Wallet's Campaign Max Floor?",
+      message: `${beforeLine}This will <strong>SET</strong> <strong>${wallet}</strong>'s server max floor and Highest Floor LB score to exactly <strong>${floor}</strong>.<br>${warningLine}<br>Use to repair drift OR to pin a wallet to an exact value (e.g. their official end-of-season standing). Always overwrites — no GT guard.`,
+      confirmLabel: demoting ? "Confirm Demotion" : "Set Max Floor",
       cancelLabel: "Cancel",
+      danger: demoting,
     });
     if (!ok) return;
     setDiagOut("Setting…");
     const r = await adminSetMaxFloor(wallet, floor);
     if (!r.ok || !r.diag) { setDiagOut(`Set failed: ${r.error ?? "unknown"}`, "err"); return; }
-    setDiagOut(renderDiag(wallet, r.diag, `✓ Campaign max floor set<br>`), "ok");
+    const changeLine = `✓ Set complete — per-wallet ${r.prevMax ?? "?"} → <strong>${r.newMax ?? "?"}</strong>, LB ${r.prevLb ?? "—"} → <strong>${r.diag.highestFloor.floor ?? "—"}</strong><br>`;
+    setDiagOut(renderDiag(wallet, r.diag, changeLine), demoting ? "warn" : "ok");
   });
   // ---- End-of-Season Leaderboard Freeze ----
   // Status / Snapshot / Toggle live as three discrete buttons so the admin can

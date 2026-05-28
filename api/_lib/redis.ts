@@ -62,6 +62,16 @@ export async function getDelNumber(key: string): Promise<number> {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Plain ZADD — always overwrites the score, no GT/LT comparison. Used by
+ *  admin repair tools where the intent is "set to exactly this value,
+ *  including demoting from a higher current score". Most game writes
+ *  should use zaddGt / zaddLt instead so player progress can't accidentally
+ *  go backwards. */
+export async function zadd(key: string, score: number, member: string): Promise<number> {
+  const r = await call(["ZADD", key, score, member]);
+  return typeof r === "number" ? r : 0;
+}
+
 export async function zaddGt(key: string, score: number, member: string): Promise<number> {
   // GT: only update if new score is greater than existing.
   // CH returns the count of changed members: 1 if better, 0 otherwise.

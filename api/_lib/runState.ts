@@ -973,22 +973,38 @@ export async function getHighestFloorTop(limit = 5): Promise<HighestFloorEntry[]
   return rows.map((r, i) => ({ rank: i + 1, address: r.member, ign: igns[i] ?? null, floor: r.score }));
 }
 
-/** Admin: raise a wallet's max-cleared floor AND sync the leaderboard.
- *  Designed for the common drift case — a clear report failed to land and
- *  the server's max trails the player's actual progress. RAISES ONLY: if
- *  the LB already shows a higher score it stays put (admin who needs to
- *  demote should use adminForceResetWallet first). Cap at MAX_FLOOR (500,
- *  the post-game last floor) so we can repair the full campaign range —
- *  NOT TOWER_FINAL_FLOOR (50, the first-conqueror milestone), which
- *  would silently clip every post-game repair to 50. */
-export async function adminSetMaxFloor(address: string, floor: number): Promise<{ newMax: number }> {
+/** Admin: SET a wallet's max-cleared floor AND its Highest Floor LB score
+ *  to exactly `floor`. Always overwrites — including demoting from a
+ *  higher current value (for repairing "they played after the season
+ *  cutoff and bumped past the official 8 AM standing" cases).
+ *
+ *  Cap at MAX_FLOOR (500, the post-game last floor) — NOT
+ *  TOWER_FINAL_FLOOR (50, the first-conqueror milestone), which would
+ *  silently clip post-game repairs to 50.
+ *
+ *  Side effect to be aware of: lowering the per-wallet maxfloor key
+ *  means the player can't advance past floor+1 until they re-clear the
+ *  intermediate floors. For end-of-season freezes this rarely matters
+ *  since the public LB is served from the snapshot anyway. */
+export async function adminSetMaxFloor(address: string, floor: number): Promise<{
+  prevMax: number;
+  prevLb: number | null;
+  newMax: number;
+}> {
+  const { zadd, zscore } = await import("./redis.js");
   const clamped = Math.max(0, Math.min(MAX_FLOOR, Math.floor(floor)));
+  const addr = address.toLowerCase();
+  const [prevMax, prevLb] = await Promise.all([
+    getMaxFloorCleared(addr),
+    zscore(HIGHEST_FLOOR_LB_KEY, addr),
+  ]);
   await setJson(maxFloorKey(address), clamped, 60 * 60 * 24 * 365 * 5);
-  await zaddGt(HIGHEST_FLOOR_LB_KEY, clamped, address.toLowerCase()).catch(() => 0);
+  // Plain ZADD (no GT flag) so we can DEMOTE the LB score, not just raise.
+  await zadd(HIGHEST_FLOOR_LB_KEY, clamped, addr).catch(() => 0);
   // Mirror the campaign clear flow's timestamp stamp so the LB Activity
   // Audit shows this wallet as "updated today" after an admin repair.
-  await hset(lbSubmittedHashKey("highest_floor"), address.toLowerCase(), String(Date.now())).catch(() => undefined);
-  return { newMax: clamped };
+  await hset(lbSubmittedHashKey("highest_floor"), addr, String(Date.now())).catch(() => undefined);
+  return { prevMax, prevLb, newMax: clamped };
 }
 
 /** A wallet's entry on a per-mode leaderboard. Score is decoded into floor
