@@ -57,6 +57,7 @@ export function renderBattle(
       <div class="battle-toolbar">
         <button class="surrender-btn" id="surrender-btn" type="button">Surrender</button>
         ${slowMo ? `<span class="slowmo-tag">SLOW MOTION</span>` : ""}
+        ${runProgressIndicatorHtml(opts.stageId, opts.mode)}
         ${fastForwardWidgetHtml(opts.stageId, opts.mode)}
       </div>
 
@@ -482,6 +483,22 @@ function wireEnemyClicks(root: HTMLElement, b: Battle, onAction: ActionHandler):
  *  a campaign floor 1..FAST_FORWARD_MAX_STAGE. For any other context (survival,
  *  boss raid, floors 21+, tutorial, replay) we render nothing so the UI stays
  *  clean and the option doesn't appear to be available. */
+/** Toolbar chip showing the current floor / boss number during a run.
+ *  Survival shows "🌊 Floor N", Boss Raid shows "⚔ Boss N". Campaign
+ *  floor mode is skipped because the player already knows which floor
+ *  they picked from Stage Select; survival/boss-raid runs are sequential
+ *  rolls where the player can otherwise lose track mid-fight. */
+function runProgressIndicatorHtml(stageId: number | undefined, mode: RenderBattleOpts["mode"]): string {
+  if (typeof stageId !== "number" || stageId < 1) return "";
+  if (mode === "survival") {
+    return `<span class="run-progress run-progress--survival" title="Survival floor reached so far">🌊 Floor ${stageId}</span>`;
+  }
+  if (mode === "boss_raid") {
+    return `<span class="run-progress run-progress--bossraid" title="Boss raid boss number">⚔ Boss ${stageId}</span>`;
+  }
+  return "";
+}
+
 function fastForwardWidgetHtml(stageId: number | undefined, mode: RenderBattleOpts["mode"]): string {
   if (typeof stageId !== "number") return "";
   if (!isFastForwardAllowed(stageId, mode ?? "")) return "";

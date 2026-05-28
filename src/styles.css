@@ -6109,6 +6109,44 @@ body:has(.battle) {
   border-radius: 4px;
 }
 
+/* ---- Run progress indicator (Survival / Boss Raid in-battle chip) ----
+   Sits in .battle-toolbar between the slowmo tag and the fast-forward
+   widget so players can see at a glance which floor / boss they're on
+   mid-fight. margin-left:auto pushes it (and everything after) to the
+   right side of the toolbar; surrender stays on the left. */
+.run-progress {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--motz-font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 12px;
+  border-radius: var(--motz-r-pill);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--motz-glass-border-hi);
+  color: var(--motz-text-primary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.run-progress--survival {
+  border-color: rgba(120, 180, 255, 0.55);
+  background: linear-gradient(180deg, rgba(120, 180, 255, 0.20), rgba(120, 180, 255, 0.05));
+  color: #d4e6ff;
+  box-shadow: 0 0 14px rgba(120, 180, 255, 0.20);
+}
+.run-progress--bossraid {
+  border-color: rgba(255, 110, 110, 0.55);
+  background: linear-gradient(180deg, rgba(255, 110, 110, 0.20), rgba(255, 110, 110, 0.05));
+  color: #ffd0d0;
+  box-shadow: 0 0 14px rgba(255, 110, 110, 0.20);
+}
+/* When both the run-progress chip AND the ff-widget are present the
+   auto-margin on .ff-widget would double-push, leaving a big gap. Bind
+   the ff-widget to no auto-margin once it follows a run-progress chip. */
+.run-progress + .ff-widget { margin-left: 8px; }
+
 /* ---- Fast-forward widget (campaign floors 1-20 only) ---- */
 .ff-widget {
   margin-left: auto;
