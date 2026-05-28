@@ -4,7 +4,7 @@ import { getMaxCleared } from "../core/clears";
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSubmitLbScore, adminLbActivity, adminLbFreezeStatus, adminLbFreezeSnapshot, adminLbFreezeToggle, adminRemoveLbEntry, type WalletDiagnosis } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSetHighestFloorLbOnly, adminSubmitLbScore, adminLbActivity, adminLbFreezeStatus, adminLbFreezeSnapshot, adminLbFreezeToggle, adminRemoveLbEntry, type WalletDiagnosis } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -167,7 +167,8 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
               <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px;">
                 <span class="admin-info" style="font-size:10px;">Campaign repair:</span>
                 <input type="number" id="admin-diag-floor" placeholder="177" min="1" max="500" style="width:80px; padding:4px 6px;" />
-                <button class="ghost-btn" id="admin-set-max-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">🛠 Set Max Floor (campaign)</button>
+                <button class="ghost-btn" id="admin-set-max-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;" title="Sets BOTH per-wallet maxfloor AND Highest Floor LB. Lowering the per-wallet key freezes the player at floor+1 until they re-clear.">🛠 Set Max Floor (both)</button>
+                <button class="ghost-btn" id="admin-set-lb-only-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;" title="Sets ONLY the Highest Floor LB score — leaves the player's gameplay progression untouched.">🎯 Set LB Only</button>
               </div>
               <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px;">
                 <span class="admin-info" style="font-size:10px;">Survival / Boss Raid repair:</span>
@@ -456,6 +457,44 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     const changeLine = `✓ Set complete — per-wallet ${r.prevMax ?? "?"} → <strong>${r.newMax ?? "?"}</strong>, LB ${r.prevLb ?? "—"} → <strong>${r.diag.highestFloor.floor ?? "—"}</strong><br>`;
     setDiagOut(renderDiag(wallet, r.diag, changeLine), demoting ? "warn" : "ok");
   });
+
+  // ---- Set LB Only (Highest Floor) ----
+  // Sibling to Set Max Floor that ONLY touches the Highest Floor LB score.
+  // The player's per-wallet maxfloor key stays put, so their gameplay
+  // progression isn't affected by the public-ranking change. Designed
+  // for end-of-season snapshots where we want the LB to show "their 8 AM
+  // standing" but the player should still be able to keep playing post-cutoff.
+  root.querySelector<HTMLButtonElement>("#admin-set-lb-only-btn")?.addEventListener("click", async () => {
+    const wallet = diagWalletInput();
+    const floor = Number(root.querySelector<HTMLInputElement>("#admin-diag-floor")?.value);
+    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) { setDiagOut("Enter a 0x-prefixed 40-hex wallet first.", "err"); return; }
+    if (!Number.isFinite(floor) || floor < 1 || floor > 500) { setDiagOut("Floor must be 1..500.", "err"); return; }
+    setDiagOut("Checking current value…");
+    const preview = await adminDiagnoseWallet(wallet);
+    const curLb = preview.diag?.highestFloor.floor ?? null;
+    const curMax = preview.diag?.serverMaxFloor ?? null;
+    const demoting = curLb !== null && curLb > floor;
+    const beforeLine = curLb !== null
+      ? `Currently — LB: <strong>${curLb}</strong>${curMax !== null ? ` (per-wallet maxfloor stays at <strong>${curMax}</strong>)` : ""}<br><br>`
+      : "";
+    const warningLine = demoting
+      ? `<br><strong style="color:#ff9c9c;">⚠ This DEMOTES the LB score.</strong> Player progression is NOT affected — they can still play floor ${curMax !== null ? curMax + 1 : "N+1"} after this.<br>`
+      : "";
+    const ok = await confirmModal({
+      title: "Set Highest Floor LB Only?",
+      message: `${beforeLine}This sets <strong>${wallet}</strong>'s <strong>Highest Floor LB score</strong> to exactly <strong>${floor}</strong>, while leaving their per-wallet maxfloor key untouched.<br>${warningLine}<br>Use for end-of-season pinning — the public ranking reflects the chosen value, but the player can still advance past it in their own progression.`,
+      confirmLabel: demoting ? "Confirm Demotion" : "Set LB Score",
+      cancelLabel: "Cancel",
+      danger: demoting,
+    });
+    if (!ok) return;
+    setDiagOut("Setting LB…");
+    const r = await adminSetHighestFloorLbOnly(wallet, floor);
+    if (!r.ok || !r.diag) { setDiagOut(`Set failed: ${r.error ?? "unknown"}`, "err"); return; }
+    const changeLine = `✓ LB-only set — Highest Floor LB ${r.prevLb ?? "—"} → <strong>${r.diag.highestFloor.floor ?? "—"}</strong> · per-wallet untouched (<strong>${r.diag.serverMaxFloor}</strong>)<br>`;
+    setDiagOut(renderDiag(wallet, r.diag, changeLine), demoting ? "warn" : "ok");
+  });
+
   // ---- End-of-Season Leaderboard Freeze ----
   // Status / Snapshot / Toggle live as three discrete buttons so the admin can
   // re-capture without flipping freeze, or unfreeze without dropping the

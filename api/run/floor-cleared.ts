@@ -750,6 +750,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  if (op === "admin_set_highest_floor_lb_only") {
+    // Sibling to admin_set_max_floor that ONLY touches the LB zset (no
+    // per-wallet maxfloor write). Use to pin a wallet to a public-facing
+    // ranking without freezing their gameplay progression.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
+      ? (req.body as { wallet: string }).wallet.trim().toLowerCase() : "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+      res.status(400).json({ error: "wallet must be a 0x-prefixed 40-hex address" }); return;
+    }
+    const floor = typeof (req.body as { floor?: unknown }).floor === "number"
+      ? Math.floor((req.body as { floor: number }).floor) : -1;
+    if (floor < 1 || floor > 500) {
+      res.status(400).json({ error: "floor must be 1..500" }); return;
+    }
+    try {
+      const { adminSetHighestFloorLbOnly, getWalletProgressDiagnosis } = await import("../_lib/runState.js");
+      const r = await adminSetHighestFloorLbOnly(target, floor);
+      const after = await getWalletProgressDiagnosis(target);
+      res.status(200).json({
+        ok: true, wallet: target,
+        prevLb: r.prevLb, newLb: r.newLb,
+        ...after,
+      });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "admin_lb_remove_entry") {
     // Wipe a single wallet's entry from one leaderboard (zset + replay
     // blob + timestamp hash). Useful for removing a botted / cheated /

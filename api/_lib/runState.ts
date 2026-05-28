@@ -1016,6 +1016,31 @@ export async function adminRemoveLbEntry(
   return { removedFromLb, removedReplay, removedTimestamp };
 }
 
+/** Admin: SET ONLY the Highest Floor LB score for a wallet, leaving the
+ *  per-wallet maxfloor key untouched. Sibling to adminSetMaxFloor, for
+ *  the case where we want the public LB to show a specific value WITHOUT
+ *  affecting the player's progression (their stage-select unlocks /
+ *  floor-advance check stays based on actual progress).
+ *
+ *  Typical use case: end-of-season freeze where a wallet kept playing
+ *  past the cutoff and bumped their LB score above the official 8 AM
+ *  standing — we want the snapshot to reflect 8 AM, but the player
+ *  should still be able to play floor N+1 in unranked / future seasons.
+ *
+ *  Always overwrites (including demoting from a higher current value). */
+export async function adminSetHighestFloorLbOnly(address: string, floor: number): Promise<{
+  prevLb: number | null;
+  newLb: number;
+}> {
+  const { zadd, zscore } = await import("./redis.js");
+  const clamped = Math.max(0, Math.min(MAX_FLOOR, Math.floor(floor)));
+  const addr = address.toLowerCase();
+  const prevLb = await zscore(HIGHEST_FLOOR_LB_KEY, addr);
+  await zadd(HIGHEST_FLOOR_LB_KEY, clamped, addr).catch(() => 0);
+  await hset(lbSubmittedHashKey("highest_floor"), addr, String(Date.now())).catch(() => undefined);
+  return { prevLb, newLb: clamped };
+}
+
 /** Admin: SET a wallet's max-cleared floor AND its Highest Floor LB score
  *  to exactly `floor`. Always overwrites — including demoting from a
  *  higher current value (for repairing "they played after the season

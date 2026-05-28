@@ -294,6 +294,37 @@ export async function adminLbActivity(
   }
 }
 
+/** Admin only: SET ONLY the Highest Floor LB score for a wallet, leaving
+ *  their per-wallet maxfloor (and therefore their gameplay progression)
+ *  untouched. Use to pin the public ranking without freezing the player's
+ *  ability to advance past floor N+1. Always overwrites. */
+export async function adminSetHighestFloorLbOnly(wallet: string, floor: number): Promise<{ ok: boolean; prevLb?: number | null; newLb?: number; diag?: WalletDiagnosis; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_set_highest_floor_lb_only", wallet, floor }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; prevLb?: number | null; newLb?: number } & Partial<WalletDiagnosis>));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    const empty: LbDiagnosis = { rawScore: null, floor: null, ms: null, rank: null };
+    return {
+      ok: true,
+      prevLb: data.prevLb ?? null,
+      newLb: data.newLb,
+      diag: {
+        serverMaxFloor: data.serverMaxFloor ?? 0,
+        highestFloor: data.highestFloor ?? empty,
+        survival: data.survival ?? empty,
+        bossRaid: data.bossRaid ?? empty,
+        ign: data.ign ?? null,
+      },
+    };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "network" }; }
+}
+
 /** Admin only: wipe a single wallet's entry from one leaderboard. Removes
  *  the zset entry AND the saved replay blob (when applicable) AND the
  *  submission-timestamp hash field. Use for botted / miscredited runs
