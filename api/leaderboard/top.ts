@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { zrevrangeWithScores, hmget } from "../_lib/redis.js";
 import { lbKeyFor, IGN_HASH_KEY, decodeScore, isLbMode, getFirstConquer, getWorldEnderTop, WorldEnderEntry, getHighestFloorTop, HighestFloorEntry } from "../_lib/runState.js";
 import { readShopRevenue } from "../_lib/analytics.js";
+import { isFrozen, readSnapshot } from "../_lib/lbFreeze.js";
 
 // Public endpoint — no auth needed to read top scores.
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -21,6 +22,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const wantExtras = req.query.extras === "1";
 
   try {
+    // ---- Frozen-snapshot mode (end-of-season freeze) ----
+    // When the admin has locked the LB, every read returns the captured
+    // snapshot instead of live data. Live writes still happen behind the
+    // scenes (so unfreezing restores everything), but players see the
+    // frozen board until the admin re-toggles it.
+    if (await isFrozen().catch(() => false)) {
+      const snap = await readSnapshot().catch(() => null);
+      if (snap) {
+        const entriesFromSnap = mode === "boss_raid" ? snap.bossRaid : snap.survival;
+        const entries = entriesFromSnap.slice(0, limit);
+        res.setHeader("Cache-Control", "public, max-age=10");
+        res.status(200).json({
+          entries,
+          firstConquer: wantExtras ? snap.firstConquer : null,
+          worldEnder: wantExtras ? snap.worldEnder : [],
+          highestFloor: wantExtras ? snap.highestFloor : [],
+          shopRevenue: wantExtras ? snap.shopRevenue : 0,
+          frozen: true,
+          frozenLabel: snap.label,
+          frozenAt: snap.capturedAt,
+        });
+        return;
+      }
+      // Freeze flag was on but no snapshot existed — fall through to live
+      // data rather than 500ing. Admin should re-capture.
+    }
+
     const rows = await zrevrangeWithScores(lbKeyFor(mode), 0, limit - 1);
     const igns = rows.length > 0 ? await hmget(IGN_HASH_KEY, rows.map(r => r.member)) : [];
     const entries = rows.map((r, i) => {

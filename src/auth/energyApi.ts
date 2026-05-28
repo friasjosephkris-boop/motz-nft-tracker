@@ -183,6 +183,77 @@ export interface LbActivityReport {
   attemptedToday: LbAttemptToday[];
 }
 
+export interface LbFreezeStatus {
+  frozen: boolean;
+  snapshot: {
+    capturedAt: number;
+    capturedBy: string;
+    label: string;
+    counts: { survival: number; bossRaid: number; highestFloor: number; worldEnder: number; firstConquer: number };
+  } | null;
+}
+
+/** Admin only: read the current LB-freeze flag + summary of the captured snapshot. */
+export async function adminLbFreezeStatus(): Promise<{ ok: boolean; status?: LbFreezeStatus; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_lb_freeze_status" }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string } & Partial<LbFreezeStatus>));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return {
+      ok: true,
+      status: { frozen: data.frozen ?? false, snapshot: data.snapshot ?? null },
+    };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "network" }; }
+}
+
+/** Admin only: capture the CURRENT live LB state into the frozen-snapshot
+ *  blob. Does NOT enable freeze mode by itself — call adminLbFreezeToggle
+ *  after capturing. `label` is a short string shown to players (e.g.
+ *  "Season 1 Final"). */
+export async function adminLbFreezeSnapshot(label: string): Promise<{ ok: boolean; capturedAt?: number; label?: string; counts?: LbFreezeStatus["snapshot"] extends infer T ? T extends { counts: infer C } ? C : never : never; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_lb_freeze_snapshot", label }),
+    });
+    const data = await r.json().catch(() => ({} as Record<string, unknown>));
+    if (!r.ok || !data.ok) return { ok: false, error: typeof data.error === "string" ? data.error : `http ${r.status}` };
+    return {
+      ok: true,
+      capturedAt: typeof data.capturedAt === "number" ? data.capturedAt : undefined,
+      label: typeof data.label === "string" ? data.label : undefined,
+      counts: data.counts as LbFreezeStatus["snapshot"] extends infer T ? T extends { counts: infer C } ? C : never : never,
+    };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "network" }; }
+}
+
+/** Admin only: flip LB freeze on/off. When on, /api/leaderboard/top serves
+ *  the captured snapshot. Server rejects "on" if no snapshot has been
+ *  captured yet. */
+export async function adminLbFreezeToggle(on: boolean): Promise<{ ok: boolean; frozen?: boolean; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_lb_freeze_toggle", on }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; frozen?: boolean }));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: true, frozen: data.frozen };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "network" }; }
+}
+
 /** Admin only: read an activity audit for one of the three leaderboards
  *  (Survival, Boss Raid, or Highest Floor / campaign). For each top-N
  *  entry returns whatever submission timestamp we have (replay recordedAt

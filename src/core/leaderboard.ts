@@ -225,6 +225,12 @@ export interface LeaderboardFetch {
   highestFloor: HighestFloorEntry[];
   /** Total RON spent on the shop — the live prize pool for the floor board. */
   shopRevenue: number;
+  /** True when the server is serving the end-of-season frozen snapshot. */
+  frozen?: boolean;
+  /** Human-readable label for the frozen snapshot (e.g. "Season 1 Final"). */
+  frozenLabel?: string;
+  /** ms epoch of when the frozen snapshot was captured. */
+  frozenAt?: number;
 }
 
 export async function fetchTopWithExtras(mode: LbMode = "survival", limit = 50): Promise<LeaderboardFetch> {
@@ -235,6 +241,7 @@ export async function fetchTopWithExtras(mode: LbMode = "survival", limit = 50):
     const data = await r.json() as {
       entries: LbEntry[]; firstConquer: FirstConquerEntry | null; worldEnder: WorldEnderEntry[];
       highestFloor?: HighestFloorEntry[]; shopRevenue?: number;
+      frozen?: boolean; frozenLabel?: string; frozenAt?: number;
     };
     return {
       entries: data.entries ?? [],
@@ -242,6 +249,9 @@ export async function fetchTopWithExtras(mode: LbMode = "survival", limit = 50):
       worldEnder: data.worldEnder ?? [],
       highestFloor: data.highestFloor ?? [],
       shopRevenue: typeof data.shopRevenue === "number" ? data.shopRevenue : 0,
+      frozen: data.frozen ?? false,
+      frozenLabel: data.frozenLabel,
+      frozenAt: data.frozenAt,
     };
   } catch { return empty; }
 }

@@ -4,7 +4,7 @@ import { getMaxCleared } from "../core/clears";
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSubmitLbScore, adminLbActivity, type WalletDiagnosis } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSubmitLbScore, adminLbActivity, adminLbFreezeStatus, adminLbFreezeSnapshot, adminLbFreezeToggle, type WalletDiagnosis } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -193,6 +193,17 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
                 <button class="ghost-btn" id="admin-activity-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;">📊 Audit Activity</button>
               </div>
               <span class="admin-info" id="admin-activity-result" style="font-family:monospace; font-size:11px; color:#cce4ff;"></span>
+            </div>
+            <div class="admin-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+              <span class="admin-info">🏆 <strong>End-of-Season Leaderboard Freeze</strong> — capture the CURRENT live state of every leaderboard into a snapshot, then flip Freeze ON so every player sees that exact snapshot regardless of new submissions. Status, Capture, and Toggle are separate so you can re-capture without unfreezing and vice versa. Players see a gold "Season Final" banner above the boards when frozen.</span>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                <input type="text" id="admin-freeze-label" placeholder="Season 1 Final" maxlength="60" style="padding:4px 8px; min-width:200px;" />
+                <button class="ghost-btn" id="admin-freeze-status-btn" type="button" style="border-color:#9bcfff;color:#cce4ff;">🔍 Status</button>
+                <button class="ghost-btn" id="admin-freeze-snapshot-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">📸 Snapshot Now</button>
+                <button class="ghost-btn" id="admin-freeze-on-btn" type="button" style="border-color:#7aff8a;color:#bfffc8;">🏆 Freeze ON</button>
+                <button class="ghost-btn" id="admin-freeze-off-btn" type="button" style="border-color:#ff5a6b;color:#ffb8c0;">🔓 Freeze OFF</button>
+              </div>
+              <span class="admin-info" id="admin-freeze-result" style="font-family:monospace; font-size:11px; color:#cce4ff;"></span>
             </div>
             <div class="admin-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
               <span class="admin-info">🎟 <strong>Grant Sample bRON Vouchers</strong> — pushes a mixed set to your own inventory so you can preview the voucher-pay path in the shop. Server enforces admin gate AND that the target is the caller, so no cross-wallet grant is possible.</span>
@@ -419,6 +430,77 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     if (!r.ok || !r.diag) { setDiagOut(`Set failed: ${r.error ?? "unknown"}`, "err"); return; }
     setDiagOut(renderDiag(wallet, r.diag, `✓ Campaign max floor set<br>`), "ok");
   });
+  // ---- End-of-Season Leaderboard Freeze ----
+  // Status / Snapshot / Toggle live as three discrete buttons so the admin can
+  // re-capture without flipping freeze, or unfreeze without dropping the
+  // snapshot. The Status button is a non-mutating sanity check.
+  const setFreezeOut = (msg: string, kind: "ok" | "warn" | "err" = "ok"): void => {
+    const out = root.querySelector<HTMLElement>("#admin-freeze-result");
+    if (!out) return;
+    out.style.color = kind === "err" ? "#ffb8c0" : kind === "warn" ? "#ffd485" : "#cce4ff";
+    out.innerHTML = msg;
+  };
+  const fmtFreezeDate = (ms: number): string => new Date(ms).toLocaleString();
+  const renderFreezeStatus = (s: { frozen: boolean; snapshot: { capturedAt: number; capturedBy: string; label: string; counts: { survival: number; bossRaid: number; highestFloor: number; worldEnder: number; firstConquer: number } } | null }): string => {
+    const lock = s.frozen ? "🏆 <strong>FROZEN</strong>" : "🔓 Live";
+    if (!s.snapshot) return `${lock} — <em>no snapshot captured yet</em>`;
+    const c = s.snapshot.counts;
+    return `${lock}<br>
+      Snapshot label: <strong>${escapeHtml(s.snapshot.label)}</strong><br>
+      Captured: ${fmtFreezeDate(s.snapshot.capturedAt)} by ${s.snapshot.capturedBy}<br>
+      Counts → Survival: ${c.survival} · Boss Raid: ${c.bossRaid} · Highest Floor: ${c.highestFloor} · World Ender: ${c.worldEnder} · First Conquer: ${c.firstConquer}`;
+  };
+  root.querySelector<HTMLButtonElement>("#admin-freeze-status-btn")?.addEventListener("click", async () => {
+    setFreezeOut("Reading…");
+    const r = await adminLbFreezeStatus();
+    if (!r.ok || !r.status) { setFreezeOut(`Status failed: ${r.error ?? "unknown"}`, "err"); return; }
+    setFreezeOut(renderFreezeStatus(r.status), r.status.frozen ? "ok" : "warn");
+  });
+  root.querySelector<HTMLButtonElement>("#admin-freeze-snapshot-btn")?.addEventListener("click", async () => {
+    const label = (root.querySelector<HTMLInputElement>("#admin-freeze-label")?.value || "").trim() || "Season Final";
+    const ok = await confirmModal({
+      title: "Capture LB Snapshot?",
+      message: `Capture the CURRENT live state of every leaderboard into a snapshot labelled <strong>${escapeHtml(label)}</strong>?<br><br>This <strong>does NOT enable freeze mode</strong> — players still see live data until you flip Freeze ON. Re-capturing replaces the previous snapshot.`,
+      confirmLabel: "Capture",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
+    setFreezeOut("Capturing…");
+    const r = await adminLbFreezeSnapshot(label);
+    if (!r.ok) { setFreezeOut(`Capture failed: ${r.error ?? "unknown"}`, "err"); return; }
+    const c = r.counts ?? { survival: 0, bossRaid: 0, highestFloor: 0, worldEnder: 0, firstConquer: 0 };
+    setFreezeOut(`📸 Snapshot captured at ${r.capturedAt ? fmtFreezeDate(r.capturedAt) : "now"}<br>
+      Label: <strong>${escapeHtml(r.label ?? label)}</strong><br>
+      Survival: ${c.survival} · Boss Raid: ${c.bossRaid} · Highest Floor: ${c.highestFloor} · World Ender: ${c.worldEnder} · First Conquer: ${c.firstConquer}`, "ok");
+  });
+  root.querySelector<HTMLButtonElement>("#admin-freeze-on-btn")?.addEventListener("click", async () => {
+    const ok = await confirmModal({
+      title: "Freeze the Leaderboard?",
+      message: `Flip freeze <strong>ON</strong>. Every player will see the captured snapshot — new runs no longer change the displayed standings.<br><br>If no snapshot has been captured yet, this is rejected.`,
+      confirmLabel: "Freeze ON",
+      cancelLabel: "Cancel",
+    });
+    if (!ok) return;
+    setFreezeOut("Flipping ON…");
+    const r = await adminLbFreezeToggle(true);
+    if (!r.ok) { setFreezeOut(`Freeze ON failed: ${r.error ?? "unknown"}`, "err"); return; }
+    setFreezeOut(`🏆 Freeze is now <strong>${r.frozen ? "ON" : "OFF"}</strong>.`, r.frozen ? "ok" : "warn");
+  });
+  root.querySelector<HTMLButtonElement>("#admin-freeze-off-btn")?.addEventListener("click", async () => {
+    const ok = await confirmModal({
+      title: "Unfreeze the Leaderboard?",
+      message: `Flip freeze <strong>OFF</strong>. Players will see live data again. The snapshot stays intact — re-enable freeze any time without re-capturing.`,
+      confirmLabel: "Freeze OFF",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
+    setFreezeOut("Flipping OFF…");
+    const r = await adminLbFreezeToggle(false);
+    if (!r.ok) { setFreezeOut(`Freeze OFF failed: ${r.error ?? "unknown"}`, "err"); return; }
+    setFreezeOut(`🔓 Freeze is now <strong>${r.frozen ? "ON" : "OFF"}</strong> — live data is being served again.`, r.frozen ? "warn" : "ok");
+  });
+
   root.querySelector<HTMLButtonElement>("#admin-activity-btn")?.addEventListener("click", async () => {
     const mode = (root.querySelector<HTMLSelectElement>("#admin-activity-mode")?.value || "boss_raid") as "survival" | "boss_raid" | "highest_floor";
     const topN = Number(root.querySelector<HTMLInputElement>("#admin-activity-topn")?.value || 10);

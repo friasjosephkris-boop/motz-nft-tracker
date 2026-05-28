@@ -28,6 +28,7 @@ export function renderLeaderboard(root: HTMLElement, onBack: () => void, onPlayR
         </div>
         <div></div>
       </div>
+      <div class="lb-frozen-banner" id="lb-frozen-banner" hidden></div>
       <div class="lb-grid">
         <div class="lb-top-row">
           <div class="lb-board lb-floorclimb">
@@ -104,11 +105,28 @@ export function renderLeaderboard(root: HTMLElement, onBack: () => void, onPlayR
 
   // Survival board (with first-conquer + world-ender in same payload).
   // Show up to 10 entries; replays available for top 3.
-  void fetchTopWithExtras("survival", 10).then(({ entries, firstConquer, worldEnder, highestFloor, shopRevenue }) => {
+  void fetchTopWithExtras("survival", 10).then(({ entries, firstConquer, worldEnder, highestFloor, shopRevenue, frozen, frozenLabel, frozenAt }) => {
     fillRows("lb-survival-rows", entries, myAddr, { mode: "survival" });
     fillFirstConquer("lb-conquer-rows", firstConquer, myAddr);
     fillWorldEnder("lb-fastest-rows", worldEnder, myAddr);
     fillHighestFloor("lb-floorclimb-rows", highestFloor, shopRevenue, myAddr);
+    // End-of-season freeze: show a prominent banner above the four boards
+    // so players understand they're looking at a final, locked snapshot.
+    if (frozen) {
+      const banner = root.querySelector<HTMLElement>("#lb-frozen-banner");
+      if (banner) {
+        const date = frozenAt ? new Date(frozenAt).toLocaleDateString() : "";
+        banner.hidden = false;
+        banner.innerHTML = `
+          <span class="lb-frozen-icon" aria-hidden="true">🏆</span>
+          <span class="lb-frozen-text">
+            <strong>${escapeHtml(frozenLabel ?? "Season Final")}</strong>
+            — this leaderboard is locked${date ? ` (captured ${escapeHtml(date)})` : ""}.
+            New runs no longer change the standings.
+          </span>
+        `;
+      }
+    }
   });
 
   // Boss raid board (independent fetch). Up to 10 entries.

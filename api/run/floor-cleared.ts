@@ -744,6 +744,78 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  if (op === "admin_lb_freeze_status") {
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    try {
+      const { isFrozen, readSnapshot } = await import("../_lib/lbFreeze.js");
+      const [frozen, snap] = await Promise.all([isFrozen(), readSnapshot()]);
+      res.status(200).json({
+        ok: true, frozen,
+        snapshot: snap ? {
+          capturedAt: snap.capturedAt,
+          capturedBy: snap.capturedBy,
+          label: snap.label,
+          counts: {
+            survival: snap.survival.length,
+            bossRaid: snap.bossRaid.length,
+            highestFloor: snap.highestFloor.length,
+            worldEnder: snap.worldEnder.length,
+            firstConquer: snap.firstConquer ? 1 : 0,
+          },
+        } : null,
+      });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "admin_lb_freeze_snapshot") {
+    // Capture the CURRENT live state into the frozen-snapshot blob. Does NOT
+    // automatically enable freeze mode — admin must also call the toggle.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const labelRaw = (req.body as { label?: unknown }).label;
+    const label = typeof labelRaw === "string" && labelRaw.trim().length > 0
+      ? labelRaw.trim().slice(0, 60) : "Season Final";
+    try {
+      const { captureSnapshot } = await import("../_lib/lbFreeze.js");
+      const snap = await captureSnapshot(address, label);
+      res.status(200).json({
+        ok: true, capturedAt: snap.capturedAt, label: snap.label,
+        counts: {
+          survival: snap.survival.length,
+          bossRaid: snap.bossRaid.length,
+          highestFloor: snap.highestFloor.length,
+          worldEnder: snap.worldEnder.length,
+          firstConquer: snap.firstConquer ? 1 : 0,
+        },
+      });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
+  if (op === "admin_lb_freeze_toggle") {
+    // Flip the freeze flag. When ON, every /api/leaderboard/top read serves
+    // the captured snapshot. When OFF, live data is served again.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const onRaw = (req.body as { on?: unknown }).on;
+    if (typeof onRaw !== "boolean") { res.status(400).json({ error: "on must be boolean" }); return; }
+    try {
+      const { setFrozen, isFrozen, readSnapshot } = await import("../_lib/lbFreeze.js");
+      if (onRaw) {
+        const snap = await readSnapshot();
+        if (!snap) { res.status(400).json({ error: "no snapshot to freeze — capture one first" }); return; }
+      }
+      await setFrozen(onRaw);
+      res.status(200).json({ ok: true, frozen: await isFrozen() });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "admin_lb_activity") {
     // Read-only activity audit for any LB (survival / boss_raid / highest_floor).
     // Returns top-N entries with the best timestamps we have (replay recordedAt
