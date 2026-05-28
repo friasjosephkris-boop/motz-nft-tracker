@@ -4,7 +4,7 @@ import { getMaxCleared } from "../core/clears";
 import { isAdmin } from "../core/admin";
 import { scopedKey } from "../auth/scope";
 import { saveServerIgn, formatCooldown } from "../auth/ign";
-import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSubmitLbScore, adminLbActivity, adminLbFreezeStatus, adminLbFreezeSnapshot, adminLbFreezeToggle, type WalletDiagnosis } from "../auth/energyApi";
+import { adminGrantServerEnergy, adminFillServerEnergy, adminWipeAllProdData, adminForceResetWallet, adminForceResetExcept, adminConsumeOneTimeOffers, adminGrantEnergyToWallet, adminTestOnChainCheckIn, adminGrantSampleVouchers, adminDiagnoseWallet, adminSetMaxFloor, adminSubmitLbScore, adminLbActivity, adminLbFreezeStatus, adminLbFreezeSnapshot, adminLbFreezeToggle, adminRemoveLbEntry, type WalletDiagnosis } from "../auth/energyApi";
 import { fetchSeasonStatus, adminSetSeasonHalt, setCachedSeasonStatus } from "../core/season";
 import { isDevBuild } from "../auth/devBuild";
 import { confirmModal, alertModal, promptModal } from "./confirmModal";
@@ -178,6 +178,16 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
                 <input type="number" id="admin-lb-floor" placeholder="floor" min="1" max="500" style="width:70px; padding:4px 6px;" />
                 <input type="number" id="admin-lb-ms" placeholder="total ms" min="0" max="1000000000" style="width:100px; padding:4px 6px;" />
                 <button class="ghost-btn" id="admin-submit-lb-btn" type="button" style="border-color:#ffb14a;color:#ffd29a;">📤 Submit LB Score</button>
+              </div>
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px;">
+                <span class="admin-info" style="font-size:10px;">Remove a single entry:</span>
+                <select id="admin-remove-mode" style="padding:4px 6px;">
+                  <option value="boss_raid">Boss Raid</option>
+                  <option value="survival">Survival</option>
+                  <option value="highest_floor">Highest Floor</option>
+                  <option value="world_ender">Fastest World Ender</option>
+                </select>
+                <button class="ghost-btn" id="admin-remove-lb-btn" type="button" style="border-color:#ff5a6b;color:#ffb8c0;">🗑 Remove LB Entry</button>
               </div>
               <span class="admin-info" id="admin-diag-result" style="font-family:monospace; font-size:11px; color:#cce4ff;"></span>
             </div>
@@ -577,6 +587,38 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
       <strong>${activeLabel}</strong><br>
       ${attemptedLines}
     `;
+  });
+
+  root.querySelector<HTMLButtonElement>("#admin-remove-lb-btn")?.addEventListener("click", async () => {
+    const wallet = diagWalletInput();
+    const mode = (root.querySelector<HTMLSelectElement>("#admin-remove-mode")?.value || "boss_raid") as "survival" | "boss_raid" | "highest_floor" | "world_ender";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(wallet)) { setDiagOut("Enter a 0x-prefixed 40-hex wallet first.", "err"); return; }
+    const modeLabel =
+      mode === "boss_raid" ? "Boss Raid" :
+      mode === "survival" ? "Survival" :
+      mode === "highest_floor" ? "Highest Floor" :
+      "Fastest World Ender";
+    const ok = await confirmModal({
+      title: `Remove ${modeLabel} Entry?`,
+      message: `This permanently removes <strong>${wallet}</strong>'s entry from the <strong>${modeLabel}</strong> leaderboard.<br><br>
+        Also deletes:<br>
+        • The saved replay blob (loadout viewer) for this wallet on this LB<br>
+        • The submission-timestamp hash field<br><br>
+        The wallet's per-wallet progress (maxfloor / energy / shop inventory) is NOT touched — only this one LB entry. <strong>Cannot be undone</strong>; if you remove the wrong run the player has to re-submit a new one.`,
+      confirmLabel: "Remove Entry",
+      cancelLabel: "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
+    setDiagOut("Removing…");
+    const r = await adminRemoveLbEntry(wallet, mode);
+    if (!r.ok || !r.diag) { setDiagOut(`Remove failed: ${r.error ?? "unknown"}`, "err"); return; }
+    const lines: string[] = [];
+    lines.push(`✓ Remove complete on <strong>${modeLabel}</strong>`);
+    lines.push(`&nbsp;&nbsp;LB entry: ${r.removedFromLb ? "removed" : "<span style=\"opacity:0.6;\">(was not present)</span>"}`);
+    lines.push(`&nbsp;&nbsp;Replay blob: ${r.removedReplay ? "removed" : "<span style=\"opacity:0.6;\">(none stored)</span>"}`);
+    lines.push(`&nbsp;&nbsp;Timestamp hash: ${r.removedTimestamp ? "removed" : "<span style=\"opacity:0.6;\">(none stored)</span>"}`);
+    setDiagOut(renderDiag(wallet, r.diag, `${lines.join("<br>")}<br>`), "ok");
   });
 
   root.querySelector<HTMLButtonElement>("#admin-submit-lb-btn")?.addEventListener("click", async () => {

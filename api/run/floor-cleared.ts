@@ -750,6 +750,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       return;
     }
   }
+  if (op === "admin_lb_remove_entry") {
+    // Wipe a single wallet's entry from one leaderboard (zset + replay
+    // blob + timestamp hash). Useful for removing a botted / cheated /
+    // miscredited run without nuking the rest of the LB.
+    if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
+    const target = typeof (req.body as { wallet?: unknown }).wallet === "string"
+      ? (req.body as { wallet: string }).wallet.trim().toLowerCase() : "";
+    if (!/^0x[0-9a-fA-F]{40}$/.test(target)) {
+      res.status(400).json({ error: "wallet must be a 0x-prefixed 40-hex address" }); return;
+    }
+    const modeRaw = (req.body as { mode?: unknown }).mode;
+    const removeMode: "survival" | "boss_raid" | "highest_floor" | "world_ender" | null =
+      modeRaw === "survival" ? "survival" :
+      modeRaw === "boss_raid" ? "boss_raid" :
+      modeRaw === "highest_floor" ? "highest_floor" :
+      modeRaw === "world_ender" ? "world_ender" : null;
+    if (!removeMode) {
+      res.status(400).json({ error: "mode must be one of survival / boss_raid / highest_floor / world_ender" });
+      return;
+    }
+    try {
+      const { adminRemoveLbEntry, getWalletProgressDiagnosis } = await import("../_lib/runState.js");
+      const r = await adminRemoveLbEntry(target, removeMode);
+      const after = await getWalletProgressDiagnosis(target);
+      res.status(200).json({ ok: true, wallet: target, mode: removeMode, ...r, diag: after });
+      return;
+    } catch (e) {
+      res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
+      return;
+    }
+  }
   if (op === "admin_lb_freeze_status") {
     if (!isAdmin(address)) { res.status(403).json({ error: "admin only" }); return; }
     try {

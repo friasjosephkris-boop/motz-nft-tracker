@@ -294,6 +294,28 @@ export async function adminLbActivity(
   }
 }
 
+/** Admin only: wipe a single wallet's entry from one leaderboard. Removes
+ *  the zset entry AND the saved replay blob (when applicable) AND the
+ *  submission-timestamp hash field. Use for botted / miscredited runs
+ *  that need to come off the board without touching the rest. */
+export async function adminRemoveLbEntry(
+  wallet: string,
+  mode: "survival" | "boss_raid" | "highest_floor" | "world_ender",
+): Promise<{ ok: boolean; removedFromLb?: boolean; removedReplay?: boolean; removedTimestamp?: boolean; diag?: WalletDiagnosis; error?: string }> {
+  const tok = token();
+  if (!tok) return { ok: false, error: "not signed in" };
+  try {
+    const r = await fetch("/api/run/floor-cleared", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ op: "admin_lb_remove_entry", wallet, mode }),
+    });
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; removedFromLb?: boolean; removedReplay?: boolean; removedTimestamp?: boolean; diag?: WalletDiagnosis }));
+    if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
+    return { ok: true, removedFromLb: data.removedFromLb, removedReplay: data.removedReplay, removedTimestamp: data.removedTimestamp, diag: data.diag };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "network" }; }
+}
+
 /** Admin only: submit a Survival or Boss Raid leaderboard score on behalf
  *  of a wallet (repair for a "lost run" where /api/run/end didn't land).
  *  Raises only — if the wallet already has a better score it stays put.

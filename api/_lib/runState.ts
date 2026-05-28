@@ -973,6 +973,49 @@ export async function getHighestFloorTop(limit = 5): Promise<HighestFloorEntry[]
   return rows.map((r, i) => ({ rank: i + 1, address: r.member, ign: igns[i] ?? null, floor: r.score }));
 }
 
+/** Admin: remove a wallet's entry from one leaderboard. Cleans up the
+ *  associated replay blob AND the submission-timestamp hash field so
+ *  nothing dangles. Idempotent — removing an absent entry is a no-op.
+ *  Returns counts of what was actually deleted. */
+export async function adminRemoveLbEntry(
+  address: string,
+  mode: "survival" | "boss_raid" | "highest_floor" | "world_ender",
+): Promise<{ removedFromLb: boolean; removedReplay: boolean; removedTimestamp: boolean }> {
+  const { zrem, hdel } = await import("./redis.js");
+  const addr = address.toLowerCase();
+  // Resolve the zset key for the mode.
+  const lbKey =
+    mode === "highest_floor" ? HIGHEST_FLOOR_LB_KEY :
+    mode === "world_ender" ? WORLD_ENDER_LB_KEY :
+    lbKeyFor(mode);
+  const removedFromLb = (await zrem(lbKey, addr).catch(() => 0)) > 0;
+
+  // Replay storage exists only for survival / boss_raid (top-N replays
+  // are saved on submission). highest_floor + world_ender don't have
+  // replays so we skip the delete there.
+  let removedReplay = false;
+  if (mode === "survival" || mode === "boss_raid") {
+    const scope = replayScopeFor(mode);
+    const before = await getJson<unknown>(replayKey(scope, addr));
+    if (before !== null) {
+      await deleteReplayBlob(scope, addr);
+      removedReplay = true;
+    }
+  }
+
+  // Submission-timestamp hash exists for all three submitToLeaderboard-
+  // driven modes + highest_floor. world_ender doesn't write to the hash
+  // currently — skip cleanly.
+  let removedTimestamp = false;
+  if (mode === "survival" || mode === "boss_raid" || mode === "highest_floor") {
+    const hashKey = lbSubmittedHashKey(mode);
+    const n = await hdel(hashKey, addr).catch(() => 0);
+    removedTimestamp = n > 0;
+  }
+
+  return { removedFromLb, removedReplay, removedTimestamp };
+}
+
 /** Admin: SET a wallet's max-cleared floor AND its Highest Floor LB score
  *  to exactly `floor`. Always overwrites — including demoting from a
  *  higher current value (for repairing "they played after the season

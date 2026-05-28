@@ -62,6 +62,14 @@ export async function getDelNumber(key: string): Promise<number> {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Remove a member from a zset entirely. Returns 1 if removed, 0 if the
+ *  member wasn't present. Used by admin tools to delete a single wallet's
+ *  entry from a leaderboard (e.g. a botted run that needs to be wiped). */
+export async function zrem(key: string, member: string): Promise<number> {
+  const r = await call(["ZREM", key, member]);
+  return typeof r === "number" ? r : 0;
+}
+
 /** Plain ZADD — always overwrites the score, no GT/LT comparison. Used by
  *  admin repair tools where the intent is "set to exactly this value,
  *  including demoting from a higher current score". Most game writes
