@@ -15,6 +15,10 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD_ID = int(os.getenv("GUILD_ID", "0"))
 STAFF_ROLE_NAME = os.getenv("STAFF_ROLE_NAME", "MoTZ Staff")
 
+HIDEN_REMINDER_USER_ID = 336858611827474442
+HIDEN_PANEL_URL = "https://freepanel.hidencloud.com/server/c000dbe4"
+HIDEN_REMINDER_HOUR_PH = 9  # 9 AM PH time
+
 DATA_FILE = Path(__file__).parent / "data.json"
 PH_TZ = timezone(timedelta(hours=8))
 
@@ -40,9 +44,15 @@ tree = app_commands.CommandTree(client)
 
 def load_data():
     if not DATA_FILE.exists():
-        return {"shards": {}, "leaderboard": {"channel_id": None, "message_id": None}}
+        return {
+            "shards": {},
+            "leaderboard": {"channel_id": None, "message_id": None},
+            "hiden_last_sent": None,
+        }
     with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    data.setdefault("hiden_last_sent", None)
+    return data
 
 
 def save_data(data):
@@ -138,6 +148,43 @@ async def leaderboard_loop():
         print(f"[leaderboard_loop] {e}")
 
 
+HIDEN_REMINDER_START = datetime(2026, 6, 5, tzinfo=PH_TZ).date()
+
+
+async def maybe_send_hiden_reminder():
+    now_ph = datetime.now(PH_TZ)
+    today = now_ph.date()
+    if today < HIDEN_REMINDER_START:
+        return
+    if now_ph.weekday() != 4:  # 4 = Friday
+        return
+    if now_ph.hour < HIDEN_REMINDER_HOUR_PH:
+        return
+
+    data = load_data()
+    if data.get("hiden_last_sent") == today.isoformat():
+        return
+
+    try:
+        user = await client.fetch_user(HIDEN_REMINDER_USER_ID)
+        await user.send(
+            f"⏰ Weekly reminder: visit your HidenCloud panel so the server doesn't expire.\n"
+            f"{HIDEN_PANEL_URL}"
+        )
+        data["hiden_last_sent"] = today.isoformat()
+        save_data(data)
+    except Exception as e:
+        print(f"[hiden_reminder] {e}")
+
+
+@tasks.loop(minutes=15)
+async def hiden_reminder_loop():
+    try:
+        await maybe_send_hiden_reminder()
+    except Exception as e:
+        print(f"[hiden_reminder_loop] {e}")
+
+
 @client.event
 async def on_ready():
     guild = discord.Object(id=GUILD_ID)
@@ -145,6 +192,8 @@ async def on_ready():
     await tree.sync(guild=guild)
     if not leaderboard_loop.is_running():
         leaderboard_loop.start()
+    if not hiden_reminder_loop.is_running():
+        hiden_reminder_loop.start()
     print(f"Logged in as {client.user} | guild={GUILD_ID}")
 
 
