@@ -23,6 +23,15 @@ SHARD_NAME = "MoTZ Shard of Altruism"
 EMBED_TITLE = f"\U0001F3C6 Top Holders of MoTZ Shards"
 SCROLL_HEADER = "**The Altrus's Scroll:**"
 
+FLAVOR_TEXT = (
+    "**Altrus stands as the eternal Sentinel of MoTZ,**\n"
+    "observing every act of mankind within the realm. "
+    "Those who serve with heart are bestowed with the "
+    "**MoTZ Shard of Altruism**.\n\n"
+    "*Holders of shards shall be rewarded soon. "
+    "The time is unknown, but the reward is certain.*"
+)
+
 intents = discord.Intents.default()
 intents.members = True
 client = discord.Client(intents=intents)
@@ -103,9 +112,9 @@ async def refresh_leaderboard():
             msg = None
 
     if msg:
-        await msg.edit(embed=embed)
+        await msg.edit(content=FLAVOR_TEXT, embed=embed)
     else:
-        sent = await channel.send(embed=embed)
+        sent = await channel.send(content=FLAVOR_TEXT, embed=embed)
         data["leaderboard"]["message_id"] = sent.id
         save_data(data)
 
