@@ -511,7 +511,14 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     out.style.color = kind === "err" ? "#ffb8c0" : kind === "warn" ? "#ffd485" : "#cce4ff";
     out.innerHTML = msg;
   };
-  const fmtFreezeDate = (ms: number): string => new Date(ms).toLocaleString();
+  // Always format freeze-related timestamps in PH time. The admin schedules
+  // via a PH-anchored datetime picker; rendering them back in the browser's
+  // local timezone (which may be hours behind PH) made "May 29 8 AM PH"
+  // display as "May 28 4 PM" for west-coast admins. Explicit Asia/Manila +
+  // a "PH" timeZoneName suffix keeps the round-trip unambiguous regardless
+  // of where the admin's browser thinks it is.
+  const fmtFreezeDate = (ms: number): string =>
+    new Date(ms).toLocaleString("en-US", { timeZone: "Asia/Manila", timeZoneName: "short" });
   const renderFreezeStatus = (s: { frozen: boolean; snapshot: { capturedAt: number; capturedBy: string; label: string; counts: { survival: number; bossRaid: number; highestFloor: number; worldEnder: number; firstConquer: number } } | null; scheduled: { at: number; label: string; by: string; scheduledAt: number } | null }): string => {
     const lock = s.frozen ? "🏆 <strong>FROZEN</strong>" : "🔓 Live";
     const snapLine = !s.snapshot
