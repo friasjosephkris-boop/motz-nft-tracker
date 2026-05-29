@@ -460,7 +460,8 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     setDiagOut("Setting…");
     const r = await adminSetMaxFloor(wallet, floor);
     if (!r.ok || !r.diag) { setDiagOut(`Set failed: ${r.error ?? "unknown"}`, "err"); return; }
-    const changeLine = `✓ Set complete — per-wallet ${r.prevMax ?? "?"} → <strong>${r.newMax ?? "?"}</strong>, LB ${r.prevLb ?? "—"} → <strong>${r.diag.highestFloor.floor ?? "—"}</strong><br>`;
+    const snapNote = r.snapshotRefreshed ? ` · 📸 frozen snapshot refreshed` : "";
+    const changeLine = `✓ Set complete — per-wallet ${r.prevMax ?? "?"} → <strong>${r.newMax ?? "?"}</strong>, LB ${r.prevLb ?? "—"} → <strong>${r.diag.highestFloor.floor ?? "—"}</strong>${snapNote}<br>`;
     setDiagOut(renderDiag(wallet, r.diag, changeLine), demoting ? "warn" : "ok");
   });
 
@@ -497,7 +498,8 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     setDiagOut("Setting LB…");
     const r = await adminSetHighestFloorLbOnly(wallet, floor);
     if (!r.ok || !r.diag) { setDiagOut(`Set failed: ${r.error ?? "unknown"}`, "err"); return; }
-    const changeLine = `✓ LB-only set — Highest Floor LB ${r.prevLb ?? "—"} → <strong>${r.diag.highestFloor.floor ?? "—"}</strong> · per-wallet untouched (<strong>${r.diag.serverMaxFloor}</strong>)<br>`;
+    const snapNote = r.snapshotRefreshed ? ` · 📸 frozen snapshot refreshed` : "";
+    const changeLine = `✓ LB-only set — Highest Floor LB ${r.prevLb ?? "—"} → <strong>${r.diag.highestFloor.floor ?? "—"}</strong> · per-wallet untouched (<strong>${r.diag.serverMaxFloor}</strong>)${snapNote}<br>`;
     setDiagOut(renderDiag(wallet, r.diag, changeLine), demoting ? "warn" : "ok");
   });
 
@@ -731,6 +733,7 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     lines.push(`&nbsp;&nbsp;LB entry: ${r.removedFromLb ? "removed" : "<span style=\"opacity:0.6;\">(was not present)</span>"}`);
     lines.push(`&nbsp;&nbsp;Replay blob: ${r.removedReplay ? "removed" : "<span style=\"opacity:0.6;\">(none stored)</span>"}`);
     lines.push(`&nbsp;&nbsp;Timestamp hash: ${r.removedTimestamp ? "removed" : "<span style=\"opacity:0.6;\">(none stored)</span>"}`);
+    if (r.snapshotRefreshed) lines.push(`&nbsp;&nbsp;📸 Frozen snapshot refreshed — public LB updated.`);
     setDiagOut(renderDiag(wallet, r.diag, `${lines.join("<br>")}<br>`), "ok");
   });
 
@@ -756,7 +759,8 @@ export function renderSettings(root: HTMLElement, onClose: () => void): void {
     const r = await adminSubmitLbScore(wallet, mode, floor, ms);
     if (!r.ok || !r.diag) { setDiagOut(`Submit failed: ${r.error ?? "unknown"}`, "err"); return; }
     const improvedNote = r.improved ? "✓ Submitted (improved score)" : "✓ Submitted (no improvement — existing score was better or equal)";
-    setDiagOut(renderDiag(wallet, r.diag, `${improvedNote}<br>`), r.improved ? "ok" : "warn");
+    const snapNote = r.snapshotRefreshed ? `<br>📸 Frozen snapshot refreshed — the displayed LB now reflects this edit.` : "";
+    setDiagOut(renderDiag(wallet, r.diag, `${improvedNote}${snapNote}<br>`), r.improved ? "ok" : "warn");
   });
 
   // ---- Sample voucher grants (admin only, caller-only target) ----

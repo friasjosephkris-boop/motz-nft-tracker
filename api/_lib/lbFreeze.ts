@@ -142,6 +142,22 @@ export async function captureSnapshot(
   return snap;
 }
 
+/** If the LB is currently frozen, re-capture the snapshot from live data
+ *  using the existing snapshot's label. Called from each admin mutation
+ *  op (set max floor, submit LB score, remove entry, etc.) so changes
+ *  push to the publicly-displayed frozen LB without the admin having to
+ *  hit Snapshot Now after every edit. Returns true if a re-snapshot
+ *  actually happened. */
+export async function refreshSnapshotIfFrozen(by: string): Promise<boolean> {
+  if (!(await isFrozen().catch(() => false))) return false;
+  const prev = await readSnapshot().catch(() => null);
+  // Reuse the existing label (e.g. "Season 1 Final"); fall back to a
+  // sensible default if somehow no snapshot exists while frozen.
+  const label = prev?.label ?? "Season Final";
+  await captureSnapshot(by, label).catch(() => undefined);
+  return true;
+}
+
 /** Scheduled freeze — pending automatic capture+flip at a specific moment. */
 export interface ScheduledFreeze {
   /** ms epoch when the freeze should fire (UTC). */

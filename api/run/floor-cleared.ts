@@ -739,9 +739,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const { adminSetMaxFloor, getWalletProgressDiagnosis } = await import("../_lib/runState.js");
       const r = await adminSetMaxFloor(target, floor);
       const after = await getWalletProgressDiagnosis(target);
+      // If the LB is currently frozen, push the change to the snapshot so
+      // the public-facing display updates without an extra Snapshot Now
+      // click. No-op when not frozen.
+      const refreshed = await (await import("../_lib/lbFreeze.js")).refreshSnapshotIfFrozen(address);
       res.status(200).json({
         ok: true, wallet: target,
         prevMax: r.prevMax, prevLb: r.prevLb, newMax: r.newMax,
+        snapshotRefreshed: refreshed,
         ...after,
       });
       return;
@@ -769,9 +774,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const { adminSetHighestFloorLbOnly, getWalletProgressDiagnosis } = await import("../_lib/runState.js");
       const r = await adminSetHighestFloorLbOnly(target, floor);
       const after = await getWalletProgressDiagnosis(target);
+      const refreshed = await (await import("../_lib/lbFreeze.js")).refreshSnapshotIfFrozen(address);
       res.status(200).json({
         ok: true, wallet: target,
         prevLb: r.prevLb, newLb: r.newLb,
+        snapshotRefreshed: refreshed,
         ...after,
       });
       return;
@@ -804,7 +811,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const { adminRemoveLbEntry, getWalletProgressDiagnosis } = await import("../_lib/runState.js");
       const r = await adminRemoveLbEntry(target, removeMode);
       const after = await getWalletProgressDiagnosis(target);
-      res.status(200).json({ ok: true, wallet: target, mode: removeMode, ...r, diag: after });
+      const refreshed = await (await import("../_lib/lbFreeze.js")).refreshSnapshotIfFrozen(address);
+      res.status(200).json({ ok: true, wallet: target, mode: removeMode, ...r, snapshotRefreshed: refreshed, diag: after });
       return;
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : "server error" });
@@ -980,7 +988,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const { submitToLeaderboard, getWalletProgressDiagnosis } = await import("../_lib/runState.js");
       const r = await submitToLeaderboard(target, floor, ms, submitMode);
       const after = await getWalletProgressDiagnosis(target);
-      res.status(200).json({ ok: true, wallet: target, mode: submitMode, floor, ms, improved: r.improved, diag: after });
+      const refreshed = await (await import("../_lib/lbFreeze.js")).refreshSnapshotIfFrozen(address);
+      res.status(200).json({ ok: true, wallet: target, mode: submitMode, floor, ms, improved: r.improved, snapshotRefreshed: refreshed, diag: after });
       return;
     } catch (e) {
       res.status(500).json({ error: e instanceof Error ? e.message : "server error" });

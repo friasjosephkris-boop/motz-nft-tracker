@@ -132,8 +132,11 @@ export async function adminDiagnoseWallet(wallet: string): Promise<{ ok: boolean
  *  to exactly `floor`. Cap 1..500. ALWAYS OVERWRITES — including demoting
  *  from a higher current value. Returns the previous values so the UI can
  *  show what changed. Use to repair drift OR to pin a wallet to a chosen
- *  number (e.g. their official end-of-season standing). */
-export async function adminSetMaxFloor(wallet: string, floor: number): Promise<{ ok: boolean; prevMax?: number; prevLb?: number | null; newMax?: number; diag?: WalletDiagnosis; error?: string }> {
+ *  number (e.g. their official end-of-season standing).
+ *  `snapshotRefreshed` is true when the LB was frozen at the time of the
+ *  call and the snapshot was auto-rebuilt so the public-facing display
+ *  reflects this edit immediately. */
+export async function adminSetMaxFloor(wallet: string, floor: number): Promise<{ ok: boolean; prevMax?: number; prevLb?: number | null; newMax?: number; snapshotRefreshed?: boolean; diag?: WalletDiagnosis; error?: string }> {
   const tok = token();
   if (!tok) return { ok: false, error: "not signed in" };
   try {
@@ -342,7 +345,7 @@ export async function adminLbActivity(
  *  their per-wallet maxfloor (and therefore their gameplay progression)
  *  untouched. Use to pin the public ranking without freezing the player's
  *  ability to advance past floor N+1. Always overwrites. */
-export async function adminSetHighestFloorLbOnly(wallet: string, floor: number): Promise<{ ok: boolean; prevLb?: number | null; newLb?: number; diag?: WalletDiagnosis; error?: string }> {
+export async function adminSetHighestFloorLbOnly(wallet: string, floor: number): Promise<{ ok: boolean; prevLb?: number | null; newLb?: number; snapshotRefreshed?: boolean; diag?: WalletDiagnosis; error?: string }> {
   const tok = token();
   if (!tok) return { ok: false, error: "not signed in" };
   try {
@@ -351,13 +354,14 @@ export async function adminSetHighestFloorLbOnly(wallet: string, floor: number):
       headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({ op: "admin_set_highest_floor_lb_only", wallet, floor }),
     });
-    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; prevLb?: number | null; newLb?: number } & Partial<WalletDiagnosis>));
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; prevLb?: number | null; newLb?: number; snapshotRefreshed?: boolean } & Partial<WalletDiagnosis>));
     if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
     const empty: LbDiagnosis = { rawScore: null, floor: null, ms: null, rank: null };
     return {
       ok: true,
       prevLb: data.prevLb ?? null,
       newLb: data.newLb,
+      snapshotRefreshed: data.snapshotRefreshed,
       diag: {
         serverMaxFloor: data.serverMaxFloor ?? 0,
         highestFloor: data.highestFloor ?? empty,
@@ -376,7 +380,7 @@ export async function adminSetHighestFloorLbOnly(wallet: string, floor: number):
 export async function adminRemoveLbEntry(
   wallet: string,
   mode: "survival" | "boss_raid" | "highest_floor" | "world_ender",
-): Promise<{ ok: boolean; removedFromLb?: boolean; removedReplay?: boolean; removedTimestamp?: boolean; diag?: WalletDiagnosis; error?: string }> {
+): Promise<{ ok: boolean; removedFromLb?: boolean; removedReplay?: boolean; removedTimestamp?: boolean; snapshotRefreshed?: boolean; diag?: WalletDiagnosis; error?: string }> {
   const tok = token();
   if (!tok) return { ok: false, error: "not signed in" };
   try {
@@ -385,9 +389,9 @@ export async function adminRemoveLbEntry(
       headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({ op: "admin_lb_remove_entry", wallet, mode }),
     });
-    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; removedFromLb?: boolean; removedReplay?: boolean; removedTimestamp?: boolean; diag?: WalletDiagnosis }));
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; removedFromLb?: boolean; removedReplay?: boolean; removedTimestamp?: boolean; snapshotRefreshed?: boolean; diag?: WalletDiagnosis }));
     if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
-    return { ok: true, removedFromLb: data.removedFromLb, removedReplay: data.removedReplay, removedTimestamp: data.removedTimestamp, diag: data.diag };
+    return { ok: true, removedFromLb: data.removedFromLb, removedReplay: data.removedReplay, removedTimestamp: data.removedTimestamp, snapshotRefreshed: data.snapshotRefreshed, diag: data.diag };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : "network" }; }
 }
 
@@ -401,7 +405,7 @@ export async function adminSubmitLbScore(
   mode: "survival" | "boss_raid",
   floor: number,
   ms: number,
-): Promise<{ ok: boolean; improved?: boolean; diag?: WalletDiagnosis; error?: string }> {
+): Promise<{ ok: boolean; improved?: boolean; snapshotRefreshed?: boolean; diag?: WalletDiagnosis; error?: string }> {
   const tok = token();
   if (!tok) return { ok: false, error: "not signed in" };
   try {
@@ -410,9 +414,9 @@ export async function adminSubmitLbScore(
       headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({ op: "admin_submit_lb_score", wallet, mode, floor, ms }),
     });
-    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; improved?: boolean; diag?: WalletDiagnosis }));
+    const data = await r.json().catch(() => ({} as { ok?: boolean; error?: string; improved?: boolean; snapshotRefreshed?: boolean; diag?: WalletDiagnosis }));
     if (!r.ok || !data.ok) return { ok: false, error: data.error ?? `http ${r.status}` };
-    return { ok: true, improved: data.improved, diag: data.diag };
+    return { ok: true, improved: data.improved, snapshotRefreshed: data.snapshotRefreshed, diag: data.diag };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "network" };
   }
