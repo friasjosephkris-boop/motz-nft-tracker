@@ -111,12 +111,23 @@ async def refresh_leaderboard():
         except (discord.NotFound, discord.Forbidden):
             msg = None
 
-    if msg:
-        await msg.edit(content=FLAVOR_TEXT, embed=embed)
-    else:
+    needs_repost = msg is None
+    if msg is not None:
+        recent_ids = [m.id async for m in channel.history(limit=3)]
+        if msg.id not in recent_ids:
+            needs_repost = True
+
+    if needs_repost:
+        if msg is not None:
+            try:
+                await msg.delete()
+            except (discord.NotFound, discord.Forbidden):
+                pass
         sent = await channel.send(content=FLAVOR_TEXT, embed=embed)
         data["leaderboard"]["message_id"] = sent.id
         save_data(data)
+    else:
+        await msg.edit(content=FLAVOR_TEXT, embed=embed)
 
 
 @tasks.loop(minutes=1)
