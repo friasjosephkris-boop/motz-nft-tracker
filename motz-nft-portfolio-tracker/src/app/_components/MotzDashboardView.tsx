@@ -91,34 +91,35 @@ export function MotzDashboardView() {
 
   const rawCollections = snap?.collections ?? [];
 
-  // Build owner dropdown options from the snapshot's resolved addresses.
-  // Maps resolved (0x…) back to its original RNS / hex input from
-  // walletAddresses[i] for a friendly label.
-  const ownerOptions: { value: string; label: string }[] = [];
-  if (snap) {
-    for (let i = 0; i < snap.resolvedAddresses.length; i++) {
-      const resolved = snap.resolvedAddresses[i];
-      const input = snap.walletAddresses[i] ?? "";
-      ownerOptions.push({
-        value: resolved.toLowerCase(),
-        label: input || shortAddr(resolved),
-      });
-    }
+  // Wallet groupings for the dashboard filter dropdown.
+  //   - "treasury": markofthezeal.ron + masterofcoin.ron (the user-facing
+  //     project wallets used for primary holdings + marketplace activity)
+  //   - "vault": every other tracked wallet (motzvault.ron + 0x27f4ce... +
+  //     0x37cedb1... + 0x535b02b4... etc.)
+  // Resolved hex addresses are hardcoded here so the grouping doesn't
+  // depend on the snapshot carrying a walletResolutions map. Keep in
+  // sync with motz-wallets.ts.
+  const TREASURY_WALLETS = new Set<string>([
+    "0x466e70f677b3ebd99ff027ec13cc040f19978abc", // markofthezeal.ron
+    "0x8f6ab5bac76a285f90079ad754ef18e9ab5d6873", // masterofcoin.ron
+  ]);
+
+  function matchesOwnerFilter(walletTag: string | null | undefined): boolean {
+    const tag = (walletTag ?? "").toLowerCase();
+    if (ownerFilter === "all") return true;
+    if (ownerFilter === "treasury") return TREASURY_WALLETS.has(tag);
+    if (ownerFilter === "vault") return !TREASURY_WALLETS.has(tag);
+    return tag === ownerFilter; // fallback to per-address legacy filter
   }
 
-  // Apply owner filter — strip rows where walletTag doesn't match.
+  // Apply owner filter — strip rows that don't match the selected group.
   // Collections that end up empty after the filter are dropped from the
   // display entirely so we don't show zero-token tiles + sections.
   const ownerFilteredCollections =
     ownerFilter === "all"
       ? rawCollections
       : rawCollections
-          .map((c) => ({
-            ...c,
-            rows: c.rows.filter(
-              (r) => (r.walletTag ?? "").toLowerCase() === ownerFilter,
-            ),
-          }))
+          .map((c) => ({ ...c, rows: c.rows.filter((r) => matchesOwnerFilter(r.walletTag)) }))
           .filter((c) => c.rows.length > 0);
 
   const allCollections = ownerFilteredCollections;
@@ -272,8 +273,11 @@ export function MotzDashboardView() {
                   )}
                 </div>
                 {/* Owner filter — narrows the entire dashboard (stats,
-                    tiles, sections) to a single project wallet. */}
-                {ownerOptions.length > 1 && (
+                    tiles, sections) to a wallet group:
+                      - MoTZ HOLDINGS (default): every tracked wallet
+                      - MoTZ Treasury: markofthezeal + masterofcoin
+                      - MoTZ Vault: every other tracked wallet */}
+                {(snap?.resolvedAddresses.length ?? 0) > 1 && (
                   <div className="flex items-center gap-2">
                     <label className="font-mono text-[11px] uppercase tracking-wider text-zinc-500">
                       Owner
@@ -283,12 +287,9 @@ export function MotzDashboardView() {
                       onChange={(e) => setOwnerFilter(e.target.value)}
                       className="rounded-md bg-black/40 border border-white/10 px-2 py-1 font-mono text-xs text-zinc-200 focus:outline-none focus:border-[color:var(--motz-red)] focus:ring-1 focus:ring-[color:var(--motz-red)]/40"
                     >
-                      <option value="all">MoTZ wallet</option>
-                      {ownerOptions.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
+                      <option value="all">MoTZ HOLDINGS</option>
+                      <option value="treasury">MoTZ Treasury</option>
+                      <option value="vault">MoTZ Vault</option>
                     </select>
                     {ownerFilter !== "all" && (
                       <button
