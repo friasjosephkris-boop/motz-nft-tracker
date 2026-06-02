@@ -126,11 +126,29 @@ export const FABLEBORNE_PRIMORDIALS: TrackedCollection = {
 };
 
 /** Ronin-only collections (Sky Mavis pipeline). */
+export const FISHING_FRENZY_FOUNDERS_PASS: TrackedCollection = {
+  address: "0x3fa1e076bd4e7f4b7469ad1646332c09b275082d",
+  name: "Fishing Frenzy Founders Pass",
+  symbol: "FFFP",
+  // Marketplace convention slug — confirm if Ronin marketplace uses
+  // a different value (the lookup endpoint requires marketplace UI auth).
+  slug: "fishing-frenzy-founders-pass",
+  // 120 RON mint, ended Feb 19, 2025.
+  mintPriceRon: 120,
+  mintDate: "2025-02-19",
+  // Token #1 had no attributes — collection appears to be untiered.
+  // Leaving "Rarity" as a placeholder; floor lookups will just fall
+  // back to collection floor since no token matches this trait.
+  traitName: "Rarity",
+};
+
+/** Ronin-only collections (Sky Mavis pipeline). */
 export const TRACKED_COLLECTIONS: TrackedCollection[] = [
   MOTZ_FOUNDERS_COIN,
   CAMBRIA_CORES,
   FABLEBORNE_KINGDOM,
   MOKI_GENESIS,
+  FISHING_FRENZY_FOUNDERS_PASS,
 ];
 
 /** Ethereum collections (OpenSea pipeline). Tracked separately so the
