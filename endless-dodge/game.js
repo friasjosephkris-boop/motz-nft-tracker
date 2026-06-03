@@ -112,6 +112,22 @@
     if (s < 10000) return 'genesis';    // 5000–10000
     return 'luna';                      // 10000+
   }
+
+  // Score band per biome (used for the day-cycle celestial arc). Luna is open-ended,
+  // so its body loops every (end-start) points.
+  const BANDS = {
+    savannah: [0, 500], forest: [500, 1500], arctic: [1500, 3000],
+    mystic: [3000, 5000], genesis: [5000, 10000], luna: [10000, 16000],
+  };
+  // Celestial body color per biome: { core, glow:'r,g,b' }.
+  const SKY = {
+    savannah: { core: '#fff6d8', glow: '255,205,130' }, // warm sun
+    forest:   { core: '#fffbe6', glow: '255,236,150' }, // bright sun
+    arctic:   { core: '#ffffff', glow: '205,230,255' }, // pale cold sun
+    mystic:   { core: '#f3e6ff', glow: '205,150,255' }, // lavender moon
+    genesis:  { core: '#dbe8ff', glow: '130,165,255' }, // blue moon
+    luna:     { core: '#ffdcc8', glow: '255,120,90'  }, // red sun
+  };
   let currentBiomeKey = 'savannah';
 
   // ---- Item assets ----
@@ -609,33 +625,37 @@
     };
   }
 
-  // Sun arcs across the Savannah sky, synced to score 1→500 (sunrise→sunset),
-  // leaving a glowing trail along the path it has travelled.
-  function drawSun() {
-    if (currentBiomeKey !== 'savannah') return;
-    const t = Math.max(0, Math.min(1, score / 500));
-    // Trail: the arc travelled so far, brightening toward the sun.
+  // Each biome's sun/moon arcs across its sky, synced to its score band
+  // (sunrise→sunset), leaving a glowing trail along the path travelled.
+  function drawCelestial() {
+    const band = BANDS[currentBiomeKey];
+    const sky = SKY[currentBiomeKey];
+    if (!band || !sky) return;
+    let t = (score - band[0]) / (band[1] - band[0]);
+    if (currentBiomeKey === 'luna') t -= Math.floor(t); // open-ended: loop
+    t = Math.max(0, Math.min(1, t));
+    // Trail: the arc travelled so far, brightening toward the body.
     const N = 24;
     ctx.lineCap = 'round';
     for (let i = 0; i < N; i++) {
       const a = sunPos((i / N) * t);
       const c = sunPos(((i + 1) / N) * t);
       const f = (i + 1) / N;
-      ctx.strokeStyle = `rgba(255,200,120,${(0.05 + 0.22 * f).toFixed(3)})`;
+      ctx.strokeStyle = `rgba(${sky.glow},${(0.05 + 0.22 * f).toFixed(3)})`;
       ctx.lineWidth = 1 + 3 * f;
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.stroke();
     }
     const p = sunPos(t);
     const R = 16;
     const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * 3.2);
-    glow.addColorStop(0, 'rgba(255,244,210,0.9)');
-    glow.addColorStop(0.4, 'rgba(255,205,130,0.45)');
-    glow.addColorStop(1, 'rgba(255,190,110,0)');
+    glow.addColorStop(0, `rgba(${sky.glow},0.85)`);
+    glow.addColorStop(0.4, `rgba(${sky.glow},0.4)`);
+    glow.addColorStop(1, `rgba(${sky.glow},0)`);
     ctx.fillStyle = glow;
     ctx.beginPath(); ctx.arc(p.x, p.y, R * 3.2, 0, Math.PI * 2); ctx.fill();
     const core = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R);
-    core.addColorStop(0, '#fff6d8');
-    core.addColorStop(1, '#ffce6a');
+    core.addColorStop(0, sky.core);
+    core.addColorStop(1, `rgba(${sky.glow},1)`);
     ctx.fillStyle = core;
     ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI * 2); ctx.fill();
   }
@@ -648,7 +668,7 @@
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, VW, HORIZON_Y);
 
-    drawSun();
+    drawCelestial();
 
     // Far hill ridge
     ctx.fillStyle = b.hill2;
