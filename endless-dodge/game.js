@@ -160,7 +160,7 @@
   // Per-sprite metadata: aspect (w/h) and thruster nozzle anchors as fractions of drawn (w, h).
   // Rear sprite was cropped to its content bounds so it draws at the same size as left/right.
   const SPRITES = {
-    rear:  { img: mechRear,  bit: 1, aspect: 0.979, left: { x: 0.190, y: 0.605 }, right: { x: 0.769, y: 0.605 } },
+    rear:  { img: mechRear,  bit: 1, aspect: 0.979, left: { x: 0.150, y: 0.560 }, right: { x: 0.850, y: 0.560 } },
     right: { img: mechRight, bit: 2, aspect: 1.13, left: { x: 0.128, y: 0.635 }, right: { x: 0.872, y: 0.635 } },
     left:  { img: mechLeft,  bit: 4, aspect: 1.13, left: { x: 0.128, y: 0.635 }, right: { x: 0.872, y: 0.635 } },
   };
