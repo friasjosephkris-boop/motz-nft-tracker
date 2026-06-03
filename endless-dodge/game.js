@@ -196,6 +196,7 @@
   const PLAYER_LATERAL_ACCEL = 18;
   const PLAYER_LATERAL_FRICTION = 16;
   const PLAYER_CLAMP = 0.92;
+  const POINTER_GAIN = 14;            // pointer-follow stiffness (higher = snappier)
 
   // ---- Obstacles ----
   // Each obstacle has worldX in [-1,1] and z in [0,1] decreasing over time.
@@ -329,25 +330,25 @@
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') input.right = false;
   });
 
-  function pointerHandler(e, down) {
-    if (!running) return;
+  // Pointer steering: the ship tracks the pointer's horizontal position so the
+  // player can react instantly. Drag on mobile; move or drag on desktop.
+  // pointerTargetX is a worldX target in [-PLAYER_CLAMP, PLAYER_CLAMP], or null.
+  let pointerTargetX = null;
+  function setPointerTarget(clientX) {
     const rect = canvas.getBoundingClientRect();
-    const touches = e.touches ? Array.from(e.touches) : [e];
-    input.left = false;
-    input.right = false;
-    if (!down) return;
-    for (const t of touches) {
-      const x = t.clientX - rect.left;
-      if (x < rect.width / 2) input.left = true;
-      else input.right = true;
-    }
+    const fx = (clientX - rect.left) / rect.width; // 0..1 across the play area
+    pointerTargetX = Math.max(-PLAYER_CLAMP, Math.min(PLAYER_CLAMP, (fx * 2 - 1) * PLAYER_CLAMP));
   }
-  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); pointerHandler(e, true); }, { passive: false });
-  canvas.addEventListener('touchmove',  (e) => { e.preventDefault(); pointerHandler(e, true); }, { passive: false });
-  canvas.addEventListener('touchend',   (e) => { e.preventDefault(); pointerHandler(e, e.touches.length > 0); }, { passive: false });
-  canvas.addEventListener('mousedown', (e) => pointerHandler(e, true));
-  canvas.addEventListener('mousemove', (e) => { if (e.buttons) pointerHandler(e, true); });
-  window.addEventListener('mouseup',   () => { input.left = false; input.right = false; });
+  function clearPointer() { pointerTargetX = null; }
+
+  // Touch: follow the finger while it's down.
+  canvas.addEventListener('touchstart', (e) => { e.preventDefault(); if (running && e.touches[0]) setPointerTarget(e.touches[0].clientX); }, { passive: false });
+  canvas.addEventListener('touchmove',  (e) => { e.preventDefault(); if (running && e.touches[0]) setPointerTarget(e.touches[0].clientX); }, { passive: false });
+  canvas.addEventListener('touchend',   (e) => { e.preventDefault(); if (e.touches.length) setPointerTarget(e.touches[0].clientX); else clearPointer(); }, { passive: false });
+  // Mouse: follow the cursor while it's over the play area (hover or drag).
+  canvas.addEventListener('mousemove', (e) => { if (running) setPointerTarget(e.clientX); });
+  canvas.addEventListener('mousedown', (e) => { if (running) setPointerTarget(e.clientX); });
+  canvas.addEventListener('mouseleave', clearPointer);
 
   // Difficulty ramps 0 → 1 over the first ~75s of a run.
   function difficulty() {
@@ -446,16 +447,21 @@
     forwardSpeed = 0.55 + d * 0.85; // 0.55 → 1.4 over ~75s
     if (bannerTimer > 0) bannerTimer -= dt;
 
-    // Steering
-    let ax = 0;
-    if (input.left)  ax -= PLAYER_LATERAL_ACCEL;
-    if (input.right) ax += PLAYER_LATERAL_ACCEL;
-    if (ax === 0) {
+    // Steering. Keyboard (A/D, arrows) takes priority; otherwise follow the
+    // pointer target if one is active; otherwise coast to a stop.
+    if (input.left || input.right) {
+      pointerTargetX = null; // keys override pointer follow
+      let ax = 0;
+      if (input.left)  ax -= PLAYER_LATERAL_ACCEL;
+      if (input.right) ax += PLAYER_LATERAL_ACCEL;
+      player.vx += ax * dt;
+    } else if (pointerTargetX !== null) {
+      // Proportional follow: snappy toward the target, eases in near it.
+      player.vx = (pointerTargetX - player.worldX) * POINTER_GAIN;
+    } else {
       const sign = Math.sign(player.vx);
       player.vx -= sign * PLAYER_LATERAL_FRICTION * dt;
       if (Math.sign(player.vx) !== sign) player.vx = 0;
-    } else {
-      player.vx += ax * dt;
     }
     player.vx = Math.max(-PLAYER_LATERAL_SPEED, Math.min(PLAYER_LATERAL_SPEED, player.vx));
     player.worldX += player.vx * dt;
