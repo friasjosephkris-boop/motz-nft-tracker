@@ -44,13 +44,16 @@
 
   // Player sits at this depth (red line on the screen). Obstacles collide here, not at z=0.
   const PLAYER_Z = 0.18;
+  // Obstacles spawn at this depth (1.0 = far horizon). Larger gap to PLAYER_Z = more
+  // reaction time. Reaction window ≈ (SPAWN_Z - PLAYER_Z) / forwardSpeed seconds.
+  const SPAWN_Z = 1.0;
 
   // ---- Biomes ----
   // Each biome defines a palette for sky/hills/ground + a weather type.
   // Item pools come from assets/items-manifest.json (biome key + "any" fallback).
   const BIOMES = {
     savannah: {
-      name: 'Savannah Desert',
+      name: 'Savannah',
       skyTop: '#f4b56b', skyBot: '#ffe6bf',
       hill: '#d39a55', hill2: '#c4863f',
       groundTop: '#e7be73', groundBot: '#f1d49a',
@@ -348,7 +351,7 @@
   //       'design' (decor outside the track, never lethal).
   function pushObstacle(worldX, img, opts) {
     obstacles.push(Object.assign({
-      worldX, z: 1.0, img,
+      worldX, z: SPAWN_Z, img,
       agW: 0.15 + Math.random() * 0.04,
       kind: 'obstacle',
     }, opts || {}));
@@ -427,7 +430,9 @@
   function update(dt) {
     elapsed += dt;
     const d = difficulty();
-    forwardSpeed = 0.6 + d * 1.5; // 0.6 → 2.1 over ~75s
+    // Keep the approach reactable; difficulty scales mostly via density (rows/moving),
+    // not raw speed. Reaction window: (SPAWN_Z-PLAYER_Z)/speed ≈ 1.5s early → 0.6s late.
+    forwardSpeed = 0.55 + d * 0.85; // 0.55 → 1.4 over ~75s
     if (bannerTimer > 0) bannerTimer -= dt;
 
     // Steering
