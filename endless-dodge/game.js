@@ -66,7 +66,7 @@
       hill: '#4f8f4a', hill2: '#3c7038',
       groundTop: '#79c06b', groundBot: '#8ed57c',
       edge: 'rgba(35,65,28,0.35)', stripe: 'rgba(255,255,255,0.18)',
-      weather: 'rain',
+      weather: 'rain', weatherStart: 1000, // rain only kicks in halfway through Forest (500–1500)
     },
     arctic: {
       name: 'Arctic',
@@ -212,6 +212,16 @@
 
   let currentBiome = BIOMES.forest;
   let bannerTimer = 0;
+  let weatherOn = false;
+
+  // Weather is active unless gated by a biome's weatherStart score (e.g. Forest rains
+  // only past its midpoint). 'none' biomes never have weather.
+  function shouldWeather() {
+    const b = currentBiome;
+    if (b.weather === 'none') return false;
+    if (b.weatherStart != null) return score >= b.weatherStart;
+    return true;
+  }
 
   // Ground motion stripes (lateral lines on the ground that scroll forward)
   function seedStripes() {
@@ -271,7 +281,8 @@
     currentBiomeKey = key;
     currentBiome = BIOMES[key];
     buildBiomePool(key);
-    seedWeather();
+    weatherOn = shouldWeather();
+    if (weatherOn) seedWeather(); else weather = [];
     bannerTimer = 2.6;
   }
 
@@ -532,6 +543,13 @@
     // Advance biome when the score crosses a threshold.
     const nextKey = biomeKeyForScore(score);
     if (nextKey !== currentBiomeKey) setBiome(nextKey);
+
+    // Start/stop weather mid-biome (e.g. Forest rain begins at its midpoint).
+    const want = shouldWeather();
+    if (want !== weatherOn) {
+      weatherOn = want;
+      if (want) seedWeather(); else weather = [];
+    }
   }
 
   function updateWeather(dt) {
