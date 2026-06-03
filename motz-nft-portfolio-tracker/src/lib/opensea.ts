@@ -376,7 +376,7 @@ export async function lastTraitSaleBeforeTs(
   traitName: string,
   tier: string,
   beforeTs: number,
-  maxScanned = 150,
+  maxScanned = 500,
 ): Promise<number | null> {
   const dayBucket = String(Math.floor(beforeTs / 86400));
   const ck = `${slug}|${traitName}|${tier}|${dayBucket}`;
@@ -399,7 +399,7 @@ export async function lastTraitSaleBeforeTs(
   let scanned = 0;
   let found: { priceEth: number; ts: number } | null = null;
 
-  outer: for (let page = 0; page < 10; page++) {
+  outer: for (let page = 0; page < 30; page++) {
     const qs = new URLSearchParams({ event_type: "sale", limit: "50" });
     if (next) qs.set("next", next);
     let data: Res;
@@ -409,7 +409,7 @@ export async function lastTraitSaleBeforeTs(
       break;
     }
     for (const ev of data.asset_events ?? []) {
-      if (ev.event_timestamp > beforeTs) continue; // too recent
+      if (ev.event_timestamp > beforeTs) continue; // too recent — keep scanning
       const tokenId = ev.nft?.identifier;
       const wei = ev.payment?.quantity;
       if (!tokenId || !wei) continue;
