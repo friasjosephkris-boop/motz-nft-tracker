@@ -1,12 +1,32 @@
 """
-Scan assets/items/ and produce assets/items-manifest.json grouping items by biome.
+Scan assets/items/ and produce assets/items-manifest.json grouping items by
+ENVIRONMENT and CLASSIFICATION.
 
-Naming convention: files prefixed with "<biome>__" (double underscore) are
-assigned to that biome. Multiple prefixes can be chained:
-    "arctic__forest__snowy-tree.png"  -> both arctic and forest
+Naming convention (double-underscore separators):
+    <classification>__<environment>__<name>.png
+e.g.
+    fullobstacle__savannah__cactus.png
+    design__forest__pine-tree.png
+    moving__arctic__snowball.png
+    obstacle__genesis__blue-crystal.png
 
-Anything without a known biome prefix falls into the "any" pool, which all
-biomes draw from as a fallback when their own pool is empty.
+Classifications:
+    design       - decorative, placed outside the track, never hits the player
+    moving       - slides left<->right inside the run; lethal
+    obstacle     - single literal obstacle in a lane; lethal
+    fullobstacle - spawns as a row/line across lanes (leaving a gap); lethal
+
+Backward compatibility:
+    <environment>__<name>.png   -> classification defaults to "obstacle"
+    <name>.png (untagged)       -> classification "obstacle", environment falls
+                                   back to _index.json, else the shared "any" pool
+
+Output shape:
+    {
+      "savannah": { "design": [...], "moving": [...], "obstacle": [...], "fullobstacle": [...] },
+      ...,
+      "any":      { "design": [...], "moving": [...], "obstacle": [...], "fullobstacle": [...] }
+    }
 
 Run:  python scripts/build-manifest.py
 """
@@ -15,69 +35,82 @@ import os
 import re
 
 BIOMES = ["savannah", "forest", "arctic", "mystic", "genesis", "luna"]
+CLASSES = ["design", "moving", "obstacle", "fullobstacle"]
+DEFAULT_CLASS = "obstacle"
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 ITEMS_DIR = os.path.join(ROOT, "assets", "items")
 OUT = os.path.join(ROOT, "assets", "items-manifest.json")
 INDEX_JSON = os.path.join(ITEMS_DIR, "_index.json")
 
-# Map _index.json environment strings -> biome keys, for files not renamed yet.
 INDEX_ENV_MAP = {
-    "Arctic":   "arctic",
-    "Savannah": "savannah",
-    "Forest":   "forest",
-    "Mystic":   "mystic",
-    "Genesis":  "genesis",
-    "Luna":     "luna",
+    "Arctic": "arctic", "Savannah": "savannah", "Forest": "forest",
+    "Mystic": "mystic", "Genesis": "genesis", "Luna": "luna",
 }
 
-def biomes_from_filename(name: str):
-    base = name.lower().rsplit(".", 1)[0]
+
+def classify(fn, index_envs):
+    """Return (classification, environment) for a filename."""
+    base = fn.lower().rsplit(".", 1)[0]
     parts = re.split(r"__", base)
-    if len(parts) < 2:
-        return []
-    tags = []
-    for p in parts[:-1]:
-        if p in BIOMES:
-            tags.append(p)
-    return tags
+
+    cls = None
+    env = None
+    if len(parts) >= 2 and parts[0] in CLASSES:
+        cls = parts[0]
+        if len(parts) >= 3 and parts[1] in BIOMES:
+            env = parts[1]
+    elif len(parts) >= 2 and parts[0] in BIOMES:
+        # legacy env__name -> obstacle
+        env = parts[0]
+        cls = DEFAULT_CLASS
+
+    if cls is None:
+        cls = DEFAULT_CLASS
+    if env is None:
+        # fall back to _index.json environment tag if present
+        for e in index_envs:
+            mapped = INDEX_ENV_MAP.get(e)
+            if mapped:
+                env = mapped
+                break
+    if env is None:
+        env = "any"
+    return cls, env
+
+
+def empty_pools():
+    return {c: [] for c in CLASSES}
+
 
 def main():
-    pools = {b: [] for b in BIOMES}
-    pools["any"] = []
     index_lookup = {}
     if os.path.exists(INDEX_JSON):
         with open(INDEX_JSON, "r", encoding="utf-8") as f:
             for entry in json.load(f):
                 index_lookup[entry["file"]] = entry.get("environments") or []
 
+    out = {b: empty_pools() for b in BIOMES}
+    out["any"] = empty_pools()
+
     seen = 0
     for fn in sorted(os.listdir(ITEMS_DIR)):
-        if not fn.lower().endswith(".png"):
-            continue
-        if fn.startswith("_"):
+        if not fn.lower().endswith(".png") or fn.startswith("_"):
             continue
         seen += 1
-        biomes = biomes_from_filename(fn)
-        if not biomes:
-            for env in index_lookup.get(fn, []):
-                b = INDEX_ENV_MAP.get(env)
-                if b and b not in biomes:
-                    biomes.append(b)
-        if not biomes:
-            pools["any"].append(fn)
-        else:
-            for b in biomes:
-                pools[b].append(fn)
+        cls, env = classify(fn, index_lookup.get(fn, []))
+        out[env][cls].append(fn)
 
-    out = {b: pools[b] for b in BIOMES}
-    out["any"] = pools["any"]
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=2)
+
     print(f"Scanned {seen} items.")
-    for b in BIOMES + ["any"]:
-        print(f"  {b}: {len(pools[b])}")
+    for env in BIOMES + ["any"]:
+        counts = ", ".join(f"{c}:{len(out[env][c])}" for c in CLASSES)
+        print(f"  {env:9s} {counts}")
     print(f"Wrote {OUT}")
+
 
 if __name__ == "__main__":
     main()

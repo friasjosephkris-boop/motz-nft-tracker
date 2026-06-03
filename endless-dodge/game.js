@@ -112,7 +112,9 @@
   let currentBiomeKey = 'savannah';
 
   // ---- Item assets ----
-  let manifest = null;          // { savannah:[...], ..., any:[...] }
+  // manifest: { <biome>: {design:[], moving:[], obstacle:[], fullobstacle:[]}, any: {...} }
+  let manifest = null;
+  const CLASSES = ['design', 'moving', 'obstacle', 'fullobstacle'];
   const itemCache = new Map();  // filename -> Image
   function loadItem(fn) {
     let img = itemCache.get(fn);
@@ -128,15 +130,24 @@
     .then(m => { manifest = m; })
     .catch(() => { manifest = null; });
 
-  // Pool of item filenames for the current run's biome (biome-specific + any).
-  let biomePool = [];
+  // Per-classification filename pools for the current biome (biome-specific + shared "any").
+  let pools = { design: [], moving: [], obstacle: [], fullobstacle: [] };
+  function poolFor(biomeKey, cls) {
+    const a = (manifest && manifest[biomeKey] && manifest[biomeKey][cls]) || [];
+    const b = (manifest && manifest.any && manifest.any[cls]) || [];
+    return a.concat(b);
+  }
   function buildBiomePool(biomeKey) {
-    const specific = (manifest && manifest[biomeKey]) || [];
-    const any = (manifest && manifest.any) || [];
-    biomePool = specific.concat(any);
-    // Warm a random subset so the first obstacles have art ready.
-    const warm = biomePool.slice().sort(() => Math.random() - 0.5).slice(0, 24);
+    for (const c of CLASSES) pools[c] = poolFor(biomeKey, c);
+    // Warm a random subset across all classes so first spawns have art ready.
+    const all = [].concat(pools.obstacle, pools.fullobstacle, pools.moving, pools.design);
+    const warm = all.slice().sort(() => Math.random() - 0.5).slice(0, 24);
     for (const fn of warm) loadItem(fn);
+  }
+  function pickFrom(cls) {
+    const p = pools[cls];
+    if (!p.length) return null;
+    return loadItem(p[Math.floor(Math.random() * p.length)]);
   }
 
   // ---- Storage ----
@@ -231,6 +242,7 @@
   let score = 0;
   let elapsed = 0;
   let spawnTimer = 0;
+  let decorTimer = 0;
   let forwardSpeed = 0.55; // world Z units / sec
   let input = { left: false, right: false };
 
@@ -244,6 +256,7 @@
     score = 0;
     elapsed = 0;
     spawnTimer = 0;
+    decorTimer = 0;
     forwardSpeed = 0.55;
     // Runs always begin in Savannah; biome advances with score (see update()).
     setBiome('savannah');
@@ -327,27 +340,32 @@
     return Math.min(1, elapsed / 75);
   }
 
-  // Lane slots for wave spawning. Spacing (~0.44) is wider than an obstacle's
+  // Lane slots for fullobstacle rows. Spacing (~0.44) is wider than an obstacle's
   // collision width, so any empty slot is a fair, passable gap.
   const SLOTS = [-0.66, -0.22, 0.22, 0.66];
 
-  function makeObstacle(worldX) {
-    let img = null;
-    if (biomePool.length) {
-      const fn = biomePool[Math.floor(Math.random() * biomePool.length)];
-      img = loadItem(fn);
-    }
-    const agW = 0.15 + Math.random() * 0.04; // small enough to keep slot gaps passable
-    obstacles.push({ worldX, z: 1.0, img, agW });
+  // kind: 'obstacle' (static, lethal), 'moving' (slides L<->R, lethal),
+  //       'design' (decor outside the track, never lethal).
+  function pushObstacle(worldX, img, opts) {
+    obstacles.push(Object.assign({
+      worldX, z: 1.0, img,
+      agW: 0.15 + Math.random() * 0.04,
+      kind: 'obstacle',
+    }, opts || {}));
   }
 
-  // Spawn a row of obstacles across some lane slots, ALWAYS leaving ≥1 slot open.
-  // Row size grows with difficulty: 1 → 2 → 3.
-  function spawnWave(d) {
+  // A single literal obstacle in a random lane.
+  function spawnSingle() {
+    const img = pickFrom('obstacle') || pickFrom('fullobstacle');
+    pushObstacle((Math.random() * 2 - 1) * 0.7, img);
+  }
+
+  // A row across lane slots, ALWAYS leaving ≥1 slot open. Row size grows 1→3 with d.
+  // Uses fullobstacle art if available, else falls back to obstacle art.
+  function spawnRow(d) {
     let maxCount = 1 + (d > 0.3 ? 1 : 0) + (d > 0.65 ? 1 : 0); // 1..3
     let count = maxCount;
-    if (maxCount > 1 && Math.random() < 0.3) count = maxCount - 1; // rhythm variety
-    // Pick `count` distinct slots (4 total, so ≥1 stays empty = guaranteed gap).
+    if (maxCount > 1 && Math.random() < 0.3) count = maxCount - 1;
     const idx = [0, 1, 2, 3];
     for (let i = idx.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -355,7 +373,54 @@
     }
     for (let i = 0; i < count; i++) {
       const jitter = (Math.random() - 0.5) * 0.06;
-      makeObstacle(SLOTS[idx[i]] + jitter);
+      const img = pickFrom('fullobstacle') || pickFrom('obstacle');
+      pushObstacle(SLOTS[idx[i]] + jitter, img);
+    }
+  }
+
+  // A lethal obstacle that slides left<->right across lanes while approaching.
+  function spawnMoving() {
+    const img = pickFrom('moving');
+    if (!img) return;
+    pushObstacle(0, img, {
+      kind: 'moving',
+      baseX: 0,
+      oscAmp: 0.45 + Math.random() * 0.3,
+      oscFreq: 1.2 + Math.random() * 0.8,
+      oscPhase: Math.random() * Math.PI * 2,
+    });
+  }
+
+  // Decorative scenery placed OUTSIDE the track edges; never collides.
+  function spawnDecor() {
+    const img = pickFrom('design');
+    if (!img) return;
+    const side = Math.random() < 0.5 ? -1 : 1;
+    pushObstacle(side * (1.25 + Math.random() * 0.6), img, {
+      kind: 'design', agW: 0.22 + Math.random() * 0.1,
+    });
+  }
+
+  // Choose and spawn one gameplay hazard, weighted by difficulty + availability.
+  function spawnHazard(d) {
+    const hasObs = pools.obstacle.length || pools.fullobstacle.length;
+    const hasFull = pools.fullobstacle.length || pools.obstacle.length;
+    const hasMove = pools.moving.length;
+    const choices = [];
+    if (hasObs)  choices.push(['single', 1.0]);
+    if (hasFull) choices.push(['row',    d > 0.25 ? 0.5 + d : 0]);
+    if (hasMove) choices.push(['moving', d > 0.4  ? 0.3 + d * 0.6 : 0]);
+    const total = choices.reduce((s, c) => s + c[1], 0);
+    if (total <= 0) { if (hasObs) spawnSingle(); return; }
+    let r = Math.random() * total;
+    for (const [kind, w] of choices) {
+      r -= w;
+      if (r <= 0) {
+        if (kind === 'single') spawnSingle();
+        else if (kind === 'row') spawnRow(d);
+        else spawnMoving();
+        return;
+      }
     }
   }
 
@@ -381,15 +446,29 @@
     if (player.worldX < -PLAYER_CLAMP) { player.worldX = -PLAYER_CLAMP; player.vx = 0; }
     if (player.worldX >  PLAYER_CLAMP) { player.worldX =  PLAYER_CLAMP; player.vx = 0; }
 
-    // Spawn obstacle rows; rows come faster as difficulty rises.
+    // Spawn gameplay hazards; they come faster as difficulty rises.
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
-      spawnWave(d);
-      spawnTimer = 1.1 - d * 0.5; // 1.1s → 0.6s between rows
+      spawnHazard(d);
+      spawnTimer = 1.1 - d * 0.5; // 1.1s → 0.6s between hazards
+    }
+    // Spawn decorative scenery outside the track at a steady rate.
+    decorTimer -= dt;
+    if (decorTimer <= 0) {
+      spawnDecor();
+      decorTimer = 0.5 + Math.random() * 0.6;
     }
 
     // Advance obstacles toward camera — keep them alive past the player so they fly off-screen.
-    for (const o of obstacles) o.z -= forwardSpeed * dt;
+    for (const o of obstacles) {
+      o.z -= forwardSpeed * dt;
+      // Moving obstacles slide left<->right across the lanes as they approach.
+      if (o.kind === 'moving') {
+        o.worldX = o.baseX + Math.sin(o.oscPhase + elapsed * o.oscFreq) * o.oscAmp;
+        if (o.worldX < -0.82) o.worldX = -0.82;
+        if (o.worldX >  0.82) o.worldX =  0.82;
+      }
+    }
     obstacles = obstacles.filter(o => o.z > -0.35);
 
     // Ground stripes scroll forward (toward camera)
@@ -401,8 +480,9 @@
     // Weather motion
     updateWeather(dt);
 
-    // Collision: when obstacle reaches the player's depth.
+    // Collision: when a lethal obstacle reaches the player's depth (design never hits).
     for (const o of obstacles) {
+      if (o.kind === 'design') continue;
       if (o.z < PLAYER_Z + 0.06 && o.z > PLAYER_Z - 0.06) {
         const dx = Math.abs(o.worldX - player.worldX);
         if (dx < o.agW + 0.10) {
