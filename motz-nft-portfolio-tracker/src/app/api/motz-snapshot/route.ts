@@ -9,7 +9,6 @@ import {
   collectionFloorEth,
   tierFloorsEth,
   lastTierSaleEth,
-  lastTraitSaleBeforeTs,
   originalMinterEth,
   persistSalesSoon,
 } from "@/lib/opensea";
@@ -532,35 +531,9 @@ async function refreshSnapshot(req: NextRequest): Promise<MotzSnapshot> {
             const ronUsdAtPurchase = acquiredAt
               ? ethUsdAt(acquiredAt)
               : null;
-            const rarity = n.attributes[c.traitName]?.[0] ?? null;
-
-            // For transfer rows with no MoTZ-wallet purchase: estimate
-            // fair-market-value cost by finding the most recent same-trait
-            // sale on OpenSea before the transfer date. Manual overrides
-            // (above) already won if present — this only applies when
-            // costEth is still 0 after the override check.
-            if (
-              acquiredVia === "transfer" &&
-              costEth === 0 &&
-              acquiredAt &&
-              rarity
-            ) {
-              try {
-                const estimated = await lastTraitSaleBeforeTs(
-                  c.slug,
-                  c.address,
-                  c.traitName,
-                  rarity,
-                  acquiredAt,
-                );
-                if (estimated != null) costEth = estimated;
-              } catch {
-                // Non-critical — keep 0
-              }
-            }
-
             const costUsd =
               ronUsdAtPurchase != null ? costEth * ronUsdAtPurchase : null;
+            const rarity = n.attributes[c.traitName]?.[0] ?? null;
             // Floor lookup chain:
             //   1. Active listing floor for this exact tier
             //   2. Most recent SALE price for this tier (lazy, cached)
