@@ -639,17 +639,15 @@
     ctx.fillStyle = gGrad;
     ctx.fillRect(0, HORIZON_Y, VW, VH - HORIZON_Y);
 
-    // Forward-scrolling stripes (motion lines)
-    for (const s of stripes) {
-      const y = projectY(s.z);
-      const alpha = (1 - s.z) * 0.30 + 0.04;
-      ctx.strokeStyle = b.stripe.replace(/[\d.]+\)$/, alpha.toFixed(2) + ')');
-      ctx.lineWidth = 1 + (1 - s.z) * 2;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(VW, y);
-      ctx.stroke();
-    }
+    // Track edges (left + right) — converging toward horizon
+    ctx.strokeStyle = b.edge;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(projectX(-1, 0), projectY(0));
+    ctx.lineTo(projectX(-1, 1), projectY(1));
+    ctx.moveTo(projectX( 1, 0), projectY(0));
+    ctx.lineTo(projectX( 1, 1), projectY(1));
+    ctx.stroke();
   }
 
   function drawObstacles(farOnly) {
