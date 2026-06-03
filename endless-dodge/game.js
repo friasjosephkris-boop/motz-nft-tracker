@@ -42,6 +42,9 @@
     return VW / 2 + worldX * TRACK_HALF_PX * scaleAt(z);
   }
 
+  // Player sits at this depth (red line on the screen). Obstacles collide here, not at z=0.
+  const PLAYER_Z = 0.18;
+
   // ---- Biomes ----
   // Each biome defines a palette for sky/hills/ground + a weather type.
   // Item pools come from assets/items-manifest.json (biome key + "any" fallback).
@@ -97,6 +100,17 @@
   };
   const BIOME_KEYS = Object.keys(BIOMES);
 
+  // Score-gated biome progression (the run advances through biomes as score climbs).
+  function biomeKeyForScore(s) {
+    if (s < 500)   return 'savannah';   // 1–500
+    if (s < 1500)  return 'forest';     // 500–1500
+    if (s < 3000)  return 'arctic';     // 1500–3000
+    if (s < 5000)  return 'mystic';     // 3000–5000
+    if (s < 10000) return 'genesis';    // 5000–10000
+    return 'luna';                      // 10000+
+  }
+  let currentBiomeKey = 'savannah';
+
   // ---- Item assets ----
   let manifest = null;          // { savannah:[...], ..., any:[...] }
   const itemCache = new Map();  // filename -> Image
@@ -139,13 +153,14 @@
   mechRear.onload  = () => { mechReady |= 1; };
   mechRight.onload = () => { mechReady |= 2; };
   mechLeft.onload  = () => { mechReady |= 4; };
-  mechRear.src  = 'assets/mech%20rear.png?v=1';
+  mechRear.src  = 'assets/mech%20rear.png?v=2';
   mechRight.src = 'assets/mech%20right.png?v=1';
   mechLeft.src  = 'assets/mech%20left.png?v=1';
 
   // Per-sprite metadata: aspect (w/h) and thruster nozzle anchors as fractions of drawn (w, h).
+  // Rear sprite was cropped to its content bounds so it draws at the same size as left/right.
   const SPRITES = {
-    rear:  { img: mechRear,  bit: 1, aspect: 1.00, left: { x: 0.254, y: 0.625 }, right: { x: 0.746, y: 0.625 } },
+    rear:  { img: mechRear,  bit: 1, aspect: 0.979, left: { x: 0.190, y: 0.605 }, right: { x: 0.769, y: 0.605 } },
     right: { img: mechRight, bit: 2, aspect: 1.13, left: { x: 0.128, y: 0.635 }, right: { x: 0.872, y: 0.635 } },
     left:  { img: mechLeft,  bit: 4, aspect: 1.13, left: { x: 0.128, y: 0.635 }, right: { x: 0.872, y: 0.635 } },
   };
@@ -230,13 +245,18 @@
     elapsed = 0;
     spawnTimer = 0;
     forwardSpeed = 0.55;
-    // Pick a random biome for this run.
-    const key = BIOME_KEYS[Math.floor(Math.random() * BIOME_KEYS.length)];
+    // Runs always begin in Savannah; biome advances with score (see update()).
+    setBiome('savannah');
+    seedStripes();
+  }
+
+  // Switch to a biome: swap palette, rebuild item pool, reseed weather, flash banner.
+  function setBiome(key) {
+    currentBiomeKey = key;
     currentBiome = BIOMES[key];
     buildBiomePool(key);
-    bannerTimer = 2.6;
-    seedStripes();
     seedWeather();
+    bannerTimer = 2.6;
   }
 
   function start() {
@@ -257,8 +277,8 @@
     finalEl.style.display = 'block';
     startBtn.textContent = 'Play again';
     overlay.classList.remove('hidden');
-    const sx = projectX(player.worldX, 0);
-    const sy = projectY(0) - player.spriteH * 0.5;
+    const sx = projectX(player.worldX, PLAYER_Z);
+    const sy = projectY(PLAYER_Z) - player.spriteH * 0.5;
     for (let i = 0; i < 28; i++) {
       particles.push({
         x: sx, y: sy,
@@ -343,9 +363,9 @@
       spawnTimer = spawnInterval;
     }
 
-    // Advance obstacles toward camera
+    // Advance obstacles toward camera — keep them alive past the player so they fly off-screen.
     for (const o of obstacles) o.z -= forwardSpeed * dt;
-    obstacles = obstacles.filter(o => o.z > -0.05);
+    obstacles = obstacles.filter(o => o.z > -0.35);
 
     // Ground stripes scroll forward (toward camera)
     for (const s of stripes) {
@@ -356,9 +376,9 @@
     // Weather motion
     updateWeather(dt);
 
-    // Collision: only at near plane (when obstacle z ~ 0)
+    // Collision: when obstacle reaches the player's depth.
     for (const o of obstacles) {
-      if (o.z < 0.06 && o.z > -0.05) {
+      if (o.z < PLAYER_Z + 0.06 && o.z > PLAYER_Z - 0.06) {
         const dx = Math.abs(o.worldX - player.worldX);
         if (dx < o.agW + 0.10) {
           gameOver();
@@ -372,8 +392,8 @@
     if (smokeTimer <= 0) {
       smokeTimer = 0.022;
       const spr = currentSprite();
-      const cx = projectX(player.worldX, 0);
-      const cy = projectY(0);
+      const cx = projectX(player.worldX, PLAYER_Z);
+      const cy = projectY(PLAYER_Z);
       const h  = player.spriteH;
       const w  = h * spr.aspect;
       const px = cx - w / 2;
@@ -398,6 +418,10 @@
 
     score = Math.floor(elapsed * 10);
     scoreEl.textContent = score;
+
+    // Advance biome when the score crosses a threshold.
+    const nextKey = biomeKeyForScore(score);
+    if (nextKey !== currentBiomeKey) setBiome(nextKey);
   }
 
   function updateWeather(dt) {
@@ -500,12 +524,17 @@
     ctx.stroke();
   }
 
-  function drawObstacles() {
-    // Sort far-to-near so near ones draw on top
-    const sorted = obstacles.slice().sort((a, b) => b.z - a.z);
+  function drawObstacles(farOnly) {
+    // Sort far-to-near so near ones draw on top.
+    // farOnly=true: only obstacles still behind the player (behind the mech sprite).
+    // farOnly=false: only obstacles past the player (drawn on top of the mech).
+    let list = obstacles;
+    if (farOnly === true)  list = list.filter(o => o.z >= PLAYER_Z);
+    if (farOnly === false) list = list.filter(o => o.z <  PLAYER_Z);
+    const sorted = list.slice().sort((a, b) => b.z - a.z);
     for (const o of sorted) {
       if (o.z > 1.02) continue;
-      const z = Math.max(o.z, 0);
+      const z = o.z;
       const s = scaleAt(z);
       const cx = projectX(o.worldX, z);
       const cy = projectY(z);
@@ -537,7 +566,7 @@
   }
 
   function drawPlayer() {
-    const z = 0;
+    const z = PLAYER_Z;
     const cx = projectX(player.worldX, z);
     const cy = projectY(z);
     const spr = currentSprite();
@@ -634,8 +663,9 @@
     ctx.clearRect(0, 0, VW, VH);
     drawSky();
     drawGround();
-    drawObstacles();
+    drawObstacles(true);
     if (running || particles.length === 0) drawPlayer();
+    drawObstacles(false);
     drawSmoke();
     drawWeather();
     drawParticles();
