@@ -584,6 +584,103 @@ export async function userStakingDepositsFor(
   return deposits;
 }
 
+// ---------------------------------------------------------------------------
+// Last same-trait sale before a given timestamp. Used to estimate cost basis
+// for tokens acquired via off-chain P2P / private transfer (where on-chain
+// sale history shows "transfer" with no price). Strategy:
+//   1. List tokens with the same trait sorted by last-sale-price (cheapest
+//      first) — this surfaces recently-traded tokens near the market floor.
+//   2. For each token, walk its transferHistory looking for the most recent
+//      sale (withPrice > 0) whose timestamp <= beforeTs.
+//   3. Return the first match's price, or null if none found within the cap.
+//
+// Cached keyed by (contract|traitName|traitValue|dayBucket) so repeated
+// lookups for the same rarity on the same day are free.
+// ---------------------------------------------------------------------------
+const traitSaleCache = new Map<
+  string,
+  { priceWei: string; timestamp: number } | null
+>();
+
+/**
+ * Returns the most recent marketplace sale of a token with the given trait
+ * value in this collection, where the sale occurred at or before `beforeTs`.
+ * Returns null if no qualifying sale found within `maxTokens` sampled.
+ *
+ * Useful for estimating fair-market-value cost basis for transferred tokens.
+ */
+export async function lastTraitSaleRon(
+  contract: string,
+  traitName: string,
+  traitValue: string,
+  beforeTs: number,
+  maxTokens = 30,
+): Promise<{ priceWei: string; timestamp: number } | null> {
+  const dayBucket = String(Math.floor(beforeTs / 86400));
+  const cacheKey = `${contract.toLowerCase()}|${traitName}|${traitValue}|${dayBucket}`;
+  if (traitSaleCache.has(cacheKey)) return traitSaleCache.get(cacheKey)!;
+
+  // Query tokens with this trait sorted by last-sale-price ascending (most
+  // actively traded / cheapest to most expensive). Walk batches.
+  const PAGE = 10;
+  let found: { priceWei: string; timestamp: number } | null = null;
+  outer: for (let from = 0; from < maxTokens; from += PAGE) {
+    const query = /* GraphQL */ `
+      query TraitTokens(
+        $from: Int!
+        $size: Int!
+        $tokenAddress: String!
+        $criteria: [SearchCriteria!]
+      ) {
+        erc721Tokens(
+          from: $from
+          size: $size
+          sort: LastSalePriceAsc
+          tokenAddress: $tokenAddress
+          criteria: $criteria
+        ) {
+          results {
+            tokenId
+            transferHistory(from: 0, size: 20) {
+              results {
+                withPrice
+                timestamp
+              }
+            }
+          }
+        }
+      }
+    `;
+    type Row = { tokenId: string; transferHistory: { results: { withPrice: string; timestamp: number }[] } };
+    type R = { erc721Tokens: { results: Row[] } };
+    let data: R;
+    try {
+      data = await gql<R>(query, {
+        from,
+        size: PAGE,
+        tokenAddress: contract.toLowerCase(),
+        criteria: [{ name: traitName, values: [traitValue] }],
+      });
+    } catch {
+      break;
+    }
+    const tokens = data.erc721Tokens?.results ?? [];
+    if (tokens.length === 0) break;
+    for (const token of tokens) {
+      for (const row of token.transferHistory?.results ?? []) {
+        if (!row.withPrice || row.withPrice === "0") continue;
+        if (row.timestamp > beforeTs) continue;
+        found = { priceWei: row.withPrice, timestamp: row.timestamp };
+        break outer;
+      }
+    }
+    if (tokens.length < PAGE) break;
+  }
+
+  traitSaleCache.set(cacheKey, found);
+  return found;
+}
+
 // Token metadata is essentially static for the lifetime of an NFT — cache
 // indefinitely (per server instance) to drastically cut request volume on
 // repeat loads of the same wallet.

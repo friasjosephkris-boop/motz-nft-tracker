@@ -16,6 +16,7 @@ import {
   ownerOf,
   tokenMetadata,
   userStakingDepositsFor,
+  lastTraitSaleRon,
 } from "@/lib/marketplace";
 import { ronUsdAt, ronUsdNow } from "@/lib/coingecko";
 import { lookupManualCost } from "@/lib/manual-costs";
@@ -916,6 +917,38 @@ async function buildCollectionHoldings(
         ? await txSingleNftPrice(saleTxHash, contractLc)
         : null;
 
+      // Mint-date timestamp fallback. Applies to:
+      //   - actual mints (via === "mint")
+      //   - no-evidence fallback rows (no real tx hash available; cost is
+      //     mint price so pairing it with the mint-date RON/USD ratio
+      //     yields a coherent — if estimated — USD cost)
+      if (!acqTs && (via === "mint" || noEvidenceFallback)) acqTs = mintTs;
+
+      // For transfers: estimate cost from the most recent same-trait
+      // marketplace sale before the transfer timestamp. This gives a
+      // fair-market-value cost basis for P2P / private transfers where
+      // on-chain sale history is absent. Falls back to 0 if no matching
+      // historical sale is found within the sampling cap (30 tokens).
+      let transferEstimatedCost: number | null = null;
+      if (via === "transfer" && acqTs && !holderMode) {
+        const rInfoForCost = rarityFor(c, t.attributes);
+        if (rInfoForCost && !rInfoForCost.isOverride) {
+          try {
+            const traitSale = await lastTraitSaleRon(
+              c.address,
+              rInfoForCost.traitName,
+              rInfoForCost.value,
+              acqTs,
+            );
+            if (traitSale) {
+              transferEstimatedCost = weiToRon(traitSale.priceWei);
+            }
+          } catch {
+            // Non-critical — fall back to 0
+          }
+        }
+      }
+
       const costRon =
         saleFromDirectAcq
           ? weiToRon(acq!.priceWei)
@@ -932,22 +965,14 @@ async function buildCollectionHoldings(
                   : via === "mint"
                     ? c.mintPriceRon
                     : via === "transfer"
-                      ? 0
+                      ? (transferEstimatedCost ?? 0)
                       : null;
-      // Mint-date timestamp fallback. Applies to:
-      //   - actual mints (via === "mint")
-      //   - no-evidence fallback rows (no real tx hash available; cost is
-      //     mint price so pairing it with the mint-date RON/USD ratio
-      //     yields a coherent — if estimated — USD cost)
-      if (!acqTs && (via === "mint" || noEvidenceFallback)) acqTs = mintTs;
 
       const ronUsdAtPurchase = acqTs ? await ronUsdAt(acqTs) : null;
       const costUsd =
-        via === "transfer"
-          ? 0
-          : costRon != null && ronUsdAtPurchase != null
-            ? costRon * ronUsdAtPurchase
-            : null;
+        costRon != null && ronUsdAtPurchase != null
+          ? costRon * ronUsdAtPurchase
+          : 0;
 
       const rInfo = rarityFor(c, t.attributes);
       const rarity = rInfo?.value ?? null;
@@ -1106,6 +1131,27 @@ async function buildCollectionHoldings(
           ? marketAcq
           : null;
 
+      // Estimate cost for staked tokens received via P2P / private transfer.
+      let stakedTransferEstimatedCost: number | null = null;
+      if (via === "transfer" && acqTs && !holderMode) {
+        const rInfoForCost = rarityFor(c, t.attributes);
+        if (rInfoForCost && !rInfoForCost.isOverride) {
+          try {
+            const traitSale = await lastTraitSaleRon(
+              c.address,
+              rInfoForCost.traitName,
+              rInfoForCost.value,
+              acqTs,
+            );
+            if (traitSale) {
+              stakedTransferEstimatedCost = weiToRon(traitSale.priceWei);
+            }
+          } catch {
+            // Non-critical — fall back to 0
+          }
+        }
+      }
+
       const costRon =
         via === "sale" && marketSaleByUser && marketAcq
           ? weiToRon(marketAcq.priceWei)
@@ -1118,14 +1164,12 @@ async function buildCollectionHoldings(
               : via === "mint"
                 ? c.mintPriceRon
                 : via === "transfer"
-                  ? 0
+                  ? (stakedTransferEstimatedCost ?? 0)
                   : null;
       const costUsd =
-        via === "transfer"
-          ? 0
-          : costRon != null && ronUsdAtPurchase != null
-            ? costRon * ronUsdAtPurchase
-            : null;
+        costRon != null && ronUsdAtPurchase != null
+          ? costRon * ronUsdAtPurchase
+          : 0;
       const rInfo = rarityFor(c, t.attributes);
       const rarity = rInfo?.value ?? null;
       const rarityLabel = rarity ? (c.formatTrait?.(rarity) ?? rarity) : null;
