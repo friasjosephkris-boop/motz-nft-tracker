@@ -52,7 +52,7 @@
   let mechReady = false;
   mechSheet.onload = () => { mechReady = true; };
   mechSheet.onerror = () => { mechReady = false; };
-  mechSheet.src = 'assets/mech-sheet.png?v=3';
+  mechSheet.src = 'assets/mech-sheet.png?v=4';
 
   const FRAMES = {
     left:   [56,  584, 416, 443],
