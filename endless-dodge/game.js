@@ -196,7 +196,6 @@
   const PLAYER_LATERAL_ACCEL = 18;
   const PLAYER_LATERAL_FRICTION = 16;
   const PLAYER_CLAMP = 0.92;
-  const POINTER_GAIN = 14;            // pointer-follow stiffness (higher = snappier)
 
   // ---- Obstacles ----
   // Each obstacle has worldX in [-1,1] and z in [0,1] decreasing over time.
@@ -447,24 +446,29 @@
     forwardSpeed = 0.55 + d * 0.85; // 0.55 → 1.4 over ~75s
     if (bannerTimer > 0) bannerTimer -= dt;
 
-    // Steering. Keyboard (A/D, arrows) takes priority; otherwise follow the
-    // pointer target if one is active; otherwise coast to a stop.
+    // Steering. Keyboard (A/D, arrows) takes priority; otherwise the pointer
+    // snaps the ship instantly to the cursor/finger; otherwise coast to a stop.
     if (input.left || input.right) {
       pointerTargetX = null; // keys override pointer follow
       let ax = 0;
       if (input.left)  ax -= PLAYER_LATERAL_ACCEL;
       if (input.right) ax += PLAYER_LATERAL_ACCEL;
       player.vx += ax * dt;
+      player.vx = Math.max(-PLAYER_LATERAL_SPEED, Math.min(PLAYER_LATERAL_SPEED, player.vx));
+      player.worldX += player.vx * dt;
     } else if (pointerTargetX !== null) {
-      // Proportional follow: snappy toward the target, eases in near it.
-      player.vx = (pointerTargetX - player.worldX) * POINTER_GAIN;
+      // Instant follow: snap straight to the pointer, no easing/lag.
+      const prev = player.worldX;
+      player.worldX = pointerTargetX;
+      // Implied velocity drives the banking sprite (rear when not moving).
+      player.vx = Math.max(-PLAYER_LATERAL_SPEED, Math.min(PLAYER_LATERAL_SPEED, (player.worldX - prev) / dt));
     } else {
       const sign = Math.sign(player.vx);
       player.vx -= sign * PLAYER_LATERAL_FRICTION * dt;
       if (Math.sign(player.vx) !== sign) player.vx = 0;
+      player.vx = Math.max(-PLAYER_LATERAL_SPEED, Math.min(PLAYER_LATERAL_SPEED, player.vx));
+      player.worldX += player.vx * dt;
     }
-    player.vx = Math.max(-PLAYER_LATERAL_SPEED, Math.min(PLAYER_LATERAL_SPEED, player.vx));
-    player.worldX += player.vx * dt;
     if (player.worldX < -PLAYER_CLAMP) { player.worldX = -PLAYER_CLAMP; player.vx = 0; }
     if (player.worldX >  PLAYER_CLAMP) { player.worldX =  PLAYER_CLAMP; player.vx = 0; }
 
