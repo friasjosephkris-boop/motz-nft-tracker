@@ -639,9 +639,14 @@
     ctx.fillStyle = gGrad;
     ctx.fillRect(0, HORIZON_Y, VW, VH - HORIZON_Y);
 
-    // Fences along both track edges. Posts sit at the scrolling stripe z's so
-    // they animate toward the camera; rails connect consecutive post tops.
-    const POST_H = 30; // post height (px) at the near plane
+    drawFences();
+  }
+
+  // Wooden fences along both track edges. Posts sit at the scrolling stripe z's
+  // so they animate toward the camera; two rails connect consecutive posts.
+  const FENCE = { dark: '#6b4423', mid: '#9c6b33', light: '#c79a5e', rail: '#c2a06a' };
+  const POST_H = 36; // post height (px) at the near plane
+  function drawFences() {
     const zs = stripes.map(s => s.z).sort((a, b2) => b2 - a); // far -> near
     for (const sx of [-1, 1]) {
       const pts = zs.map(z => {
@@ -649,24 +654,35 @@
         const gy = projectY(z);
         return { x: projectX(sx, z), gy, top: gy - POST_H * sc, sc };
       });
-      // Two rails (upper + lower) running along the post line.
-      ctx.strokeStyle = b.edge;
-      ctx.lineWidth = 2;
-      for (const frac of [0.85, 0.4]) {
-        ctx.beginPath();
-        pts.forEach((p, i) => {
-          const ry = p.gy - (p.gy - p.top) * frac;
-          if (i === 0) ctx.moveTo(p.x, ry); else ctx.lineTo(p.x, ry);
-        });
-        ctx.stroke();
+      // Rails first (behind posts): per-segment so width tapers with distance.
+      ctx.lineCap = 'round';
+      for (const frac of [0.74, 0.34]) {
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i], c = pts[i + 1];
+          const ay = a.gy - (a.gy - a.top) * frac;
+          const cy = c.gy - (c.gy - c.top) * frac;
+          const w = Math.max(1.5, 5 * ((a.sc + c.sc) / 2));
+          ctx.strokeStyle = FENCE.dark;
+          ctx.lineWidth = w + 2;
+          ctx.beginPath(); ctx.moveTo(a.x, ay); ctx.lineTo(c.x, cy); ctx.stroke();
+          ctx.strokeStyle = FENCE.rail;
+          ctx.lineWidth = w;
+          ctx.beginPath(); ctx.moveTo(a.x, ay); ctx.lineTo(c.x, cy); ctx.stroke();
+        }
       }
-      // Posts.
+      // Posts on top (far -> near so near posts overlap correctly).
       for (const p of pts) {
-        ctx.lineWidth = Math.max(1, 3 * p.sc);
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.gy);
-        ctx.lineTo(p.x, p.top);
-        ctx.stroke();
+        const w = Math.max(3, 9 * p.sc);
+        const x = p.x - w / 2, y = p.top, h = p.gy - p.top, r = w * 0.42;
+        ctx.fillStyle = FENCE.dark; // outline
+        roundRect(x - 1.5, y - 1.5, w + 3, h + 3, r); ctx.fill();
+        const g = ctx.createLinearGradient(x, 0, x + w, 0);
+        g.addColorStop(0, FENCE.dark);
+        g.addColorStop(0.35, FENCE.mid);
+        g.addColorStop(0.7, FENCE.light);
+        g.addColorStop(1, FENCE.mid);
+        ctx.fillStyle = g;
+        roundRect(x, y, w, h, r); ctx.fill();
       }
     }
   }
