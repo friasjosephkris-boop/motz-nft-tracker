@@ -600,6 +600,46 @@
     particles = particles.filter(p => p.life > 0);
   }
 
+  // Sun position along its arc for progress t (0=sunrise left, 0.5=noon, 1=sunset right).
+  function sunPos(t) {
+    const theta = Math.PI * (1 - t);
+    return {
+      x: VW / 2 + VW * 0.4 * Math.cos(theta),
+      y: (HORIZON_Y - 6) - HORIZON_Y * 0.82 * Math.sin(theta),
+    };
+  }
+
+  // Sun arcs across the Savannah sky, synced to score 1→500 (sunrise→sunset),
+  // leaving a glowing trail along the path it has travelled.
+  function drawSun() {
+    if (currentBiomeKey !== 'savannah') return;
+    const t = Math.max(0, Math.min(1, score / 500));
+    // Trail: the arc travelled so far, brightening toward the sun.
+    const N = 24;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < N; i++) {
+      const a = sunPos((i / N) * t);
+      const c = sunPos(((i + 1) / N) * t);
+      const f = (i + 1) / N;
+      ctx.strokeStyle = `rgba(255,200,120,${(0.05 + 0.22 * f).toFixed(3)})`;
+      ctx.lineWidth = 1 + 3 * f;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.stroke();
+    }
+    const p = sunPos(t);
+    const R = 16;
+    const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * 3.2);
+    glow.addColorStop(0, 'rgba(255,244,210,0.9)');
+    glow.addColorStop(0.4, 'rgba(255,205,130,0.45)');
+    glow.addColorStop(1, 'rgba(255,190,110,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(p.x, p.y, R * 3.2, 0, Math.PI * 2); ctx.fill();
+    const core = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R);
+    core.addColorStop(0, '#fff6d8');
+    core.addColorStop(1, '#ffce6a');
+    ctx.fillStyle = core;
+    ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI * 2); ctx.fill();
+  }
+
   function drawSky() {
     const b = currentBiome;
     const grad = ctx.createLinearGradient(0, 0, 0, HORIZON_Y);
@@ -607,6 +647,8 @@
     grad.addColorStop(1, b.skyBot);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, VW, HORIZON_Y);
+
+    drawSun();
 
     // Far hill ridge
     ctx.fillStyle = b.hill2;
@@ -639,52 +681,15 @@
     ctx.fillStyle = gGrad;
     ctx.fillRect(0, HORIZON_Y, VW, VH - HORIZON_Y);
 
-    drawFences();
-  }
-
-  // Wooden fences along both track edges. Posts sit at the scrolling stripe z's
-  // so they animate toward the camera; two rails connect consecutive posts.
-  const FENCE = { dark: '#6b4423', mid: '#9c6b33', light: '#c79a5e', rail: '#c2a06a' };
-  const POST_H = 36; // post height (px) at the near plane
-  function drawFences() {
-    const zs = stripes.map(s => s.z).sort((a, b2) => b2 - a); // far -> near
-    for (const sx of [-1, 1]) {
-      const pts = zs.map(z => {
-        const sc = scaleAt(z);
-        const gy = projectY(z);
-        return { x: projectX(sx, z), gy, top: gy - POST_H * sc, sc };
-      });
-      // Rails first (behind posts): per-segment so width tapers with distance.
-      ctx.lineCap = 'round';
-      for (const frac of [0.74, 0.34]) {
-        for (let i = 0; i < pts.length - 1; i++) {
-          const a = pts[i], c = pts[i + 1];
-          const ay = a.gy - (a.gy - a.top) * frac;
-          const cy = c.gy - (c.gy - c.top) * frac;
-          const w = Math.max(1.5, 5 * ((a.sc + c.sc) / 2));
-          ctx.strokeStyle = FENCE.dark;
-          ctx.lineWidth = w + 2;
-          ctx.beginPath(); ctx.moveTo(a.x, ay); ctx.lineTo(c.x, cy); ctx.stroke();
-          ctx.strokeStyle = FENCE.rail;
-          ctx.lineWidth = w;
-          ctx.beginPath(); ctx.moveTo(a.x, ay); ctx.lineTo(c.x, cy); ctx.stroke();
-        }
-      }
-      // Posts on top (far -> near so near posts overlap correctly).
-      for (const p of pts) {
-        const w = Math.max(3, 9 * p.sc);
-        const x = p.x - w / 2, y = p.top, h = p.gy - p.top, r = w * 0.42;
-        ctx.fillStyle = FENCE.dark; // outline
-        roundRect(x - 1.5, y - 1.5, w + 3, h + 3, r); ctx.fill();
-        const g = ctx.createLinearGradient(x, 0, x + w, 0);
-        g.addColorStop(0, FENCE.dark);
-        g.addColorStop(0.35, FENCE.mid);
-        g.addColorStop(0.7, FENCE.light);
-        g.addColorStop(1, FENCE.mid);
-        ctx.fillStyle = g;
-        roundRect(x, y, w, h, r); ctx.fill();
-      }
-    }
+    // Track edges (left + right) — converging toward horizon
+    ctx.strokeStyle = b.edge;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(projectX(-1, 0), projectY(0));
+    ctx.lineTo(projectX(-1, 1), projectY(1));
+    ctx.moveTo(projectX( 1, 0), projectY(0));
+    ctx.lineTo(projectX( 1, 1), projectY(1));
+    ctx.stroke();
   }
 
   function drawObstacles(farOnly) {
