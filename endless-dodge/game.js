@@ -322,21 +322,47 @@
   canvas.addEventListener('mousemove', (e) => { if (e.buttons) pointerHandler(e, true); });
   window.addEventListener('mouseup',   () => { input.left = false; input.right = false; });
 
-  function spawnObstacle() {
-    const worldX = (Math.random() * 2 - 1) * 0.78;
+  // Difficulty ramps 0 → 1 over the first ~75s of a run.
+  function difficulty() {
+    return Math.min(1, elapsed / 75);
+  }
+
+  // Lane slots for wave spawning. Spacing (~0.44) is wider than an obstacle's
+  // collision width, so any empty slot is a fair, passable gap.
+  const SLOTS = [-0.66, -0.22, 0.22, 0.66];
+
+  function makeObstacle(worldX) {
     let img = null;
     if (biomePool.length) {
       const fn = biomePool[Math.floor(Math.random() * biomePool.length)];
       img = loadItem(fn);
     }
-    // Ground half-width in worldX units (collision + draw scale).
-    const agW = 0.18 + Math.random() * 0.10;
+    const agW = 0.15 + Math.random() * 0.04; // small enough to keep slot gaps passable
     obstacles.push({ worldX, z: 1.0, img, agW });
+  }
+
+  // Spawn a row of obstacles across some lane slots, ALWAYS leaving ≥1 slot open.
+  // Row size grows with difficulty: 1 → 2 → 3.
+  function spawnWave(d) {
+    let maxCount = 1 + (d > 0.3 ? 1 : 0) + (d > 0.65 ? 1 : 0); // 1..3
+    let count = maxCount;
+    if (maxCount > 1 && Math.random() < 0.3) count = maxCount - 1; // rhythm variety
+    // Pick `count` distinct slots (4 total, so ≥1 stays empty = guaranteed gap).
+    const idx = [0, 1, 2, 3];
+    for (let i = idx.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [idx[i], idx[j]] = [idx[j], idx[i]];
+    }
+    for (let i = 0; i < count; i++) {
+      const jitter = (Math.random() - 0.5) * 0.06;
+      makeObstacle(SLOTS[idx[i]] + jitter);
+    }
   }
 
   function update(dt) {
     elapsed += dt;
-    forwardSpeed = 0.55 + Math.min(elapsed * 0.025, 0.95);
+    const d = difficulty();
+    forwardSpeed = 0.6 + d * 1.5; // 0.6 → 2.1 over ~75s
     if (bannerTimer > 0) bannerTimer -= dt;
 
     // Steering
@@ -355,12 +381,11 @@
     if (player.worldX < -PLAYER_CLAMP) { player.worldX = -PLAYER_CLAMP; player.vx = 0; }
     if (player.worldX >  PLAYER_CLAMP) { player.worldX =  PLAYER_CLAMP; player.vx = 0; }
 
-    // Spawn obstacles
+    // Spawn obstacle rows; rows come faster as difficulty rises.
     spawnTimer -= dt;
-    const spawnInterval = Math.max(0.30, 0.95 - elapsed * 0.014);
     if (spawnTimer <= 0) {
-      spawnObstacle();
-      spawnTimer = spawnInterval;
+      spawnWave(d);
+      spawnTimer = 1.1 - d * 0.5; // 1.1s → 0.6s between rows
     }
 
     // Advance obstacles toward camera — keep them alive past the player so they fly off-screen.
