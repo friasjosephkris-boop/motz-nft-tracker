@@ -650,16 +650,6 @@
       ctx.lineTo(VW, y);
       ctx.stroke();
     }
-
-    // Track edges (left + right) — converging toward horizon
-    ctx.strokeStyle = b.edge;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(projectX(-1, 0), projectY(0));
-    ctx.lineTo(projectX(-1, 1), projectY(1));
-    ctx.moveTo(projectX( 1, 0), projectY(0));
-    ctx.lineTo(projectX( 1, 1), projectY(1));
-    ctx.stroke();
   }
 
   function drawObstacles(farOnly) {
