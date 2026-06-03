@@ -660,6 +660,41 @@
     ctx.beginPath(); ctx.arc(p.x, p.y, R, 0, Math.PI * 2); ctx.fill();
   }
 
+  // How overcast the sky is (0..1). Ramps in with rain over ~12 score points*10.
+  function cloudiness() {
+    if (!weatherOn || currentBiome.weather !== 'rain') return 0;
+    const start = currentBiome.weatherStart || 0;
+    return Math.max(0, Math.min(1, (score - start) / 120));
+  }
+
+  function drawCloud(x, y, s, a) {
+    ctx.fillStyle = `rgba(228,230,234,${(0.85 * a).toFixed(3)})`;
+    const r = 18 * s;
+    const lobes = [[0, 0, 1], [r * 0.9, 3, 0.8], [-r * 0.9, 4, 0.75], [r * 0.4, -6, 0.72], [-r * 0.4, -5, 0.66]];
+    for (const [ox, oy, rr] of lobes) {
+      ctx.beginPath();
+      ctx.ellipse(x + ox, y + oy, rr * r, rr * r * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // Overcast tint + drifting clouds while it's raining (dims the sun behind them).
+  const CLOUDS = [
+    { x: 60, y: 42, s: 1.0 }, { x: 190, y: 28, s: 1.3 }, { x: 310, y: 52, s: 1.1 },
+    { x: 130, y: 72, s: 0.9 }, { x: 260, y: 84, s: 1.0 },
+  ];
+  function drawClouds() {
+    const c = cloudiness();
+    if (c <= 0) return;
+    ctx.fillStyle = `rgba(110,120,132,${(0.42 * c).toFixed(3)})`;
+    ctx.fillRect(0, 0, VW, HORIZON_Y);
+    const span = VW + 160;
+    for (const cl of CLOUDS) {
+      const x = ((cl.x + elapsed * 6) % span + span) % span - 80;
+      drawCloud(x, cl.y, cl.s, c);
+    }
+  }
+
   function drawSky() {
     const b = currentBiome;
     const grad = ctx.createLinearGradient(0, 0, 0, HORIZON_Y);
@@ -669,6 +704,7 @@
     ctx.fillRect(0, 0, VW, HORIZON_Y);
 
     drawCelestial();
+    drawClouds();
 
     // Far hill ridge
     ctx.fillStyle = b.hill2;
