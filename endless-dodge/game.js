@@ -639,15 +639,36 @@
     ctx.fillStyle = gGrad;
     ctx.fillRect(0, HORIZON_Y, VW, VH - HORIZON_Y);
 
-    // Track edges (left + right) — converging toward horizon
-    ctx.strokeStyle = b.edge;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(projectX(-1, 0), projectY(0));
-    ctx.lineTo(projectX(-1, 1), projectY(1));
-    ctx.moveTo(projectX( 1, 0), projectY(0));
-    ctx.lineTo(projectX( 1, 1), projectY(1));
-    ctx.stroke();
+    // Fences along both track edges. Posts sit at the scrolling stripe z's so
+    // they animate toward the camera; rails connect consecutive post tops.
+    const POST_H = 30; // post height (px) at the near plane
+    const zs = stripes.map(s => s.z).sort((a, b2) => b2 - a); // far -> near
+    for (const sx of [-1, 1]) {
+      const pts = zs.map(z => {
+        const sc = scaleAt(z);
+        const gy = projectY(z);
+        return { x: projectX(sx, z), gy, top: gy - POST_H * sc, sc };
+      });
+      // Two rails (upper + lower) running along the post line.
+      ctx.strokeStyle = b.edge;
+      ctx.lineWidth = 2;
+      for (const frac of [0.85, 0.4]) {
+        ctx.beginPath();
+        pts.forEach((p, i) => {
+          const ry = p.gy - (p.gy - p.top) * frac;
+          if (i === 0) ctx.moveTo(p.x, ry); else ctx.lineTo(p.x, ry);
+        });
+        ctx.stroke();
+      }
+      // Posts.
+      for (const p of pts) {
+        ctx.lineWidth = Math.max(1, 3 * p.sc);
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.gy);
+        ctx.lineTo(p.x, p.top);
+        ctx.stroke();
+      }
+    }
   }
 
   function drawObstacles(farOnly) {
