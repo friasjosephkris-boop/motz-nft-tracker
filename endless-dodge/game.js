@@ -42,23 +42,120 @@
     return VW / 2 + worldX * TRACK_HALF_PX * scaleAt(z);
   }
 
+  // ---- Biomes ----
+  // Each biome defines a palette for sky/hills/ground + a weather type.
+  // Item pools come from assets/items-manifest.json (biome key + "any" fallback).
+  const BIOMES = {
+    savannah: {
+      name: 'Savannah Desert',
+      skyTop: '#f4b56b', skyBot: '#ffe6bf',
+      hill: '#d39a55', hill2: '#c4863f',
+      groundTop: '#e7be73', groundBot: '#f1d49a',
+      edge: 'rgba(120,85,35,0.35)', stripe: 'rgba(255,255,255,0.13)',
+      weather: 'none',
+    },
+    forest: {
+      name: 'Forest',
+      skyTop: '#7fbef0', skyBot: '#cfeafb',
+      hill: '#4f8f4a', hill2: '#3c7038',
+      groundTop: '#79c06b', groundBot: '#8ed57c',
+      edge: 'rgba(35,65,28,0.35)', stripe: 'rgba(255,255,255,0.18)',
+      weather: 'rain',
+    },
+    arctic: {
+      name: 'Arctic',
+      skyTop: '#bfe0f5', skyBot: '#eef8ff',
+      hill: '#cfe3ef', hill2: '#b4d2e4',
+      groundTop: '#e9f3fb', groundBot: '#ffffff',
+      edge: 'rgba(120,150,180,0.35)', stripe: 'rgba(170,205,235,0.45)',
+      weather: 'snow',
+    },
+    mystic: {
+      name: 'Mystic',
+      skyTop: '#4d2384', skyBot: '#9a6fd4',
+      hill: '#6e3aa0', hill2: '#552c84',
+      groundTop: '#7b4bb0', groundBot: '#a279d8',
+      edge: 'rgba(40,10,70,0.4)', stripe: 'rgba(225,190,255,0.22)',
+      weather: 'motes', moteColor: '230,190,255',
+    },
+    genesis: {
+      name: 'Genesis',
+      skyTop: '#081636', skyBot: '#1d3a70',
+      hill: '#142a54', hill2: '#0e1f40',
+      groundTop: '#16356b', groundBot: '#2a5fa0',
+      edge: 'rgba(5,15,40,0.5)', stripe: 'rgba(120,170,255,0.22)',
+      weather: 'motes', moteColor: '150,190,255',
+    },
+    luna: {
+      name: "Luna's Landing",
+      skyTop: '#4f0b0b', skyBot: '#a82626',
+      hill: '#7a1515', hill2: '#5c0f0f',
+      groundTop: '#8a1c1c', groundBot: '#c64030',
+      edge: 'rgba(40,5,5,0.5)', stripe: 'rgba(255,185,165,0.22)',
+      weather: 'motes', moteColor: '255,160,140',
+    },
+  };
+  const BIOME_KEYS = Object.keys(BIOMES);
+
+  // ---- Item assets ----
+  let manifest = null;          // { savannah:[...], ..., any:[...] }
+  const itemCache = new Map();  // filename -> Image
+  function loadItem(fn) {
+    let img = itemCache.get(fn);
+    if (!img) {
+      img = new Image();
+      img.src = 'assets/items/' + encodeURIComponent(fn);
+      itemCache.set(fn, img);
+    }
+    return img;
+  }
+  fetch('assets/items-manifest.json')
+    .then(r => r.json())
+    .then(m => { manifest = m; })
+    .catch(() => { manifest = null; });
+
+  // Pool of item filenames for the current run's biome (biome-specific + any).
+  let biomePool = [];
+  function buildBiomePool(biomeKey) {
+    const specific = (manifest && manifest[biomeKey]) || [];
+    const any = (manifest && manifest.any) || [];
+    biomePool = specific.concat(any);
+    // Warm a random subset so the first obstacles have art ready.
+    const warm = biomePool.slice().sort(() => Math.random() - 0.5).slice(0, 24);
+    for (const fn of warm) loadItem(fn);
+  }
+
   // ---- Storage ----
   const STORAGE_KEY = 'endless-dodge-best';
   let best = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10);
   bestEl.textContent = 'Best: ' + best;
 
   // ---- Sprites ----
-  const mechSheet = new Image();
-  let mechReady = false;
-  mechSheet.onload = () => { mechReady = true; };
-  mechSheet.onerror = () => { mechReady = false; };
-  mechSheet.src = 'assets/mech-sheet.png?v=4';
+  // Three sprites: rear (idle/straight), right (banking right), left (banking left).
+  const mechRear  = new Image();
+  const mechRight = new Image();
+  const mechLeft  = new Image();
+  let mechReady = 0; // bitmask: 1=rear, 2=right, 4=left
+  mechRear.onload  = () => { mechReady |= 1; };
+  mechRight.onload = () => { mechReady |= 2; };
+  mechLeft.onload  = () => { mechReady |= 4; };
+  mechRear.src  = 'assets/mech%20rear.png?v=1';
+  mechRight.src = 'assets/mech%20right.png?v=1';
+  mechLeft.src  = 'assets/mech%20left.png?v=1';
 
-  const FRAMES = {
-    left:   [56,  584, 416, 443],
-    center: [209, 90,  576, 500],
-    right:  [523, 585, 416, 457],
+  // Per-sprite metadata: aspect (w/h) and thruster nozzle anchors as fractions of drawn (w, h).
+  const SPRITES = {
+    rear:  { img: mechRear,  bit: 1, aspect: 1.00, left: { x: 0.254, y: 0.625 }, right: { x: 0.746, y: 0.625 } },
+    right: { img: mechRight, bit: 2, aspect: 1.13, left: { x: 0.128, y: 0.635 }, right: { x: 0.872, y: 0.635 } },
+    left:  { img: mechLeft,  bit: 4, aspect: 1.13, left: { x: 0.128, y: 0.635 }, right: { x: 0.872, y: 0.635 } },
   };
+  const STEER_BANK = 0.9; // |vx| above this → use banking (left/right) sprite
+
+  function currentSprite() {
+    if (player.vx >  STEER_BANK) return SPRITES.right;
+    if (player.vx < -STEER_BANK) return SPRITES.left;
+    return SPRITES.rear;
+  }
 
   // ---- Player ----
   const player = {
@@ -73,18 +170,19 @@
 
   // ---- Obstacles ----
   // Each obstacle has worldX in [-1,1] and z in [0,1] decreasing over time.
-  // Visual: a colored box sitting on the ground at the projected position.
-  const OBS_TYPES = [
-    { color: '#a0a4b0', dark: '#6e7280', wx: 0.28, hPx: 70, label: 'rock' },
-    { color: '#7ec8e3', dark: '#3e88a8', wx: 0.20, hPx: 90, label: 'crate' },
-    { color: '#f0a868', dark: '#9c5a2a', wx: 0.34, hPx: 60, label: 'barrel' },
-  ];
+  // Visual: an item sprite (from the current biome pool) sitting on the ground.
+  // Fallback box if an item image isn't ready yet.
+  const FALLBACK = { color: '#b0a48c', dark: '#7a6e58' };
 
   let obstacles = [];
   let stripes = [];
   let particles = [];
   let smoke = [];
+  let weather = [];
   let smokeTimer = 0;
+
+  let currentBiome = BIOMES.forest;
+  let bannerTimer = 0;
 
   // Ground motion stripes (lateral lines on the ground that scroll forward)
   function seedStripes() {
@@ -92,6 +190,27 @@
     for (let i = 0; i < 14; i++) stripes.push({ z: i / 14 });
   }
   seedStripes();
+
+  function seedWeather() {
+    weather = [];
+    const w = currentBiome.weather;
+    if (w === 'none') return;
+    const count = w === 'rain' ? 90 : w === 'snow' ? 70 : 40;
+    for (let i = 0; i < count; i++) {
+      weather.push({
+        x: Math.random() * VW,
+        y: Math.random() * VH,
+        spd: w === 'rain' ? 420 + Math.random() * 180
+           : w === 'snow' ? 40 + Math.random() * 40
+           : 12 + Math.random() * 20,
+        drift: w === 'snow' ? (Math.random() - 0.5) * 25
+             : w === 'motes' ? (Math.random() - 0.5) * 18 : 0,
+        r: w === 'rain' ? 0 : 1 + Math.random() * 2,
+        len: w === 'rain' ? 8 + Math.random() * 8 : 0,
+        ph: Math.random() * Math.PI * 2,
+      });
+    }
+  }
 
   let running = false;
   let score = 0;
@@ -111,7 +230,13 @@
     elapsed = 0;
     spawnTimer = 0;
     forwardSpeed = 0.55;
+    // Pick a random biome for this run.
+    const key = BIOME_KEYS[Math.floor(Math.random() * BIOME_KEYS.length)];
+    currentBiome = BIOMES[key];
+    buildBiomePool(key);
+    bannerTimer = 2.6;
     seedStripes();
+    seedWeather();
   }
 
   function start() {
@@ -178,14 +303,21 @@
   window.addEventListener('mouseup',   () => { input.left = false; input.right = false; });
 
   function spawnObstacle() {
-    const t = OBS_TYPES[Math.floor(Math.random() * OBS_TYPES.length)];
     const worldX = (Math.random() * 2 - 1) * 0.78;
-    obstacles.push({ worldX, z: 1.0, type: t });
+    let img = null;
+    if (biomePool.length) {
+      const fn = biomePool[Math.floor(Math.random() * biomePool.length)];
+      img = loadItem(fn);
+    }
+    // Ground half-width in worldX units (collision + draw scale).
+    const agW = 0.18 + Math.random() * 0.10;
+    obstacles.push({ worldX, z: 1.0, img, agW });
   }
 
   function update(dt) {
     elapsed += dt;
     forwardSpeed = 0.55 + Math.min(elapsed * 0.025, 0.95);
+    if (bannerTimer > 0) bannerTimer -= dt;
 
     // Steering
     let ax = 0;
@@ -221,33 +353,42 @@
       if (s.z < 0) s.z += 1;
     }
 
+    // Weather motion
+    updateWeather(dt);
+
     // Collision: only at near plane (when obstacle z ~ 0)
     for (const o of obstacles) {
       if (o.z < 0.06 && o.z > -0.05) {
         const dx = Math.abs(o.worldX - player.worldX);
-        const collideX = o.type.wx + 0.10; // half-width sum
-        if (dx < collideX) {
+        if (dx < o.agW + 0.10) {
           gameOver();
           return;
         }
       }
     }
 
-    // Smoke from thrusters
+    // Smoke from thrusters — emit from each nozzle anchor on the current sprite.
     smokeTimer -= dt;
     if (smokeTimer <= 0) {
       smokeTimer = 0.022;
-      const baseY = projectY(0) - player.spriteH * 0.35;
-      const cx    = projectX(player.worldX, 0);
-      const leftX  = cx - player.spriteH * 0.22;
-      const rightX = cx + player.spriteH * 0.22;
-      for (const tx of [leftX, rightX]) {
+      const spr = currentSprite();
+      const cx = projectX(player.worldX, 0);
+      const cy = projectY(0);
+      const h  = player.spriteH;
+      const w  = h * spr.aspect;
+      const px = cx - w / 2;
+      const py = cy - h * 0.85;
+      const nozzles = [
+        { x: px + w * spr.left.x,  y: py + h * spr.left.y  },
+        { x: px + w * spr.right.x, y: py + h * spr.right.y },
+      ];
+      for (const n of nozzles) {
         smoke.push({
-          x: tx + (Math.random() - 0.5) * 4,
-          y: baseY + (Math.random() - 0.5) * 2,
-          vx: (Math.random() - 0.5) * 30 - player.vx * 18,
-          vy: 50 + Math.random() * 35,
-          r: 5 + Math.random() * 3,
+          x: n.x + (Math.random() - 0.5) * 4,
+          y: n.y + (Math.random() - 0.5) * 2,
+          vx: (Math.random() - 0.5) * 24 - player.vx * 18,
+          vy: 55 + Math.random() * 35,
+          r: 4 + Math.random() * 3,
           grow: 24 + Math.random() * 12,
           life: 0.55 + Math.random() * 0.25,
           max: 0.8,
@@ -257,6 +398,23 @@
 
     score = Math.floor(elapsed * 10);
     scoreEl.textContent = score;
+  }
+
+  function updateWeather(dt) {
+    const w = currentBiome.weather;
+    if (w === 'none') return;
+    for (const p of weather) {
+      p.x += (p.drift + (w === 'motes' ? Math.sin(p.ph + elapsed) * 8 : 0)) * dt;
+      if (w === 'motes') {
+        p.y -= p.spd * dt; // motes drift upward
+        if (p.y < -10) { p.y = VH + 10; p.x = Math.random() * VW; }
+      } else {
+        p.y += p.spd * dt;
+        if (p.y > VH + 10) { p.y = -10; p.x = Math.random() * VW; }
+      }
+      if (p.x < -10) p.x = VW + 10;
+      if (p.x > VW + 10) p.x = -10;
+    }
   }
 
   function updateSmoke(dt) {
@@ -281,40 +439,49 @@
   }
 
   function drawSky() {
+    const b = currentBiome;
     const grad = ctx.createLinearGradient(0, 0, 0, HORIZON_Y);
-    grad.addColorStop(0, '#86c6f5');
-    grad.addColorStop(1, '#c8e6fa');
+    grad.addColorStop(0, b.skyTop);
+    grad.addColorStop(1, b.skyBot);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, VW, HORIZON_Y);
 
-    // Distant hills
-    ctx.fillStyle = '#7fb27a';
+    // Far hill ridge
+    ctx.fillStyle = b.hill2;
     ctx.beginPath();
     ctx.moveTo(0, HORIZON_Y);
     for (let i = 0; i <= 8; i++) {
       const x = i * (VW / 8);
-      const y = HORIZON_Y - 14 - Math.sin(i * 1.3) * 8 - (i % 2 === 0 ? 6 : 0);
+      const y = HORIZON_Y - 22 - Math.sin(i * 0.9 + 1) * 12;
       ctx.lineTo(x, y);
     }
-    ctx.lineTo(VW, HORIZON_Y);
-    ctx.closePath();
-    ctx.fill();
+    ctx.lineTo(VW, HORIZON_Y); ctx.closePath(); ctx.fill();
+
+    // Near hill ridge
+    ctx.fillStyle = b.hill;
+    ctx.beginPath();
+    ctx.moveTo(0, HORIZON_Y);
+    for (let i = 0; i <= 8; i++) {
+      const x = i * (VW / 8);
+      const y = HORIZON_Y - 12 - Math.sin(i * 1.3) * 8 - (i % 2 === 0 ? 6 : 0);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(VW, HORIZON_Y); ctx.closePath(); ctx.fill();
   }
 
   function drawGround() {
-    // Grass fill
+    const b = currentBiome;
     const gGrad = ctx.createLinearGradient(0, HORIZON_Y, 0, VH);
-    gGrad.addColorStop(0, '#7cc26e');
-    gGrad.addColorStop(1, '#8fd57f');
+    gGrad.addColorStop(0, b.groundTop);
+    gGrad.addColorStop(1, b.groundBot);
     ctx.fillStyle = gGrad;
     ctx.fillRect(0, HORIZON_Y, VW, VH - HORIZON_Y);
 
     // Forward-scrolling stripes (motion lines)
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
     for (const s of stripes) {
       const y = projectY(s.z);
-      const alpha = (1 - s.z) * 0.35 + 0.05;
-      ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+      const alpha = (1 - s.z) * 0.30 + 0.04;
+      ctx.strokeStyle = b.stripe.replace(/[\d.]+\)$/, alpha.toFixed(2) + ')');
       ctx.lineWidth = 1 + (1 - s.z) * 2;
       ctx.beginPath();
       ctx.moveTo(0, y);
@@ -323,7 +490,7 @@
     }
 
     // Track edges (left + right) — converging toward horizon
-    ctx.strokeStyle = 'rgba(60,80,50,0.35)';
+    ctx.strokeStyle = b.edge;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(projectX(-1, 0), projectY(0));
@@ -342,26 +509,30 @@
       const s = scaleAt(z);
       const cx = projectX(o.worldX, z);
       const cy = projectY(z);
-      const w = o.type.wx * TRACK_HALF_PX * s * 2;
-      const h = o.type.hPx * s;
+      const baseW = o.agW * TRACK_HALF_PX * s * 2;
 
       // Shadow on the ground (ellipse)
-      ctx.fillStyle = `rgba(0,0,0,${0.28 * (1 - z * 0.4)})`;
+      ctx.fillStyle = `rgba(0,0,0,${0.26 * (1 - z * 0.4)})`;
       ctx.beginPath();
-      ctx.ellipse(cx, cy + 2, w * 0.55, h * 0.10, 0, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, baseW * 0.55, baseW * 0.16, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Body
-      const grad = ctx.createLinearGradient(0, cy - h, 0, cy);
-      grad.addColorStop(0, o.type.color);
-      grad.addColorStop(1, o.type.dark);
-      ctx.fillStyle = grad;
-      roundRect(cx - w / 2, cy - h, w, h, Math.max(3, 6 * s));
-      ctx.fill();
-
-      // Highlight stripe
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.fillRect(cx - w / 2 + 3, cy - h + 3, Math.max(2, 4 * s), Math.max(2, h - 8));
+      const img = o.img;
+      if (img && img.complete && img.naturalWidth > 0) {
+        const aspect = img.naturalWidth / img.naturalHeight;
+        const dw = baseW * 1.35; // items render a touch wider than the collision box
+        const dh = dw / aspect;
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(img, cx - dw / 2, cy - dh, dw, dh);
+      } else {
+        const h = baseW * 1.2;
+        const grad = ctx.createLinearGradient(0, cy - h, 0, cy);
+        grad.addColorStop(0, FALLBACK.color);
+        grad.addColorStop(1, FALLBACK.dark);
+        ctx.fillStyle = grad;
+        roundRect(cx - baseW / 2, cy - h, baseW, h, Math.max(3, 6 * s));
+        ctx.fill();
+      }
     }
   }
 
@@ -369,8 +540,9 @@
     const z = 0;
     const cx = projectX(player.worldX, z);
     const cy = projectY(z);
+    const spr = currentSprite();
     const h = player.spriteH;
-    const w = h * 0.92;
+    const w = h * spr.aspect;
     const px = cx - w / 2;
     const py = cy - h * 0.85;
 
@@ -380,13 +552,9 @@
     ctx.ellipse(cx, cy - 4, w * 0.45, 8, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    if (mechReady) {
-      let frame = FRAMES.center;
-      if (player.vx < -0.6) frame = FRAMES.left;
-      else if (player.vx > 0.6) frame = FRAMES.right;
-      const [sx, sy, sw, sh] = frame;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(mechSheet, sx, sy, sw, sh, px, py, w, h);
+    if (mechReady & spr.bit) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(spr.img, px, py, w, h);
     } else {
       ctx.fillStyle = '#7aa6ff';
       roundRect(px, py, w, h, 8);
@@ -396,14 +564,45 @@
 
   function drawSmoke() {
     for (const p of smoke) {
-      const a = Math.max(0, p.life / p.max) * 0.55;
+      const a = Math.max(0, p.life / p.max) * 0.85;
       const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-      grad.addColorStop(0, `rgba(220,230,245,${a})`);
-      grad.addColorStop(1, `rgba(160,170,190,0)`);
+      grad.addColorStop(0, `rgba(245,248,255,${a})`);
+      grad.addColorStop(0.6, `rgba(180,190,210,${a * 0.7})`);
+      grad.addColorStop(1, `rgba(120,130,150,0)`);
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
       ctx.fill();
+    }
+  }
+
+  function drawWeather() {
+    const w = currentBiome.weather;
+    if (w === 'none') return;
+    if (w === 'rain') {
+      ctx.strokeStyle = 'rgba(200,220,255,0.5)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (const p of weather) {
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - 2, p.y + p.len);
+      }
+      ctx.stroke();
+    } else if (w === 'snow') {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      for (const p of weather) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (w === 'motes') {
+      for (const p of weather) {
+        const tw = 0.5 + 0.5 * Math.sin(p.ph + elapsed * 2);
+        ctx.fillStyle = `rgba(${currentBiome.moteColor},${(0.5 * tw + 0.15).toFixed(2)})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
   }
 
@@ -416,14 +615,31 @@
     ctx.globalAlpha = 1;
   }
 
+  function drawBanner() {
+    if (bannerTimer <= 0) return;
+    const fadeIn = Math.min(1, (2.6 - bannerTimer) / 0.25);
+    const fadeOut = Math.min(1, bannerTimer / 0.6);
+    ctx.globalAlpha = Math.max(0, Math.min(1, Math.min(fadeIn, fadeOut)));
+    ctx.font = '600 22px -apple-system, Segoe UI, Roboto, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillText(currentBiome.name, VW / 2 + 1, HORIZON_Y + 41);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(currentBiome.name, VW / 2, HORIZON_Y + 40);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  }
+
   function draw() {
     ctx.clearRect(0, 0, VW, VH);
     drawSky();
     drawGround();
     drawObstacles();
-    drawSmoke();
     if (running || particles.length === 0) drawPlayer();
+    drawSmoke();
+    drawWeather();
     drawParticles();
+    drawBanner();
   }
 
   function roundRect(x, y, w, h, r) {

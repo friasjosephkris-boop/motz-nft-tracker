@@ -15,7 +15,9 @@
     "name": "Arctic Bonzai Tree",
     "file": "arctic-bonzai-tree.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a4b.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Arctic Logs",
@@ -45,7 +47,9 @@
     "name": "Barrel",
     "file": "barrel.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s20a.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Bartender's Ice Bucket",
@@ -87,7 +91,9 @@
     "name": "Basket of Wild Flower",
     "file": "basket-of-wild-flower.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s14a.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Beansprout In A Clay Pot",
@@ -189,7 +195,9 @@
     "name": "Broken Jar",
     "file": "broken-jar.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s7a.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Broken Jar Of Sand",
@@ -231,7 +239,9 @@
     "name": "Cactus",
     "file": "cactus.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s13a.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Cactus and friends",
@@ -297,7 +307,9 @@
     "name": "Desert Succulent",
     "file": "desert-succulent.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s5a.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Desert Thorned Succulent",
@@ -321,7 +333,9 @@
     "name": "Empty Broken Jar",
     "file": "empty-broken-jar.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s7b.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Exceptional Tribal Mask",
@@ -363,7 +377,9 @@
     "name": "Frozen Nautilus",
     "file": "frozen-nautilus.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a14b.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Frozen Pufferfish",
@@ -375,7 +391,9 @@
     "name": "Frozen Yarn",
     "file": "frozen-yarn.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a17b.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Ganbaru CrypTon",
@@ -477,13 +495,17 @@
     "name": "Ice Bucket",
     "file": "ice-bucket.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a9a.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Icy Buds",
     "file": "icy-buds.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a20a.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Icy finely crafted flowers",
@@ -699,13 +721,17 @@
     "name": "Matryoshka Doll",
     "file": "matryoshka-doll.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a7a.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Matryoshka Doll Family",
     "file": "matryoshka-doll-family.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a8a.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Moon Crystal",
@@ -753,7 +779,9 @@
     "name": "Oil lamp",
     "file": "oil-lamp.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a1a.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Old City Banner",
@@ -777,7 +805,9 @@
     "name": "Paper Propeller",
     "file": "paper-propeller.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s4a.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Patterned Side Table",
@@ -807,13 +837,17 @@
     "name": "Poisonous Vase",
     "file": "poisonous-vase.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s11a.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Puff Snowglobe",
     "file": "puff-snowglobe.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a16a.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Purple Lavender",
@@ -903,7 +937,9 @@
     "name": "Ruin Shard",
     "file": "ruin-shard.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s6a.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Runic Stone",
@@ -933,7 +969,9 @@
     "name": "Snow Idol Statue",
     "file": "snow-idol-statue.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a15a.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Spring Shrub",
@@ -945,7 +983,9 @@
     "name": "Sprout In A Clay Pot",
     "file": "sprout-in-a-clay-pot.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/s8a.png",
-    "environments": []
+    "environments": [
+      "Savannah"
+    ]
   },
   {
     "name": "Standing Rock",
@@ -1137,7 +1177,9 @@
     "name": "Tulip",
     "file": "tulip.png",
     "src": "https://cdn.axieinfinity.com/game/lands/terrarium-items/version-20220422/a5a.png",
-    "environments": []
+    "environments": [
+      "Arctic"
+    ]
   },
   {
     "name": "Used Axe",
